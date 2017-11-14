@@ -95,45 +95,37 @@ int main(int argc, char **argv) {
     igl::viewer::Viewer viewer;
     const auto & update = [&]()
     {
-        // // predefined colors
-        // const Eigen::RowVector3d orange(1.0,0.7,0.2);
-        // const Eigen::RowVector3d yellow(1.0,0.9,0.2);
-        // const Eigen::RowVector3d blue(0.2,0.3,0.8);
-        // const Eigen::RowVector3d green(0.2,0.6,0.3);
-        // if(s.placing_handles)
-        // {
-        //     viewer.data.set_vertices(V);
-        //     viewer.data.set_colors(blue);
-        //     viewer.data.set_points(s.CV,orange);
-        // }else
-        // {
-        //     // SOLVE FOR DEFORMATION
-        //     switch(method)
-        //     {
-	       //      default:
-	       //      case BIHARMONIC:
-	       //      {
-	       //          Eigen::MatrixXd D;
-	       //          biharmonic_solve(biharmonic_data,s.CU-s.CV,D);
-	       //          U = V+D;
-	       //          break;
-	       //      }
-	       //      case ARAP:
-	       //      {
-	       //          arap_single_iteration(arap_data,arap_K,s.CU,U);
-	       //          break;
-        //     	}
-        //     }
-        //     viewer.data.set_vertices(U);
-        //     viewer.data.set_colors(method==BIHARMONIC?orange:yellow);
-        //     viewer.data.set_points(s.CU,method==BIHARMONIC?blue:green);
-        // }
+        stepper.step(world);
+
+        Eigen::Map<Eigen::VectorXd> q = mapStateEigen<0>(world); // Get displacements only
+
+        Eigen::MatrixXd newV = V + q; // TODO this isn't working
+
+        viewer.data.set_vertices(newV);
+   
         // viewer.data.compute_normals();
+    };
+
+    viewer.callback_key_pressed = [&](igl::viewer::Viewer &, unsigned int key, int mod)
+    {
+        switch(key)
+        {
+            case 'P':
+            case 'p':
+            {
+                viewer.core.is_animating = !viewer.core.is_animating;
+                break;
+            }
+            default:
+            return false;
+        }
+        update();
+        return true;
     };
 
     viewer.data.set_mesh(V,F);
     viewer.core.show_lines = false;
-    viewer.core.is_animating = true;
+    viewer.core.is_animating = false;
     viewer.data.face_based = true;
     update();
     viewer.launch();
