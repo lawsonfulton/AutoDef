@@ -72,14 +72,14 @@ int main(int argc, char **argv) {
 
     // // Pinned particle to attach spring for dragging
     PhysicalSystemParticleSingle<double> *pinned_point = new PhysicalSystemParticleSingle<double>();
-    pinned_point->getImpl().setMass(1000000);
+    pinned_point->getImpl().setMass(10000000);
     auto fem_attached_pos = PosFEM<double>(&tets->getQ()[0],0, &tets->getImpl().getV());
 
-    double spring_stiffness = 10.0;
-    double spring_rest_length = 0.0;
+    double spring_stiffness = 400.0;
+    double spring_rest_length = 0.1;
     ForceSpringFEMParticle<double> *forceSpring = new ForceSpringFEMParticle<double>(fem_attached_pos, // TODO compare getV to V. Get rid of double use of index
                                                                                      PosParticle<double>(&pinned_point->getQ()),
-                                                                                     spring_rest_length, spring_stiffness);
+                                                                                     spring_rest_length, 0.0);
 
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
@@ -110,6 +110,9 @@ int main(int argc, char **argv) {
             // std::cout << "q_part " << q_part << std::endl;
             // std::cout << "part_pos " << part_pos << std::endl;
             viewer.data.set_points(part_pos.transpose(), orange);
+        } else {
+            Eigen::MatrixXd part_pos;
+            viewer.data.set_points(part_pos, orange);
         }
 
         if(viewer.core.is_animating)
@@ -164,7 +167,7 @@ int main(int argc, char **argv) {
         {
             long c;
             bary.maxCoeff(&c);
-            dragged_pos = curV.row(F(fid,c));
+            dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.001,0.0,0.0); //Epsilon offset so we don't div by 0
             dragged_vert = F(fid,c);
             std::cout << "Dragging vert: " << dragged_vert << std::endl;
 
@@ -173,6 +176,10 @@ int main(int argc, char **argv) {
             forceSpring->getImpl().setStiffness(spring_stiffness);
             auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
             pinned_q = dragged_pos;//(dragged_pos).cast<double>(); // necessary?
+
+            fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl().getV());
+
+            return true;
         }
         
         return false; // TODO false vs true??
@@ -182,39 +189,44 @@ int main(int argc, char **argv) {
     {
         is_dragging = false;
         forceSpring->getImpl().setStiffness(0.0);
+        // auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
+        // pinned_q = Eigen::RowVector3d(-10000.0,0.0,0.0); // Move the point out of view
 
         return false;
     };
 
     viewer.callback_mouse_move = [&](igl::viewer::Viewer &, int,int)->bool
     {
-        Eigen::RowVector3f drag_mouse(
-            viewer.current_mouse_x,
-            viewer.core.viewport(3) - viewer.current_mouse_y,
-            last_mouse(2));
+        if(is_dragging) {
+            Eigen::RowVector3f drag_mouse(
+                viewer.current_mouse_x,
+                viewer.core.viewport(3) - viewer.current_mouse_y,
+                last_mouse(2));
 
-        Eigen::RowVector3f drag_scene,last_scene;
+            Eigen::RowVector3f drag_scene,last_scene;
 
-        igl::unproject(
-            drag_mouse,
-            viewer.core.view*viewer.core.model,
-            viewer.core.proj,
-            viewer.core.viewport,
-            drag_scene);
-        igl::unproject(
-            last_mouse,
-            viewer.core.view*viewer.core.model,
-            viewer.core.proj,
-            viewer.core.viewport,
-            last_scene);
+            igl::unproject(
+                drag_mouse,
+                viewer.core.view*viewer.core.model,
+                viewer.core.proj,
+                viewer.core.viewport,
+                drag_scene);
+            igl::unproject(
+                last_mouse,
+                viewer.core.view*viewer.core.model,
+                viewer.core.proj,
+                viewer.core.viewport,
+                last_scene);
 
-        dragged_pos += (drag_scene-last_scene).cast<double>();;
-        last_mouse = drag_mouse;
+            dragged_pos += ((drag_scene-last_scene)*4.5).cast<double>(); //TODO why do I need to fine tune this
+            // dragged_pos += (drag_mouse-last_mouse).cast<double>();
+            last_mouse = drag_mouse;
 
-        // Update the system
-        // TODO dedupe this
-        auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
-        pinned_q = dragged_pos; //(dragged_pos).cast<double>(); // necessary?
+            // Update the system
+            // TODO dedupe this
+            auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
+            pinned_q = dragged_pos; //(dragged_pos).cast<double>(); // necessary?
+        }
 
         return false;
     };
