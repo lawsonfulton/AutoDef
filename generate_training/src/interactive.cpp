@@ -30,40 +30,21 @@ typedef PhysicalSystemFEM<double, NeohookeanTet> NeohookeanTets;
 
 typedef World<double, 
                         std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
-                        std::tuple<ForceSpring<double> *>,
+                        std::tuple<ForceSpringFEMParticle<double> *>,
                         std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
 typedef TimeStepperEulerImplictLinear<double, AssemblerEigenSparseMatrix<double>,
 AssemblerEigenVector<double> > MyTimeStepper;
 
-
-
-
+// Mesh
 Eigen::MatrixXd V; // Verts
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
 
-bool saveFrames = false;
-std::string outputDir = "frames/";
-int frame = 0;
-void preStepCallback(MyWorld &world) {
-    // if(saveFrames) {
-    //     Eigen::Map<Eigen::VectorXd> q = mapStateEigen<0>(world); // Get displacements only
-
-    //     Eigen::MatrixXd displacements = q;
-        
-    //     std::stringstream filename;
-    //     filename << outputDir << "displacements_" << frame << ".ply";
-    //     Eigen::MatrixXi no_faces;
-    //     igl::writePLY(filename.str(), displacements, no_faces, false);
-    //     frame++;
-    // }
-}
-
-// void saveBase(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
-//     std::stringstream filename;
-//     filename << outputDir << "base_mesh.ply";
-//     igl::writePLY(filename.str(), V, F, false);
-// }
+// Mouse state
+Eigen::RowVector3f last_mouse;
+Eigen::RowVector3d dragged_pos;
+bool is_dragging = false;
+int dragged_vert = 0;
 
 // Todo put this in utilities
 Eigen::MatrixXd getCurrentVertPositions(MyWorld &world, NeohookeanTets *tets) {
@@ -75,6 +56,11 @@ Eigen::MatrixXd getCurrentVertPositions(MyWorld &world, NeohookeanTets *tets) {
 }
 
 
+void reset_world (MyWorld &world) {
+        auto q = mapStateEigen(world); // TODO is this necessary?
+        q.setZero();
+}
+
 int main(int argc, char **argv) {
     std::cout<<"Test Neohookean FEM \n";
     
@@ -83,42 +69,31 @@ int main(int argc, char **argv) {
     
     igl::readMESH("../mesh/Beam.mesh", V, T, F);
     NeohookeanTets *tets = new NeohookeanTets(V,T);
-    
-    world.addSystem(tets);
-    fixDisplacementMin(world, tets);
 
-    // Pinned particle to attach spring for dragging
+    // // Pinned particle to attach spring for dragging
     PhysicalSystemParticleSingle<double> *pinned_point = new PhysicalSystemParticleSingle<double>();
-    // TODO make a set position helper
-    Eigen::Vector3d pinned_pos(5.0,5.0,5.0); 
+    pinned_point->getImpl().setMass(1000000);
+    auto fem_attached_pos = PosFEM<double>(&tets->getQ()[0],0, &tets->getImpl().getV());
 
-    ForceSpring<double> *forceSpring = new ForceSpring<double>(&pinned_point->getQ(),  &tets->getQ()[100], 1, 8.0);
+    double spring_stiffness = 10.0;
+    double spring_rest_length = 0.0;
+    ForceSpringFEMParticle<double> *forceSpring = new ForceSpringFEMParticle<double>(fem_attached_pos, // TODO compare getV to V. Get rid of double use of index
+                                                                                     PosParticle<double>(&pinned_point->getQ()),
+                                                                                     spring_rest_length, spring_stiffness);
 
-    // TODO make this work
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
-
+    world.addSystem(tets);
+    fixDisplacementMin(world, tets);
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
     
-    
-
-    auto reset_world = [&]() {
-        auto q = mapStateEigen(world); // TODO is this necessary?
-        q.setZero();
-
-        auto q_part = mapDOFEigen(pinned_point->getQ(), world);
-        q_part = pinned_pos;
-    };
-
-    reset_world();
+    reset_world(world);
     
     MyTimeStepper stepper(0.01);
     stepper.step(world);
     
 
-
     /** libigl display stuff **/
-    std::vector<int> dragged_verts;
     igl::viewer::Viewer viewer;
 
     viewer.callback_pre_draw = [&](igl::viewer::Viewer & viewer)
@@ -129,11 +104,13 @@ int main(int argc, char **argv) {
         const Eigen::RowVector3d blue(0.2,0.3,0.8);
         const Eigen::RowVector3d green(0.2,0.6,0.3);
 
-        auto q_part = mapDOFEigen(pinned_point->getQ(), world);
-        Eigen::MatrixXd part_pos = q_part;
-        std::cout << "q_part " << q_part << std::endl;
-        std::cout << "part_pos " << part_pos << std::endl;
-        viewer.data.set_points(part_pos.transpose(), orange);
+        if(is_dragging) {
+            auto q_part = mapDOFEigen(pinned_point->getQ(), world);
+            Eigen::MatrixXd part_pos = q_part;
+            // std::cout << "q_part " << q_part << std::endl;
+            // std::cout << "part_pos " << part_pos << std::endl;
+            viewer.data.set_points(part_pos.transpose(), orange);
+        }
 
         if(viewer.core.is_animating)
         {
@@ -160,7 +137,7 @@ int main(int argc, char **argv) {
             case 'r':
             case 'R':
             {
-                reset_world();
+                reset_world(world);
                 break;
             }
             default:
@@ -170,10 +147,10 @@ int main(int argc, char **argv) {
     };
 
     viewer.callback_mouse_down = [&](igl::viewer::Viewer&, int, int)->bool
-    {
+    {   
         Eigen::MatrixXd curV = getCurrentVertPositions(world, tets); 
-        Eigen::RowVector3f last_mouse = Eigen::RowVector3f(viewer.current_mouse_x,viewer.core.viewport(3)-viewer.current_mouse_y,0);
-
+        last_mouse = Eigen::RowVector3f(viewer.current_mouse_x,viewer.core.viewport(3)-viewer.current_mouse_y,0);
+        std::cout << last_mouse << std::endl;
         // Find closest point on mesh to mouse position
         int fid;
         Eigen::Vector3f bary;
@@ -187,50 +164,60 @@ int main(int argc, char **argv) {
         {
             long c;
             bary.maxCoeff(&c);
-            Eigen::RowVector3d new_c = curV.row(F(fid,c));
-            if(dragged_verts.size() != 0) {
-                dragged_verts.pop_back();
-            }
-            dragged_verts.push_back(F(fid,c));
-            std::cout << dragged_verts[0] << std::endl;
+            dragged_pos = curV.row(F(fid,c));
+            dragged_vert = F(fid,c);
+            std::cout << "Dragging vert: " << dragged_vert << std::endl;
+
+            // Update the system
+            is_dragging = true;
+            forceSpring->getImpl().setStiffness(spring_stiffness);
+            auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
+            pinned_q = dragged_pos;//(dragged_pos).cast<double>(); // necessary?
         }
         
+        return false; // TODO false vs true??
+    };
+
+    viewer.callback_mouse_up = [&](igl::viewer::Viewer&, int, int)->bool
+    {
+        is_dragging = false;
+        forceSpring->getImpl().setStiffness(0.0);
+
         return false;
     };
 
-    // viewer.callback_mouse_move = [&](igl::viewer::Viewer &, int,int)->bool
-    // {
-    // if(sel!=-1)
-    // {
-    //     Eigen::RowVector3f drag_mouse(
-    //     viewer.current_mouse_x,
-    //     viewer.core.viewport(3) - viewer.current_mouse_y,
-    //     last_mouse(2));
-    //     Eigen::RowVector3f drag_scene,last_scene;
-    //     igl::unproject(
-    //     drag_mouse,
-    //     viewer.core.view*viewer.core.model,
-    //     viewer.core.proj,
-    //     viewer.core.viewport,
-    //     drag_scene);
-    //     igl::unproject(
-    //     last_mouse,
-    //     viewer.core.view*viewer.core.model,
-    //     viewer.core.proj,
-    //     viewer.core.viewport,
-    //     last_scene);
-    //     s.CU.row(sel) += (drag_scene-last_scene).cast<double>();
-    //     last_mouse = drag_mouse;
-    //     update();
-    //     return true;
-    // }
-    // return false;
-    // };
-    // viewer.callback_mouse_up = [&](igl::viewer::Viewer&, int, int)->bool
-    // {
-    // sel = -1;
-    // return false;
-    // };
+    viewer.callback_mouse_move = [&](igl::viewer::Viewer &, int,int)->bool
+    {
+        Eigen::RowVector3f drag_mouse(
+            viewer.current_mouse_x,
+            viewer.core.viewport(3) - viewer.current_mouse_y,
+            last_mouse(2));
+
+        Eigen::RowVector3f drag_scene,last_scene;
+
+        igl::unproject(
+            drag_mouse,
+            viewer.core.view*viewer.core.model,
+            viewer.core.proj,
+            viewer.core.viewport,
+            drag_scene);
+        igl::unproject(
+            last_mouse,
+            viewer.core.view*viewer.core.model,
+            viewer.core.proj,
+            viewer.core.viewport,
+            last_scene);
+
+        dragged_pos += (drag_scene-last_scene).cast<double>();;
+        last_mouse = drag_mouse;
+
+        // Update the system
+        // TODO dedupe this
+        auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
+        pinned_q = dragged_pos; //(dragged_pos).cast<double>(); // necessary?
+
+        return false;
+    };
 
     viewer.data.set_mesh(V,F);
     viewer.core.show_lines = true;
@@ -242,3 +229,25 @@ int main(int argc, char **argv) {
     return EXIT_SUCCESS;
 }
 
+// bool saveFrames = false;
+// std::string outputDir = "frames/";
+// int frame = 0;
+// void preStepCallback(MyWorld &world) {
+//     // if(saveFrames) {
+//     //     Eigen::Map<Eigen::VectorXd> q = mapStateEigen<0>(world); // Get displacements only
+
+//     //     Eigen::MatrixXd displacements = q;
+        
+//     //     std::stringstream filename;
+//     //     filename << outputDir << "displacements_" << frame << ".ply";
+//     //     Eigen::MatrixXi no_faces;
+//     //     igl::writePLY(filename.str(), displacements, no_faces, false);
+//     //     frame++;
+//     // }
+// }
+
+// // void saveBase(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
+// //     std::stringstream filename;
+// //     filename << outputDir << "base_mesh.ply";
+// //     igl::writePLY(filename.str(), V, F, false);
+// }
