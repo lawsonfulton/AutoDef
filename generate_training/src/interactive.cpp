@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
     pinned_point->getImpl().setMass(10000000);
     auto fem_attached_pos = PosFEM<double>(&tets->getQ()[0],0, &tets->getImpl().getV());
 
-    double spring_stiffness = 400.0;
+    double spring_stiffness = 4000.0;
     double spring_rest_length = 0.1;
     ForceSpringFEMParticle<double> *forceSpring = new ForceSpringFEMParticle<double>(fem_attached_pos, // TODO compare getV to V. Get rid of double use of index
                                                                                      PosParticle<double>(&pinned_point->getQ()),
@@ -178,6 +178,7 @@ int main(int argc, char **argv) {
             pinned_q = dragged_pos;//(dragged_pos).cast<double>(); // necessary?
 
             fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl().getV());
+            forceSpring->getImpl().setPosition0(fem_attached_pos);
 
             return true;
         }
