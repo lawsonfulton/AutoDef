@@ -9,7 +9,7 @@
 #include <ConstraintFixedPoint.h>
 #include <TimeStepperEulerImplicitLinear.h>
 
-// #include <igl/writePLY.h>
+#include <igl/writeDMAT.h>
 #include <igl/viewer/Viewer.h>
 #include <igl/readMESH.h>
 #include <igl/unproject_onto_mesh.h>
@@ -40,11 +40,35 @@ Eigen::MatrixXd V; // Verts
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
 
-// Mouse state
+// Mouse/Viewer state
 Eigen::RowVector3f last_mouse;
 Eigen::RowVector3d dragged_pos;
 bool is_dragging = false;
 int dragged_vert = 0;
+int current_frame = 0;
+
+// Parameters
+bool saving_training_data = true;
+std::string output_dir = "output_data/";
+
+
+void save_displacements_DMAT(const std::string path, MyWorld &world, NeohookeanTets *tets) { // TODO: Add mouse position data to ouput
+    auto q = mapDOFEigen(tets->getQ(), world);
+    Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
+    Eigen::MatrixXd displacements = dV.transpose();
+
+    igl::writeDMAT(path, displacements, false); // Don't use ascii
+}
+
+void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
+    std::stringstream verts_filename, faces_filename;
+    verts_filename << output_dir << "base_verts.dmat";
+    faces_filename << output_dir << "base_faces.dmat";
+    
+    igl::writeDMAT(verts_filename.str(), V, false); // Don't use ascii
+    igl::writeDMAT(faces_filename.str(), F, false); // Don't use ascii
+}
+
 
 // Todo put this in utilities
 Eigen::MatrixXd getCurrentVertPositions(MyWorld &world, NeohookeanTets *tets) {
@@ -92,6 +116,9 @@ int main(int argc, char **argv) {
     MyTimeStepper stepper(0.01);
     stepper.step(world);
     
+    if(saving_training_data) {
+        save_base_configurations_DMAT(V, F);
+    }
 
     /** libigl display stuff **/
     igl::viewer::Viewer viewer;
@@ -107,8 +134,7 @@ int main(int argc, char **argv) {
         if(is_dragging) {
             auto q_part = mapDOFEigen(pinned_point->getQ(), world);
             Eigen::MatrixXd part_pos = q_part;
-            // std::cout << "q_part " << q_part << std::endl;
-            // std::cout << "part_pos " << part_pos << std::endl;
+
             viewer.data.set_points(part_pos.transpose(), orange);
         } else {
             Eigen::MatrixXd part_pos;
@@ -116,13 +142,20 @@ int main(int argc, char **argv) {
         }
 
         if(viewer.core.is_animating)
-        {
+        {   
+            // Save Current configuration
+            std::stringstream filename;
+            filename << output_dir << "displacements_" << current_frame << ".dmat";
+            save_displacements_DMAT(filename.str(), world, tets);
+
             stepper.step(world);
 
             Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
             // std::cout<< newV.block(0,0,10,3) << std::endl;
             viewer.data.set_vertices(newV);
             viewer.data.compute_normals();
+
+            current_frame++;
         }
         return false;
     };
@@ -242,25 +275,3 @@ int main(int argc, char **argv) {
     return EXIT_SUCCESS;
 }
 
-// bool saveFrames = false;
-// std::string outputDir = "frames/";
-// int frame = 0;
-// void preStepCallback(MyWorld &world) {
-//     // if(saveFrames) {
-//     //     Eigen::Map<Eigen::VectorXd> q = mapStateEigen<0>(world); // Get displacements only
-
-//     //     Eigen::MatrixXd displacements = q;
-        
-//     //     std::stringstream filename;
-//     //     filename << outputDir << "displacements_" << frame << ".ply";
-//     //     Eigen::MatrixXi no_faces;
-//     //     igl::writePLY(filename.str(), displacements, no_faces, false);
-//     //     frame++;
-//     // }
-// }
-
-// // void saveBase(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
-// //     std::stringstream filename;
-// //     filename << outputDir << "base_mesh.ply";
-// //     igl::writePLY(filename.str(), V, F, false);
-// }
