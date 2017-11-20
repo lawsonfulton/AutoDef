@@ -88,22 +88,22 @@ def do_training(training_data):
     
     print("Total runtime: ", time.time() - start_time)
 
-base_path = 'frames/'
+base_path = 'training_data/first_interaction/'
 #base_path = 'data-armadillo/verts'
 # base_path = 'data-armadillo/verts' # Need to change to i+1 for this one
-def read_ply(i):
+def read_dmat(i):
     #filename = 'data-armadillo/verts%d.ply' % (i + 1)
-    filename = base_path + 'displacements_%d.ply' % i
+    filename = base_path + 'displacements_%d.dmat' % i
     if(i % 13 == 0):
         print('.', end='', flush=True)
     verts = igl.eigen.MatrixXd()
-    igl.readPLY(filename, verts, _i, _d, _d)
+    igl.readDMAT(filename, verts, _i, _d, _d)
     return e2p(verts)
 
 def load_samples(num_samples):
     print('Loading', num_samples, 'samples...', end='', flush=True)
     p = Pool(16)
-    numpy_verts_sample = numpy.array(p.map(read_ply, range(num_samples)))
+    numpy_verts_sample = numpy.array(p.map(read_dmat, range(num_samples)))
     p.terminate()
     print()
     print('Done.')
