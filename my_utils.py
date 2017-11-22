@@ -45,3 +45,42 @@ def load_displacement_dmats_to_numpy(base_path, num_samples=None):
     print()
     print('Done.')
     return displacements_samples
+
+def decompose_ae(autoencoder):
+    """ Takes a Keras autoencoder model and splits it into three seperate models """
+    import keras
+    from keras.layers import Input, Dense
+    from keras.models import Model, load_model
+    def get_encoded_layer_and_index(): # Stupid hack
+        for i, layer in enumerate(autoencoder.layers):
+            if layer.name == 'encoded':
+                return layer, i
+
+    encoded_layer, encoded_layer_idx = get_encoded_layer_and_index()
+    encoder = Model(inputs=autoencoder.input, outputs=encoded_layer.output)
+
+    decoder_input = Input(shape=(encoded_layer.output_shape[-1],))
+    old_decoder_layers = autoencoder.layers[encoded_layer_idx+1:] # Need to rebuild the tensor I guess
+    decoder_output = decoder_input
+    for layer in old_decoder_layers:
+        decoder_output = layer(decoder_output)
+
+    decoder = Model(inputs=decoder_input, outputs=decoder_output)
+
+    return autoencoder, encoder, decoder
+
+def get_flattners(data):
+    """ Returns two functions flatten and unflatten that will convert to and from a 2d array """
+    if len(data.shape) == 2:
+        return lambda x: x, lambda x: x
+
+    n_samples = len(data)
+    sample_dim = len(data[0])
+    point_dim = len(data[0][0])
+
+    def flatten_data(unflattned_data):
+        return unflattned_data.reshape((n_samples, sample_dim * point_dim))
+    def unflatten_data(flattened_data):
+        return flattened_data.reshape((n_samples, sample_dim, point_dim))
+
+    return flatten_data, unflatten_data
