@@ -15,9 +15,11 @@ import my_utils
 modes = {0: 'baseline', 1:'pca', 2:'autoencoder'}
 current_mode = 0
 current_frame = 0
-base_path = 'training_data/first_interaction/'
+visualize_test_data = True
+training_data_root = 'training_data/first_interaction/'
+test_data_root = 'training_data/test_interaction/'
 
-def autoencoder_analysis(data, latent_dim=3, epochs=100, batch_size=100, layers=[32, 16], pca_weights=None, pca_object=None):
+def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=100, layers=[32, 16], pca_weights=None, pca_object=None):
     """
     Returns and encoder and decoder for going into and out of the reduced latent space.
     If pca_weights is given, then do a weighted mse.
@@ -33,8 +35,8 @@ def autoencoder_analysis(data, latent_dim=3, epochs=100, batch_size=100, layers=
     flatten_data, unflatten_data = my_utils.get_flattners(data)
 
     # TODO: Do I need to shuffle?
-    train_data = flatten_data(data)  # No test data for now
-    test_data = train_data[:10] # Basically skip testing TODO
+    train_data = flatten_data(data)
+    test_data = flatten_data(data[:10] if test_data is None else test_data)
 
     ## Preprocess the data
     # mean = numpy.mean(train_data, axis=0)
@@ -44,22 +46,26 @@ def autoencoder_analysis(data, latent_dim=3, epochs=100, batch_size=100, layers=
     std = numpy.std(train_data)
     s_min = numpy.min(train_data)
     s_max = numpy.max(train_data)
+    print(mean)
+    print(std)
 
+    # TODO dig into this. Why does it mess up?
     def normalize(data):
-        return data
-        return numpy.nan_to_num((data - mean) / std)
+        # return data
+        return (data - mean) / std
         # return numpy.nan_to_num((train_data - s_min) / (s_max - s_min))
     def denormalize(data):
-        return data
+        # return data
         return data * std + mean
         # return data * (s_max - s_min) + s_mi
 
+    # TODO loss in full space. Different results?
     ## Custom layer if we need it
     # def pca_layer(input):
     #     pca_object.transform
 
     ## Set up the network
-    activation = keras.layers.advanced_activations.LeakyReLU(alpha=0.3) #'relu'
+    activation = 'elu'#keras.layers.advanced_activations.LeakyReLU(alpha=0.3) #'relu'
     
     input = Input(shape=(len(train_data[0]),))
     output = input
@@ -174,74 +180,100 @@ def pca_evaluation(data):
 
 def main():
     # Loading the rest pose
-    base_verts, face_indices = my_utils.load_base_vert_and_face_dmat_to_numpy(base_path)
+    base_verts, face_indices = my_utils.load_base_vert_and_face_dmat_to_numpy(training_data_root)
     base_verts_eig = p2e(base_verts)
     face_indices_eig = p2e(face_indices)
 
     # Loading displacements for training data
-    displacements = my_utils.load_displacement_dmats_to_numpy(base_path)
+    displacements = my_utils.load_displacement_dmats_to_numpy(training_data_root)
+    test_displacements = my_utils.load_displacement_dmats_to_numpy(test_data_root)
+    flatten_data, unflatten_data = my_utils.get_flattners(displacements)
 
-    # autoencoder_analysis(data)
-
-    # Do the PCA analysis
-    pca_dim = 20
+    print(numpy.sqrt(numpy.sum(displacements[0]*displacements[0])))
+    exit()
+    # Do the training
+    pca_ae_train_dim = 20
+    pca_dim = 3
     ae_dim = 3
+    train_autoencoder = True
     train_in_pca_space = True
 
-    if train_in_pca_space:
-        pca_encode, pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_dim)
-        encoded_pca_displacements = pca_encode(displacements)
-        ae_encode, ae_decode, ae_mse = autoencoder_analysis(
-                                        encoded_pca_displacements,
-                                        latent_dim=ae_dim,
-                                        epochs=2000,
-                                        batch_size=len(displacements),
-                                        layers=[128, 32],
-                                        #pca_weights=explained_var,
-                                    )
-        decoded_autoencoder_displacements = pca_decode(ae_decode(ae_encode(encoded_pca_displacements)))
-    else:
-        ae_encode, ae_decode, ae_mse = autoencoder_analysis(displacements, latent_dim=ae_dim, epochs=1000, batch_size=len(displacements), layers=[128, 32])
-        decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
-
-    # Compare it with PCA of same dimension
-    pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(displacements, ae_dim)
+    # Normal low dim pca first
+    pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(displacements, pca_dim)
     encoded_pca_displacements = pca_encode(displacements)
     decoded_pca_displacements = pca_decode(encoded_pca_displacements)
-    print("PCA MSE =", pca_mse)
-    print("Autoencoder MSE =", ae_mse)
+    encoded_pca_test_displacements = pca_encode(test_displacements)
+    decoded_pca_test_displacements = pca_decode(encoded_pca_test_displacements)
 
-    # Set up
+    print("PCA MSE =", pca_mse)
+    print("PCA Test MSE =", mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements)))
+
+
+    if train_autoencoder:
+        if train_in_pca_space:
+            # High dim pca to train autoencoder
+            high_dim_pca_encode, high_dim_pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_ae_train_dim)
+            encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
+            encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
+
+            ae_encode, ae_decode, ae_mse = autoencoder_analysis(
+                                            encoded_high_dim_pca_displacements,
+                                            encoded_high_dim_pca_test_displacements,
+                                            latent_dim=ae_dim,
+                                            epochs=3000,
+                                            batch_size=len(displacements),
+                                            layers=[128, 32],
+                                            #pca_weights=explained_var,
+                                        )
+
+            decoded_autoencoder_displacements = high_dim_pca_decode(ae_decode(ae_encode(encoded_high_dim_pca_displacements)))
+            decoded_autoencoder_test_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(test_displacements))))
+
+            print("Autoencoder MSE =", ae_mse)
+        else:
+            pass
+            # TODO implement pca as custom keras layer should fix my problems?
+            # ae_encode, ae_decode, ae_mse = autoencoder_analysis(displacements, None, latent_dim=ae_dim, epochs=1000, batch_size=len(displacements), layers=[128, 32])
+            # decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
+            # if visualize_test_data:
+            #     raise "Not Implemented"
+
+    # libigl Set up
     viewer = igl.viewer.Viewer()
     viewer.data.set_mesh(base_verts_eig, face_indices_eig)
 
-
     def pre_draw(viewer):
-        global current_frame, current_mode
+        global current_frame, current_mode, visualize_test_data
         
         if viewer.core.is_animating:
+            n_frames = len(test_displacements) if visualize_test_data else len(displacements)
+
             if modes[current_mode] == 'baseline':
-                viewer.data.set_vertices(p2e(base_verts + displacements[current_frame]))
+                ds = test_displacements if visualize_test_data else displacements
+                viewer.data.set_vertices(p2e(base_verts + ds[current_frame % n_frames]))
             elif modes[current_mode] == 'pca':
-                viewer.data.set_vertices(p2e(base_verts + decoded_pca_displacements[current_frame]))
-                # viewer.data.set_colors(colours[current_frame])
+                ds = decoded_pca_test_displacements if visualize_test_data else decoded_pca_displacements
+                viewer.data.set_vertices(p2e(base_verts + ds[current_frame % n_frames]))
             elif modes[current_mode] == 'autoencoder':
-                viewer.data.set_vertices(p2e(base_verts + decoded_autoencoder_displacements[current_frame]))
+                ds = decoded_autoencoder_test_displacements if visualize_test_data else decoded_autoencoder_displacements
+                viewer.data.set_vertices(p2e(base_verts + ds[current_frame % n_frames]))
             else:
                 assert False  # Shouldn't happen
-                
-
+            
+            current_frame = (current_frame + 1) % n_frames
             viewer.data.compute_normals()
-            current_frame = (current_frame + 1) % len(displacements)
-
         return False
 
     def key_down(viewer, key, mods):
-        global current_mode
+        global current_mode, visualize_test_data
         if key == ord(' '):
             viewer.core.is_animating = not viewer.core.is_animating
         elif key == ord('D') or key == ord('d'):
             current_mode = (current_mode + 1) % len(modes)
+            print("Current mode", modes[current_mode])
+        elif key == ord('V') or key == ord('v'):
+            visualize_test_data = not visualize_test_data
+            print("Visualize test data:", visualize_test_data)
 
         return False
 

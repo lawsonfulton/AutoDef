@@ -74,13 +74,14 @@ def get_flattners(data):
     if len(data.shape) == 2:
         return lambda x: x, lambda x: x
 
-    n_samples = len(data)
     sample_dim = len(data[0])
     point_dim = len(data[0][0])
 
     def flatten_data(unflattned_data):
+        n_samples = len(unflattned_data)
         return unflattned_data.reshape((n_samples, sample_dim * point_dim))
     def unflatten_data(flattened_data):
+        n_samples = len(flattened_data)
         return flattened_data.reshape((n_samples, sample_dim, point_dim))
 
     return flatten_data, unflatten_data
