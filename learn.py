@@ -279,12 +279,16 @@ def main():
                                             batch_size=len(displacements),
                                             layers=[128, 32],
                                             pca_object=high_dim_pca,
-                                            do_fine_tuning=True,
+                                            do_fine_tuning=False,
                                         )
 
             decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
             decoded_autoencoder_test_displacements = ae_decode(ae_encode(test_displacements))
             print("Autoencoder MSE =", ae_mse)
+
+            mse_per_pose = [mean_squared_error(d, dt) for d, dt in zip(decoded_autoencoder_test_displacements, test_displacements)]
+            plt.plot(mse_per_pose)
+            plt.show(block=False)
 
 
     # libigl Set up
