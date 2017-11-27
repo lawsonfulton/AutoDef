@@ -19,7 +19,7 @@ visualize_test_data = True
 training_data_root = 'training_data/first_interaction/'
 test_data_root = 'training_data/test_interaction/'
 
-def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=100, layers=[32, 16], pca_weights=None, pca_object=None):
+def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=100, layers=[32, 16], pca_weights=None, pca_object=None, do_fine_tuning=False):
     """
     Returns and encoder and decoder for going into and out of the reduced latent space.
     If pca_weights is given, then do a weighted mse.
@@ -31,6 +31,7 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
     import keras.backend as K
     from keras.layers import Input, Dense, Lambda
     from keras.models import Model, load_model
+    from keras.engine.topology import Layer
 
     flatten_data, unflatten_data = my_utils.get_flattners(data)
 
@@ -51,18 +52,47 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
 
     # TODO dig into this. Why does it mess up?
     def normalize(data):
-        # return data
-        return (data - mean) / std
+        return data
+        #return (data - mean) / std
         # return numpy.nan_to_num((train_data - s_min) / (s_max - s_min))
     def denormalize(data):
-        # return data
-        return data * std + mean
+        return data
+        #return data * std + mean
         # return data * (s_max - s_min) + s_mi
 
     # TODO loss in full space. Different results?
-    ## Custom layer if we need it
-    # def pca_layer(input):
-    #     pca_object.transform
+    # Custom layer if we need it
+    if pca_object:
+        class PCALayer(Layer):
+            def __init__(self, pca_object, is_inv, fine_tune=True, **kwargs):
+                self.pca_object = pca_object
+                self.is_inv = is_inv
+                self.fine_tune = fine_tune
+                super(PCALayer, self).__init__(**kwargs)
+
+            def build(self, input_shape):
+                # Create a trainable weight variable for this layer.
+                self.kernel = self.add_weight(name='kernel', 
+                                              shape=None, # Inferred 
+                                              initializer=lambda x: K.variable(self.pca_object.components_) if self.is_inv else K.variable(self.pca_object.components_.T),
+                                              trainable=self.fine_tune)
+                self.mean = self.add_weight(name='mean', 
+                                              shape=None, # Inferred
+                                              initializer=lambda x: K.variable(self.pca_object.mean_),
+                                              trainable=self.fine_tune)
+                super(PCALayer, self).build(input_shape)  # Be sure to call this somewhere!
+
+            def call(self, x):
+                if self.is_inv:
+                    return K.dot(x, self.kernel) + self.mean
+                else:
+                    return K.dot(x - self.mean, self.kernel)
+
+            def compute_output_shape(self, input_shape):
+                if self.is_inv:
+                    return (input_shape[0], len(self.pca_object.mean_))
+                else:
+                    return (input_shape[0], len(self.pca_object.components_))
 
     ## Set up the network
     activation = 'elu'#keras.layers.advanced_activations.LeakyReLU(alpha=0.3) #'relu'
@@ -70,8 +100,9 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
     input = Input(shape=(len(train_data[0]),))
     output = input
     
-    # if pca_object is not None:
-    #     output = Lambda(pca_layer)
+    if pca_object is not None:
+        # output = Lambda(pca_transform_layer)(output)
+        output = PCALayer(pca_object, is_inv=False, fine_tune=do_fine_tuning)(output)
 
     for layer_width in layers:
         output = Dense(layer_width, activation=activation)(output)
@@ -79,15 +110,20 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
     for layer_width in reversed(layers):
         output = Dense(layer_width, activation=activation)(output)
     
-    output = Dense(len(train_data[0]), activation='linear')(output)#'linear',)(output) # First test seems to indicate no change on output with linear
+    if pca_object is not None:
+        output = Dense(len(pca_object.components_), activation='linear')(output) ## TODO is this right??
+        # output = Lambda(pca_inv_transform_layer)(output)
+        output = PCALayer(pca_object, is_inv=True, fine_tune=do_fine_tuning)(output)
+    else:
+        output = Dense(len(train_data[0]), activation='linear')(output)#'linear',)(output) # First test seems to indicate no change on output with linear
 
     autoencoder = Model(input, output)
 
 
     ## Set the optimization parameters
-    weights = pca_weights / pca_weights.sum() if pca_weights else None
+    pca_weights = pca_weights / pca_weights.sum() if pca_weights else None
     def pca_weighted_mse(y_pred, y_true):
-        mse = K.mean(weights * K.square(y_true - y_pred), axis=1)
+        mse = K.mean(pca_weights * K.square(y_true - y_pred), axis=1)
         return mse
 
     optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
@@ -117,7 +153,7 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
     def decode(encoded_data):
         return unflatten_data(denormalize(decoder.predict(encoded_data)))
 
-    ae_mse = mean_squared_error(flatten_data(data), flatten_data(decode(encode(data))))
+    ae_mse = mean_squared_error(flatten_data(test_data), flatten_data(decode(encode(test_data))))
     return encode, decode, ae_mse
 
 
@@ -148,10 +184,10 @@ def pca_analysis(data, n_components, plot_explained_variance=False):
     def decode(encoded_data):
         return unflatten_data(pca.inverse_transform(encoded_data))
 
-    return encode, decode, pca.explained_variance_ratio_, mse
+    return pca, encode, decode, pca.explained_variance_ratio_, mse
 
 def get_pca_mse(data, n_components):
-    pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(data, n_components)
+    pca, pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(data, n_components)
     return pca_mse
 
 def pca_evaluation(data):
@@ -189,17 +225,16 @@ def main():
     test_displacements = my_utils.load_displacement_dmats_to_numpy(test_data_root)
     flatten_data, unflatten_data = my_utils.get_flattners(displacements)
 
-    print(numpy.sqrt(numpy.sum(displacements[0]*displacements[0])))
-    exit()
     # Do the training
     pca_ae_train_dim = 20
     pca_dim = 3
     ae_dim = 3
+    ae_epochs = 2000
     train_autoencoder = True
-    train_in_pca_space = True
+    train_in_pca_space = False
 
     # Normal low dim pca first
-    pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(displacements, pca_dim)
+    pca, pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(displacements, pca_dim)
     encoded_pca_displacements = pca_encode(displacements)
     decoded_pca_displacements = pca_decode(encoded_pca_displacements)
     encoded_pca_test_displacements = pca_encode(test_displacements)
@@ -212,7 +247,7 @@ def main():
     if train_autoencoder:
         if train_in_pca_space:
             # High dim pca to train autoencoder
-            high_dim_pca_encode, high_dim_pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_ae_train_dim)
+            high_dim_pca, high_dim_pca_encode, high_dim_pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_ae_train_dim)
             encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
             encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
 
@@ -220,7 +255,7 @@ def main():
                                             encoded_high_dim_pca_displacements,
                                             encoded_high_dim_pca_test_displacements,
                                             latent_dim=ae_dim,
-                                            epochs=3000,
+                                            epochs=ae_epochs,
                                             batch_size=len(displacements),
                                             layers=[128, 32],
                                             #pca_weights=explained_var,
@@ -231,12 +266,26 @@ def main():
 
             print("Autoencoder MSE =", ae_mse)
         else:
-            pass
-            # TODO implement pca as custom keras layer should fix my problems?
-            # ae_encode, ae_decode, ae_mse = autoencoder_analysis(displacements, None, latent_dim=ae_dim, epochs=1000, batch_size=len(displacements), layers=[128, 32])
-            # decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
-            # if visualize_test_data:
-            #     raise "Not Implemented"
+            # High dim pca to train autoencoder
+            high_dim_pca, high_dim_pca_encode, high_dim_pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_ae_train_dim)
+            encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
+            encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
+
+            ae_encode, ae_decode, ae_mse = autoencoder_analysis(
+                                            displacements,
+                                            test_displacements,
+                                            latent_dim=ae_dim,
+                                            epochs=ae_epochs,
+                                            batch_size=len(displacements),
+                                            layers=[128, 32],
+                                            pca_object=high_dim_pca,
+                                            do_fine_tuning=True,
+                                        )
+
+            decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
+            decoded_autoencoder_test_displacements = ae_decode(ae_encode(test_displacements))
+            print("Autoencoder MSE =", ae_mse)
+
 
     # libigl Set up
     viewer = igl.viewer.Viewer()
