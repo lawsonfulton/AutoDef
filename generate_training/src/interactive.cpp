@@ -14,6 +14,7 @@
 #include <igl/readMESH.h>
 #include <igl/unproject_onto_mesh.h>
 
+#include <stdlib.h>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -91,15 +92,18 @@ int main(int argc, char **argv) {
     //Setup Physics
     MyWorld world;
     
-    igl::readMESH("../mesh/Beam.mesh", V, T, F);
+    igl::readMESH(argv[1], V, T, F);
     NeohookeanTets *tets = new NeohookeanTets(V,T);
+    for(auto element: tets->getImpl().getElements()) {
+        element->setDensity(atoi(argv[2]));//1000.0);
+    }
 
     // // Pinned particle to attach spring for dragging
     PhysicalSystemParticleSingle<double> *pinned_point = new PhysicalSystemParticleSingle<double>();
-    pinned_point->getImpl().setMass(10000000);
+    pinned_point->getImpl().setMass(atoi(argv[4])); //10000000
     auto fem_attached_pos = PosFEM<double>(&tets->getQ()[0],0, &tets->getImpl().getV());
 
-    double spring_stiffness = 4000.0;
+    double spring_stiffness = atoi(argv[3]);//100.0;
     double spring_rest_length = 0.1;
     ForceSpringFEMParticle<double> *forceSpring = new ForceSpringFEMParticle<double>(fem_attached_pos, // TODO compare getV to V. Get rid of double use of index
                                                                                      PosParticle<double>(&pinned_point->getQ()),
@@ -113,7 +117,7 @@ int main(int argc, char **argv) {
     
     reset_world(world);
     
-    MyTimeStepper stepper(0.01);
+    MyTimeStepper stepper(0.05);
     stepper.step(world);
     
     if(saving_training_data) {

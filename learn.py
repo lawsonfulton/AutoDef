@@ -95,7 +95,7 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
                     return (input_shape[0], len(self.pca_object.components_))
 
     ## Set up the network
-    activation = 'elu'#keras.layers.advanced_activations.LeakyReLU(alpha=0.3) #'relu'
+    activation = 'elu' #keras.layers.advanced_activations.LeakyReLU(alpha=0.3) #'relu'
     
     input = Input(shape=(len(train_data[0]),))
     output = input
@@ -121,7 +121,7 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
 
 
     ## Set the optimization parameters
-    pca_weights = pca_weights / pca_weights.sum() if pca_weights else None
+    pca_weights = pca_weights / pca_weights.sum() if pca_weights is not None else None
     def pca_weighted_mse(y_pred, y_true):
         mse = K.mean(pca_weights * K.square(y_true - y_pred), axis=1)
         return mse
@@ -153,8 +153,7 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
     def decode(encoded_data):
         return unflatten_data(denormalize(decoder.predict(encoded_data)))
 
-    ae_mse = mean_squared_error(flatten_data(test_data), flatten_data(decode(encode(test_data))))
-    return encode, decode, ae_mse
+    return encode, decode
 
 
 def pca_analysis(data, n_components, plot_explained_variance=False):
@@ -230,8 +229,8 @@ def main():
     pca_dim = 3
     ae_dim = 3
     ae_epochs = 2000
-    train_autoencoder = True
-    train_in_pca_space = False
+    train_autoencoder = False
+    train_in_pca_space = True
 
     # Normal low dim pca first
     pca, pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(displacements, pca_dim)
@@ -251,44 +250,48 @@ def main():
             encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
             encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
 
-            ae_encode, ae_decode, ae_mse = autoencoder_analysis(
+            ae_encode, ae_decode = autoencoder_analysis(
                                             encoded_high_dim_pca_displacements,
                                             encoded_high_dim_pca_test_displacements,
                                             latent_dim=ae_dim,
                                             epochs=ae_epochs,
                                             batch_size=len(displacements),
-                                            layers=[128, 32],
-                                            #pca_weights=explained_var,
+                                            layers=[200, 200],
+                                            pca_weights=explained_var,
                                         )
 
             decoded_autoencoder_displacements = high_dim_pca_decode(ae_decode(ae_encode(encoded_high_dim_pca_displacements)))
             decoded_autoencoder_test_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(test_displacements))))
 
-            print("Autoencoder MSE =", ae_mse)
         else:
             # High dim pca to train autoencoder
             high_dim_pca, high_dim_pca_encode, high_dim_pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_ae_train_dim)
             encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
             encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
 
-            ae_encode, ae_decode, ae_mse = autoencoder_analysis(
+            ae_encode, ae_decode = autoencoder_analysis(
                                             displacements,
                                             test_displacements,
                                             latent_dim=ae_dim,
                                             epochs=ae_epochs,
                                             batch_size=len(displacements),
-                                            layers=[128, 32],
+                                            layers=[200, 200], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
                                             pca_object=high_dim_pca,
                                             do_fine_tuning=False,
                                         )
 
             decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
             decoded_autoencoder_test_displacements = ae_decode(ae_encode(test_displacements))
-            print("Autoencoder MSE =", ae_mse)
 
-            mse_per_pose = [mean_squared_error(d, dt) for d, dt in zip(decoded_autoencoder_test_displacements, test_displacements)]
-            plt.plot(mse_per_pose)
-            plt.show(block=False)
+        print("Autoencoder Test MSE =", mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements)))
+        print("PCA Test MSE =", mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements)))
+
+        print("Autoencoder Train MSE =", mean_squared_error(flatten_data(displacements), flatten_data(decoded_autoencoder_displacements)))
+        print("PCA Train MSE =", pca_mse)
+
+        mse_per_pose = [mean_squared_error(d, dt) for d, dt in zip(decoded_autoencoder_test_displacements, test_displacements)]
+        plt.plot(mse_per_pose)
+        plt.show(block=False)
 
 
     # libigl Set up
