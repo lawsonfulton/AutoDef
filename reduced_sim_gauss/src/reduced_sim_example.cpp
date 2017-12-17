@@ -99,9 +99,23 @@ private:
     VectorXd prev_q;
     VectorXd F_ext;
     MatrixXd M;
+
     double h;
+
+    MyWorld *world;
+    NeohookeanTets *tets;
 public:
-    GPLC(VectorXd cur_q, VectorXd prev_q, MatrixXd M, double h) : cur_q(cur_q), prev_q(prev_q), M(M), h(h) {
+    GPLC(VectorXd cur_q,
+        VectorXd prev_q,
+        double h,
+        MyWorld *world,
+        NeohookeanTets *tets) : cur_q(cur_q), prev_q(prev_q), h(h), world(world), tets(tets)
+    {
+        AssemblerEigenSparseMatrix<double> M_asm;
+        getMassMatrix(M_asm, *world);
+        // tets->getMassMatrix(M_asm, world->getState()); // TODO FIX THIS WITH THE PROPER INIT
+        M = *M_asm;
+
         VectorXd g(cur_q.size());
         for(int i=0; i < g.size(); i += 3) {
             g[i] = 0.0;
@@ -110,34 +124,95 @@ public:
         }
 
         F_ext = M * g;
+    }
 
-        std::cout << "g" << std::endl;
-        std::cout << F_ext << std::endl;
+    double objective(const VectorXd& new_q) {
+         // Update the tets with candidate configuration
+        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(tets->getQ(), *world);
+        for(int i=0; i < q.size(); i++) {
+            q[i] = new_q[i]; // TODO is this the fastest way to do this?
+        }
 
+        // Compute GPLC objective
+        double obj_val = 0.0;
+        VectorXd A = new_q - 2.0 * cur_q + prev_q;
+        double energy = tets->getPotentialEnergy(world->getState());
+        // std::cout << "energy: " << energy << std::endl;
+        obj_val = 0.5 * A.transpose() * M * A + h * energy;// - h * A.transpose() * F_ext;
 
+        return obj_val;
     }
     
     double operator()(const VectorXd& new_q, VectorXd& grad)
     {
-        double fx = 0.0;
-        VectorXd A = new_q - 2.0 * cur_q + prev_q;
-        
-        double energy = tets->getEnergy(world.getState()); // TODO
-        fx = M * A - h * 
-        // double fx = 0.0;
-        // for(int i = 0; i < n; i += 2)
-        // {
-        //     double t1 = 1.0 - x[i];
-        //     double t2 = 10 * (x[i + 1] - x[i] * x[i]);
-        //     grad[i + 1] = 20 * t2;
-        //     grad[i]     = -2.0 * (x[i] * grad[i + 1] + t1);
-        //     fx += t1 * t1 + t2 * t2;
-        // }
-        return fx;
+        double obj_val = objective(new_q);
+
+        // Compute gradient
+        // AssemblerEigenVector<double> forces; //maybe?
+        // getForceVector(forces, *world);
+        // // tets->getForce(forces, world->getState());  // THIS NEEDS PROPER INIT
+        // grad = M * A - h * (*forces);// - h * F_ext;
+
+        // Finite differences instead
+        double t = 0.00001;
+        for(int i = 0; i < new_q.size(); i++) {
+            VectorXd dq(new_q);
+
+            dq[i] += t;
+            grad[i] = (objective(dq) - obj_val) / t;
+        }
+
+        /////
+
+        std::cout << "Objective: " << obj_val << std::endl;
+        return obj_val;
     }
 };
 
+void update_configuration(const VectorXd &new_q, MyWorld &world, NeohookeanTets *tets) {
+    Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(tets->getQ(), world);
+    for(int i=0; i < q.size(); i++) {
+        q[i] = new_q[i];
+    }
+}
+
+void test_gradient(MyWorld &world, NeohookeanTets *tets) {
+    // minimal_bug(world, tets);
+    // return;
+
+    auto q_map = mapDOFEigen(tets->getQ(), world);
+    VectorXd q(q_map);
+
+    GPLC fun(q, q, 0.001, &world, tets);
+    
+    VectorXd fun_grad(q.size());
+    double fun_val = fun(q, fun_grad);
+
+    VectorXd actual_grad(q.size());
+    VectorXd empty(q.size());
+    double h = 0.00001;
+
+    for(int i = 0; i < q.size(); i++) {
+        VectorXd new_q(q);
+        new_q[i] += h;
+
+        actual_grad[i] = (fun(new_q, empty) - fun_val) / h;
+    }
+
+    VectorXd diff = fun_grad - actual_grad;
+    std::cout << "q size: " << q.size() << std::endl;
+    std::cout << "Function val: " << fun_val << std::endl;
+    std::cout << "Gradient diff: " << diff.norm() << std::endl;
+}
+
 void test_opt(MyWorld &world, NeohookeanTets *tets) {
+
+    // AssemblerEigenVector<double> forces; //maybe?
+    // getForceVector(forces, *world);
+
+    //test_gradient(world, tets);
+
+
     const int n = 10;
     // Set up parameters
     LBFGSParam<double> param;
@@ -149,17 +224,10 @@ void test_opt(MyWorld &world, NeohookeanTets *tets) {
 
     auto q = mapDOFEigen(tets->getQ(), world);
 
-    AssemblerEigenSparseMatrix<double> M;
-    getMassMatrix(M, world);
-    //AssemblerEigenVector<double> force
-
-    GPLC fun(q, q, *M, 0.001);
-
-
-    return;
+    GPLC fun(q, q, 0.001, &world, tets);
 
     // Initial guess
-    VectorXd x = VectorXd::Zero(n);
+    VectorXd x = q;//VectorXd::Zero(n);
     // x will be overwritten to be the best point found
     double fx;
     int niter = solver.minimize(fun, x, fx);
@@ -194,6 +262,11 @@ int main(int argc, char **argv) {
 
     test_opt(world, tets);
     return 0;
+
+
+
+
+
     /** libigl display stuff **/
     igl::viewer::Viewer viewer;
 
