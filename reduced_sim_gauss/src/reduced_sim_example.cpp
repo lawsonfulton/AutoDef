@@ -16,6 +16,7 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include <algorithm>
 #include <string>
 #include <sstream>
 
@@ -89,161 +90,294 @@ void reset_world (MyWorld &world) {
         q.setZero();
 }
 using Eigen::VectorXd;
+using Eigen::VectorXi;
 using Eigen::MatrixXd;
+using Eigen::SparseMatrix;
 using namespace LBFGSpp;
+
+
+// void test_opt(MyWorld &world, NeohookeanTets *tets) {
+
+//     // AssemblerEigenVector<double> forces; //maybe?
+//     // getForceVector(forces, *world);
+
+//     //test_gradient(world, tets);
+
+
+//     const int n = 10;
+//     // Set up parameters
+//     LBFGSParam<double> param;
+//     param.epsilon = 1e-3;
+//     param.max_iterations = 100;
+
+//     // Create solver and function object
+//     LBFGSSolver<double> solver(param);
+
+//     auto q = mapDOFEigen(tets->getQ(), world);
+
+//     GPLC fun(q, q, 0.001, &world, tets);
+
+//     // Initial guess
+//     VectorXd x = q;//VectorXd::Zero(n);
+//     // x will be overwritten to be the best point found
+//     double fx;
+//     int niter = solver.minimize(fun, x, fx);
+
+//     std::cout << niter << " iterations" << std::endl;
+//     std::cout << "x = \n" << x.transpose() << std::endl;
+//     std::cout << "f(x) = " << fx << std::endl;
+
+//     return;
+// }
 
 class GPLC
 {
 private:
-    VectorXd cur_q;
-    VectorXd prev_q;
+    VectorXd m_cur_Pq;
+    VectorXd m_prev_Pq;
     VectorXd F_ext;
-    MatrixXd M;
+    SparseMatrix<double> M; // mass matrix
+    SparseMatrix<double> P;
+    //SparseMatrix<double> P; // Constraint projection n x m, n=total dof m=unconstrained dof
+    // TODO should I use a sparse matrix for P? M? Any special considerations?
 
     double h;
 
     MyWorld *world;
     NeohookeanTets *tets;
 public:
-    GPLC(VectorXd cur_q,
-        VectorXd prev_q,
+    GPLC(VectorXd cur_Pq,
+        VectorXd prev_Pq,
         double h,
         MyWorld *world,
-        NeohookeanTets *tets) : cur_q(cur_q), prev_q(prev_q), h(h), world(world), tets(tets)
+        NeohookeanTets *tets,
+        SparseMatrix<double> &constraint_matrix_P) : m_cur_Pq(cur_Pq), m_prev_Pq(prev_Pq), h(h), world(world), tets(tets), P(constraint_matrix_P)
     {
+
+        std::cout << "test6" << std::endl;
+        // Construct mass matrix and external forces
         AssemblerEigenSparseMatrix<double> M_asm;
         getMassMatrix(M_asm, *world);
+        std::cout << "test7" << std::endl;
         // tets->getMassMatrix(M_asm, world->getState()); // TODO FIX THIS WITH THE PROPER INIT
-        M = *M_asm;
-
-        VectorXd g(cur_q.size());
+        M = P * *M_asm * P.transpose();
+        std::cout << "test8" << std::endl;
+        VectorXd g(cur_Pq.size());
         for(int i=0; i < g.size(); i += 3) {
             g[i] = 0.0;
             g[i+1] = -9.8;
             g[i+2] = 0.0;
         }
+        std::cout << "test9" << std::endl;
 
         F_ext = M * g;
+        std::cout << "test10" << std::endl;
     }
 
-    double objective(const VectorXd& new_q) {
+    void set_prev_Pqs(const VectorXd &cur_Pq, const VectorXd &prev_Pq) {
+        m_cur_Pq = cur_Pq;
+        m_prev_Pq = prev_Pq;
+    }
+
+    double objective(const VectorXd& new_Pq) {
          // Update the tets with candidate configuration
         Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(tets->getQ(), *world);
+        VectorXd expanded_q = P.transpose() * new_Pq;
         for(int i=0; i < q.size(); i++) {
-            q[i] = new_q[i]; // TODO is this the fastest way to do this?
+            q[i] = expanded_q[i]; // TODO is this the fastest way to do this?
         }
 
         // Compute GPLC objective
         double obj_val = 0.0;
-        VectorXd A = new_q - 2.0 * cur_q + prev_q;
+        VectorXd A = new_Pq - 2.0 * m_cur_Pq + m_prev_Pq;
         double energy = tets->getPotentialEnergy(world->getState());
         // std::cout << "energy: " << energy << std::endl;
-        obj_val = 0.5 * A.transpose() * M * A + h * energy;// - h * A.transpose() * F_ext;
+        obj_val = 0.5 * A.transpose() * M * A + h * h * energy - h * h * A.transpose() * F_ext;
+        // Gravity only
+        // obj_val = 0.5 * A.transpose() * M * A - h*h * A.dot(F_ext);
 
         return obj_val;
     }
     
-    double operator()(const VectorXd& new_q, VectorXd& grad)
+    double operator()(const VectorXd& new_Pq, VectorXd& grad)
     {
-        double obj_val = objective(new_q);
+        double obj_val = objective(new_Pq);
 
         // Compute gradient
-        // AssemblerEigenVector<double> forces; //maybe?
-        // getForceVector(forces, *world);
-        // // tets->getForce(forces, world->getState());  // THIS NEEDS PROPER INIT
-        // grad = M * A - h * (*forces);// - h * F_ext;
+        VectorXd A = new_Pq - 2.0 * m_cur_Pq + m_prev_Pq;
+        AssemblerEigenVector<double> internal_force; //maybe?
+        // getForceVector(internal_force, *world);
+        ASSEMBLEVECINIT(internal_force, P.cols());
+        tets->getInternalForce(internal_force, world->getState());
+        ASSEMBLEEND(internal_force);
+        // // tets->getForce(internal_force, world->getState());  // THIS NEEDS PROPER INIT
+        grad = M * A - h * h * P * (*internal_force) - h * h * F_ext;
 
-        // Finite differences instead
-        double t = 0.00001;
-        for(int i = 0; i < new_q.size(); i++) {
-            VectorXd dq(new_q);
+        // external Forces only
+        // grad = M * A - h * h * F_ext;
 
-            dq[i] += t;
-            grad[i] = (objective(dq) - obj_val) / t;
-        }
+        // // // Finite differences instead
+        // double t = 0.000001;
+        // for(int i = 0; i < new_Pq.size(); i++) {
+        //     VectorXd dq_pos(new_Pq);
+        //     VectorXd dq_neg(new_Pq);
+        //     dq_pos[i] += t;
+        //     dq_neg[i] -= t;
+
+        //     grad[i] = (objective(dq_pos) - objective(dq_neg)) / (2.0 * t);
+        // }
 
         /////
 
-        std::cout << "Objective: " << obj_val << std::endl;
+        // std::cout << "Objective: " << obj_val << std::endl;
         return obj_val;
     }
 };
 
-void update_configuration(const VectorXd &new_q, MyWorld &world, NeohookeanTets *tets) {
-    Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(tets->getQ(), world);
-    for(int i=0; i < q.size(); i++) {
-        q[i] = new_q[i];
-    }
-}
+class GPLCTimeStepper {
+public:
+    GPLCTimeStepper(MyWorld *world, NeohookeanTets *tets, double timestep) : m_world(world), m_tets(tets) {
+        std::cout << "test1" << std::endl;
+        // Set up lbfgs params
+        m_lbfgs_param.epsilon = 1e-3; //1e-8// TODO replace convergence test with abs difference
+        //m_lbfgs_param.delta = 1e-3;
+        m_lbfgs_param.max_iterations = 10000;
+        m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
-void test_gradient(MyWorld &world, NeohookeanTets *tets) {
-    // minimal_bug(world, tets);
-    // return;
+        std::cout << "test2" << std::endl;
+        construct_constraints_P();
+        std::cout << "test3" << std::endl;
+        Eigen::Map<Eigen::VectorXd> gauss_map_q = mapDOFEigen(tets->getQ(), *world);
+        m_prev_Pq = m_P * gauss_map_q;
+        std::cout << "test4" << std::endl;
+        m_cur_Pq = m_P * gauss_map_q;
 
-    auto q_map = mapDOFEigen(tets->getQ(), world);
-    VectorXd q(q_map);
-
-    GPLC fun(q, q, 0.001, &world, tets);
-    
-    VectorXd fun_grad(q.size());
-    double fun_val = fun(q, fun_grad);
-
-    VectorXd actual_grad(q.size());
-    VectorXd empty(q.size());
-    double h = 0.00001;
-
-    for(int i = 0; i < q.size(); i++) {
-        VectorXd new_q(q);
-        new_q[i] += h;
-
-        actual_grad[i] = (fun(new_q, empty) - fun_val) / h;
+        std::cout << "test5" << std::endl;
+        m_gplc_objective = new GPLC(m_cur_Pq, m_prev_Pq, timestep, world, tets, m_P);
+        std::cout << "testend" << std::endl;
     }
 
-    VectorXd diff = fun_grad - actual_grad;
-    std::cout << "q size: " << q.size() << std::endl;
-    std::cout << "Function val: " << fun_val << std::endl;
-    std::cout << "Gradient diff: " << diff.norm() << std::endl;
-}
+    ~GPLCTimeStepper() {
+        delete m_solver;
+        delete m_gplc_objective;
+    }
 
-void test_opt(MyWorld &world, NeohookeanTets *tets) {
+    void step() {
+        VectorXd Pq_param = m_cur_Pq; // Stores both the first guess and the final result
+        double min_val_res;
 
-    // AssemblerEigenVector<double> forces; //maybe?
-    // getForceVector(forces, *world);
+        m_gplc_objective->set_prev_Pqs(m_cur_Pq, m_prev_Pq);
+        int niter = m_solver->minimize(*m_gplc_objective, Pq_param, min_val_res);
 
-    //test_gradient(world, tets);
+        std::cout << niter << " iterations" << std::endl;
+        std::cout << "objective val = " << min_val_res << std::endl;
+
+        m_prev_Pq = m_cur_Pq;
+        m_cur_Pq = Pq_param; // TODO: Use pointers to avoid copies
+
+        update_world_with_current_configuration();
+        return;
+    }
+
+    void update_world_with_current_configuration() {
+        // TODO: is this the fastest way to do this?
+        Eigen::Map<Eigen::VectorXd> gauss_map_q = mapDOFEigen(m_tets->getQ(), *m_world);
+        VectorXd expanded_q = m_P.transpose() * m_cur_Pq;
+        for(int i=0; i < expanded_q.size(); i++) {
+            gauss_map_q[i] = expanded_q[i];
+        }
+    }
+
+    void reset() {
+        Eigen::Map<Eigen::VectorXd> gauss_map_q = mapDOFEigen(m_tets->getQ(), *m_world);
+        m_prev_Pq = m_P * gauss_map_q;
+        m_cur_Pq = m_P * gauss_map_q;
+    }
+
+    void construct_constraints_P() {
+        // Construct constraint projection matrix
+        //find all vertices with minimum x coordinate and fix DOF associated with them
+        int dim = 0; // x
+        auto min_x_val = m_tets->getImpl().getV()(0,dim);
+        std::vector<unsigned int> min_verts;
+
+        for(unsigned int ii=0; ii<m_tets->getImpl().getV().rows(); ++ii) {
+            if(m_tets->getImpl().getV()(ii,dim) < min_x_val) {
+                min_x_val = m_tets->getImpl().getV()(ii,dim);
+                min_verts.clear();
+                min_verts.push_back(ii);
+            } else if(fabs(m_tets->getImpl().getV()(ii,dim) - min_x_val) < 1e-5) {
+                min_verts.push_back(ii);
+            }
+        }
+
+        std::sort(min_verts.begin(), min_verts.end());
+        int n = m_tets->getImpl().getV().rows() * 3;
+        int m = n - min_verts.size()*3;
+        m_P = SparseMatrix<double>(m, n);
+        m_P.reserve(VectorXi::Constant(n, 1)); // Reserve enough space for 1 non-zero per column
+        int min_vert_i = 0;
+        int cur_col = 0;
+        for(int i = 0; i < m; i+=3){
+            while(min_verts[min_vert_i] * 3 == cur_col) { // Note * is for vert index -> flattened index
+                cur_col += 3;
+                min_vert_i++;
+            }
+            m_P.insert(i, cur_col) = 1.0;
+            m_P.insert(i+1, cur_col+1) = 1.0;
+            m_P.insert(i+2, cur_col+2) = 1.0;
+            cur_col += 3;
+        }
+        m_P.makeCompressed();
+        // std::cout << m_P << std::endl;
+        // -- Done constructing P
+    }
+
+    void test_gradient() {
+        auto q_map = mapDOFEigen(m_tets->getQ(), *m_world);
+        VectorXd q(m_P * q_map);
+
+        GPLC fun(q, q, 0.001, m_world, m_tets, m_P);
+        
+        VectorXd fun_grad(q.size());
+        double fun_val = fun(q, fun_grad);
+
+        VectorXd finite_diff_grad(q.size());
+        VectorXd empty(q.size());
+        double t = 0.000001;
+        for(int i = 0; i < q.size(); i++) {
+            VectorXd dq_pos(q);
+            VectorXd dq_neg(q);
+            dq_pos[i] += t;
+            dq_neg[i] -= t;
+
+            finite_diff_grad[i] = (fun(dq_pos, empty) - fun(dq_neg, empty)) / (2.0 * t);
+        }
+
+        VectorXd diff = fun_grad - finite_diff_grad;
+        std::cout << "q size: " << q.size() << std::endl;
+        std::cout << "Function val: " << fun_val << std::endl;
+        std::cout << "Gradient diff: " << diff.norm() << std::endl;
+        assert(diff.norm() < 1e-4);
+    }
+
+private:
+    LBFGSParam<double> m_lbfgs_param;
+    LBFGSSolver<double> *m_solver;
+    GPLC *m_gplc_objective;
+
+    SparseMatrix<double> m_P; // TODO sparse?
+    VectorXd m_prev_Pq;
+    VectorXd m_cur_Pq;
+
+    MyWorld *m_world;
+    NeohookeanTets *m_tets;
+};
 
 
-    const int n = 10;
-    // Set up parameters
-    LBFGSParam<double> param;
-    param.epsilon = 1e-6;
-    param.max_iterations = 100;
-
-    // Create solver and function object
-    LBFGSSolver<double> solver(param);
-
-    auto q = mapDOFEigen(tets->getQ(), world);
-
-    GPLC fun(q, q, 0.001, &world, tets);
-
-    // Initial guess
-    VectorXd x = q;//VectorXd::Zero(n);
-    // x will be overwritten to be the best point found
-    double fx;
-    int niter = solver.minimize(fun, x, fx);
-
-    std::cout << niter << " iterations" << std::endl;
-    std::cout << "x = \n" << x.transpose() << std::endl;
-    std::cout << "f(x) = " << fx << std::endl;
-
-    return;
-}
-
-// double objective()
 
 int main(int argc, char **argv) {
     std::cout<<"Testt Neohookean FEM \n";
-    
     //Setup Physics
     MyWorld world;
     std::cout<<"defined world\n";
@@ -256,16 +390,11 @@ int main(int argc, char **argv) {
     
     reset_world(world);
 
-    MyTimeStepper stepper(0.05);
-    stepper.step(world);
+    // MyTimeStepper stepper(0.05);
+    // stepper.step(world);
+    GPLCTimeStepper gplc_stepper(&world, tets, 0.05);
 
-
-    test_opt(world, tets);
-    return 0;
-
-
-
-
+    //gplc_stepper.test_gradient();
 
     /** libigl display stuff **/
     igl::viewer::Viewer viewer;
@@ -278,8 +407,6 @@ int main(int argc, char **argv) {
         const Eigen::RowVector3d blue(0.2,0.3,0.8);
         const Eigen::RowVector3d green(0.2,0.6,0.3);
 
-
-
         if(viewer.core.is_animating)
         {   
             // Save Current configuration
@@ -291,15 +418,17 @@ int main(int argc, char **argv) {
 
             // stepper.step(world);
             auto q = mapDOFEigen(tets->getQ(), world);
-            std::cout << tets->getEnergy(world.getState()) << std::endl;
+            std::cout << "Potential = " << tets->getPotentialEnergy(world.getState()) << std::endl;
             q *= 1.01;
 
             Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
             // std::cout<< newV.block(0,0,10,3) << std::endl;
             viewer.data.set_vertices(newV);
             viewer.data.compute_normals();
-
             current_frame++;
+
+            gplc_stepper.step();
+            // test_gradient(world, tets);
         }
         return false;
     };
@@ -318,6 +447,7 @@ int main(int argc, char **argv) {
             case 'R':
             {
                 reset_world(world);
+                gplc_stepper.reset();
                 break;
             }
             default:
