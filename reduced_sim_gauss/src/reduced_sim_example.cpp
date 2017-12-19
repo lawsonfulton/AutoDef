@@ -10,6 +10,7 @@
 #include <TimeStepperEulerImplicitLinear.h>
 
 #include <igl/writeDMAT.h>
+#include <igl/readDMAT.h>
 #include <igl/viewer/Viewer.h>
 #include <igl/readMESH.h>
 #include <igl/unproject_onto_mesh.h>
@@ -100,7 +101,7 @@ using Eigen::SparseMatrix;
 using namespace LBFGSpp;
 
 
-template <typename ReducedSpaceImpl, typename JacType>
+template <typename ReducedSpaceImpl>
 class ReducedSpace
 {
 public:
@@ -116,7 +117,7 @@ public:
         return m_impl.decode(z);
     }
 
-    inline JacType jacobian(const VectorXd &z) {
+    inline Eigen::Transpose<MatrixXd> jacobian(const VectorXd &z) { // todo should be const auto?
         // d decode / d z
         return m_impl.jacobian(z);
     }
@@ -144,7 +145,10 @@ private:
 class LinearSpaceImpl
 {
 public:
-    LinearSpaceImpl(const MatrixXd &U) : m_U(U) {}
+    LinearSpaceImpl(const MatrixXd &U) : m_U(U) {
+        std::cout<<"U rows: " << U.rows() << std::endl;
+        std::cout<<"U cols: " << U.cols() << std::endl;
+    }
 
     inline VectorXd encode(const VectorXd &q) {
         return m_U * q;
@@ -154,7 +158,7 @@ public:
         return m_U.transpose() * z;
     }
 
-    inline MatrixXd jacobian(const VectorXd &z) {
+    inline Eigen::Transpose<MatrixXd> jacobian(const VectorXd &z) { // TODO: do this without copy?
         return m_U.transpose();
     }
 
@@ -184,7 +188,7 @@ public:
         getMassMatrix(M_asm, *m_world);
 
         m_M = *M_asm;
-        VectorXd g(cur_z.size());
+        VectorXd g(m_M.cols());
         for(int i=0; i < g.size(); i += 3) {
             g[i] = 0.0;
             g[i+1] = -9.8;
@@ -200,9 +204,9 @@ public:
     }
 
     // Just short helpers
-    VectorXd inline dec(const VectorXd &z) { return m_reduced_space->decode(z); }
-    VectorXd inline enc(const VectorXd &q) { return m_reduced_space->encode(q); }
-    MatrixXd inline jac(const VectorXd &z) { return m_reduced_space->jacobian(z); }
+    inline VectorXd dec(const VectorXd &z) { return m_reduced_space->decode(z); }
+    inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
+    inline Eigen::Transpose<MatrixXd> jac(const VectorXd &z) { return m_reduced_space->jacobian(z); }
 
     double operator()(const VectorXd& new_z, VectorXd& grad)
     {
@@ -226,8 +230,8 @@ public:
         m_tets->getInternalForce(internal_force, m_world->getState());
         ASSEMBLEEND(internal_force);
 
-        MatrixXd jac_z_T = jac(new_z).transpose();
-        grad = jac_z_T * m_M * A - m_h * m_h * jac_z_T * (*internal_force) - m_h * m_h * jac_z_T * m_F_ext;
+        Eigen::Transpose<Eigen::Transpose<MatrixXd>> jac_z_T = jac(new_z).transpose();
+        grad = jac_z_T * (m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * m_F_ext);
 
         // Finite differences gradient
         // double t = 0.000001;
@@ -394,7 +398,8 @@ SparseMatrix<double> construct_constraints_P(NeohookeanTets *tets) {
     return P;
 }
 
-typedef ReducedSpace<IdentitySpaceImpl, SparseMatrix<double> > IdentitySpace;
+typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
+typedef ReducedSpace<LinearSpaceImpl> LinearSpace;
 
 int main(int argc, char **argv) {
     std::cout<<"Testt Neohookean FEM \n";
@@ -415,8 +420,11 @@ int main(int argc, char **argv) {
     reset_world(world);
 
     // SparseMatrix<double> P = construct_constraints_P(tets);
-    IdentitySpace reduced_space(tets->getImpl().getV().rows() * 3);
-    GPLCTimeStepper<IdentitySpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+    //IdentitySpace reduced_space(tets->getImpl().getV().rows() * 3);
+    MatrixXd U;
+    igl::readDMAT("../../training_data/fixed_material_model/pca_components.dmat", U);
+    LinearSpace reduced_space(U);
+    GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
     // gplc_stepper.test_gradient();
 
     /** libigl display stuff **/
