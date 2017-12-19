@@ -117,7 +117,7 @@ public:
         return m_impl.decode(z);
     }
 
-    inline Eigen::Transpose<MatrixXd> jacobian(const VectorXd &z) { // todo should be const auto?
+    inline auto jacobian(const VectorXd &z) { // todo should be const auto?
         // d decode / d z
         return m_impl.jacobian(z);
     }
@@ -136,7 +136,7 @@ public:
 
     inline VectorXd encode(const VectorXd &q) {return q;}
     inline VectorXd decode(const VectorXd &z) {return z;}
-    inline SparseMatrix<double> jacobian(const VectorXd &z) {return m_I;}
+    inline const SparseMatrix<double>& jacobian(const VectorXd &z) {return m_I;}
 
 private:
     SparseMatrix<double> m_I;
@@ -158,7 +158,7 @@ public:
         return m_U.transpose() * z;
     }
 
-    inline Eigen::Transpose<MatrixXd> jacobian(const VectorXd &z) { // TODO: do this without copy?
+    inline auto jacobian(const VectorXd &z) { // TODO: do this without copy?
         return m_U.transpose();
     }
 
@@ -206,7 +206,7 @@ public:
     // Just short helpers
     inline VectorXd dec(const VectorXd &z) { return m_reduced_space->decode(z); }
     inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
-    inline Eigen::Transpose<MatrixXd> jac(const VectorXd &z) { return m_reduced_space->jacobian(z); }
+    inline auto jac(const VectorXd &z) { return m_reduced_space->jacobian(z); }
 
     double operator()(const VectorXd& new_z, VectorXd& grad)
     {
@@ -230,7 +230,7 @@ public:
         m_tets->getInternalForce(internal_force, m_world->getState());
         ASSEMBLEEND(internal_force);
 
-        Eigen::Transpose<Eigen::Transpose<MatrixXd>> jac_z_T = jac(new_z).transpose();
+        auto jac_z_T = jac(new_z).transpose();
         grad = jac_z_T * (m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * m_F_ext);
 
         // Finite differences gradient
@@ -420,11 +420,14 @@ int main(int argc, char **argv) {
     reset_world(world);
 
     // SparseMatrix<double> P = construct_constraints_P(tets);
-    //IdentitySpace reduced_space(tets->getImpl().getV().rows() * 3);
+    
     MatrixXd U;
     igl::readDMAT("../../training_data/fixed_material_model/pca_components.dmat", U);
     LinearSpace reduced_space(U);
     GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+
+    // IdentitySpace reduced_space(tets->getImpl().getV().rows() * 3);
+    // GPLCTimeStepper<IdentitySpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
     // gplc_stepper.test_gradient();
 
     /** libigl display stuff **/
