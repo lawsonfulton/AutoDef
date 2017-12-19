@@ -46,6 +46,7 @@ AssemblerEigenVector<double> > MyTimeStepper;
 Eigen::MatrixXd V; // Verts
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
+int n_dof;
 
 // Mouse/Viewer state
 Eigen::RowVector3f last_mouse;
@@ -95,6 +96,7 @@ void reset_world (MyWorld &world) {
 // -- My integrator
 
 using Eigen::VectorXd;
+using Eigen::Vector3d;
 using Eigen::VectorXi;
 using Eigen::MatrixXd;
 using Eigen::SparseMatrix;
@@ -196,11 +198,16 @@ public:
         }
 
         m_F_ext = m_M * g;
+        m_interaction_force = VectorXd::Zero(m_F_ext.size());
     }
 
     void set_prev_zs(const VectorXd &cur_z, const VectorXd &prev_z) {
         m_cur_z = cur_z;
         m_prev_z = prev_z;
+    }
+
+    void set_interaction_force(const VectorXd &interaction_force) {
+        m_interaction_force = interaction_force;
     }
 
     // Just short helpers
@@ -222,7 +229,7 @@ public:
         VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z); // TODO: avoid decodes here by saving the qs aswell
         double energy = m_tets->getPotentialEnergy(m_world->getState());
 
-        obj_val = 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * m_F_ext;
+        obj_val = 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
 
         // -- Compute gradient
         AssemblerEigenVector<double> internal_force; //maybe?
@@ -231,7 +238,7 @@ public:
         ASSEMBLEEND(internal_force);
 
         auto jac_z_T = jac(new_z).transpose();
-        grad = jac_z_T * (m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * m_F_ext);
+        grad = jac_z_T * (m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * (m_F_ext + m_interaction_force));
 
         // Finite differences gradient
         // double t = 0.000001;
@@ -250,6 +257,8 @@ private:
     VectorXd m_cur_z;
     VectorXd m_prev_z;
     VectorXd m_F_ext;
+    VectorXd m_interaction_force;
+
     SparseMatrix<double> m_M; // mass matrix
 
     double m_h;
@@ -268,7 +277,7 @@ public:
         // Set up lbfgs params
         m_lbfgs_param.epsilon = 1e-3; //1e-8// TODO replace convergence test with abs difference
         //m_lbfgs_param.delta = 1e-3;
-        m_lbfgs_param.max_iterations = 10000;
+        m_lbfgs_param.max_iterations = 300;
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
         reset_zs_to_current_world();
@@ -280,12 +289,13 @@ public:
         delete m_gplc_objective;
     }
 
-    void step() {
+    void step(const VectorXd &interaction_force) {
         double start_time = igl::get_seconds();
 
         VectorXd z_param = m_cur_z; // Stores both the first guess and the final result
         double min_val_res;
 
+        m_gplc_objective->set_interaction_force(interaction_force);
         m_gplc_objective->set_prev_zs(m_cur_z, m_prev_z);
         int niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);
 
@@ -398,18 +408,35 @@ SparseMatrix<double> construct_constraints_P(NeohookeanTets *tets) {
     return P;
 }
 
+VectorXd compute_interaction_force(const Vector3d &dragged_pos, int dragged_vert, bool is_dragging, double spring_stiffness, NeohookeanTets *tets, const MyWorld &world) {
+    VectorXd force = VectorXd::Zero(n_dof); // TODO make this a sparse vector?
+
+    if(is_dragging) {
+        Vector3d fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert], dragged_vert, &tets->getImpl().getV())(world.getState());
+        Vector3d local_force = spring_stiffness * (dragged_pos - fem_attached_pos);
+
+        for(int i=0; i < 3; i++) {
+            force[dragged_vert * 3 + i] = local_force[i];    
+        }
+    } 
+
+    return force;
+}
+
 typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
 typedef ReducedSpace<LinearSpaceImpl> LinearSpace;
 
 int main(int argc, char **argv) {
-    std::cout<<"Testt Neohookean FEM \n";
-    //Setup Physics
+    std::cout<<"Test Reduced Neohookean FEM \n";
+    
+    // -- Setting up GAUSS
     MyWorld world;
-    std::cout<<"defined world\n";
     igl::readMESH(argv[1], V, T, F);
+
     NeohookeanTets *tets = new NeohookeanTets(V,T);
+    n_dof = tets->getImpl().getV().rows() * 3;
     for(auto element: tets->getImpl().getElements()) {
-        element->setDensity(1000.0);//1000.0);
+        element->setDensity(1000.0);
         element->setParameters(300000, 0.45);
     }
 
@@ -418,17 +445,24 @@ int main(int argc, char **argv) {
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
     
     reset_world(world);
-
-    // SparseMatrix<double> P = construct_constraints_P(tets);
+    // --- Finished GAUSS set up
     
+
+    // --- My integrator set up
+    double spring_stiffness = 1000000.0;
+    VectorXd interaction_force = VectorXd::Zero(n_dof);
+
     MatrixXd U;
-    igl::readDMAT("../../training_data/fixed_material_model/pca_components.dmat", U);
+    igl::readDMAT("../../training_data/fixed_material_model/pca_components_3.dmat", U);
     LinearSpace reduced_space(U);
     GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
 
     // IdentitySpace reduced_space(tets->getImpl().getV().rows() * 3);
     // GPLCTimeStepper<IdentitySpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
     // gplc_stepper.test_gradient();
+
+
+
 
     /** libigl display stuff **/
     igl::viewer::Viewer viewer;
@@ -440,6 +474,18 @@ int main(int argc, char **argv) {
         const Eigen::RowVector3d yellow(1.0,0.9,0.2);
         const Eigen::RowVector3d blue(0.2,0.3,0.8);
         const Eigen::RowVector3d green(0.2,0.6,0.3);
+
+        if(is_dragging) {
+            Eigen::MatrixXd part_pos(1, 3);
+            part_pos(0,0) = dragged_pos[0]; // TODO why is eigen so confusing.. I just want to make a matrix from vec
+            part_pos(0,1) = dragged_pos[1];
+            part_pos(0,2) = dragged_pos[2];
+
+            viewer.data.set_points(part_pos, orange);
+        } else {
+            Eigen::MatrixXd part_pos;
+            viewer.data.set_points(part_pos, orange);
+        }
 
         if(viewer.core.is_animating)
         {   
@@ -461,7 +507,8 @@ int main(int argc, char **argv) {
             viewer.data.compute_normals();
             current_frame++;
 
-            gplc_stepper.step();
+            interaction_force = compute_interaction_force(dragged_pos, dragged_vert, is_dragging, spring_stiffness, tets, world);
+            gplc_stepper.step(interaction_force);
             // test_gradient(world, tets);
         }
         return false;
@@ -490,88 +537,78 @@ int main(int argc, char **argv) {
         return true;
     };
 
-    // viewer.callback_mouse_down = [&](igl::viewer::Viewer&, int, int)->bool
-    // {   
-    //     Eigen::MatrixXd curV = getCurrentVertPositions(world, tets); 
-    //     last_mouse = Eigen::RowVector3f(viewer.current_mouse_x,viewer.core.viewport(3)-viewer.current_mouse_y,0);
-    //     std::cout << last_mouse << std::endl;
-    //     // Find closest point on mesh to mouse position
-    //     int fid;
-    //     Eigen::Vector3f bary;
-    //     if(igl::unproject_onto_mesh(
-    //         last_mouse.head(2),
-    //         viewer.core.view * viewer.core.model,
-    //         viewer.core.proj, 
-    //         viewer.core.viewport, 
-    //         curV, F, 
-    //         fid, bary))
-    //     {
-    //         long c;
-    //         bary.maxCoeff(&c);
-    //         dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.001,0.0,0.0); //Epsilon offset so we don't div by 0
-    //         dragged_vert = F(fid,c);
-    //         std::cout << "Dragging vert: " << dragged_vert << std::endl;
-
-    //         // Update the system
-    //         is_dragging = true;
-    //         forceSpring->getImpl().setStiffness(spring_stiffness);
-    //         auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
-    //         pinned_q = dragged_pos;//(dragged_pos).cast<double>(); // necessary?
-
-    //         fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl().getV());
-    //         forceSpring->getImpl().setPosition0(fem_attached_pos);
-
-    //         return true;
-    //     }
+    viewer.callback_mouse_down = [&](igl::viewer::Viewer&, int, int)->bool
+    {   
+        Eigen::MatrixXd curV = getCurrentVertPositions(world, tets); 
+        last_mouse = Eigen::RowVector3f(viewer.current_mouse_x,viewer.core.viewport(3)-viewer.current_mouse_y,0);
         
-    //     return false; // TODO false vs true??
-    // };
+        // Find closest point on mesh to mouse position
+        int fid;
+        Eigen::Vector3f bary;
+        if(igl::unproject_onto_mesh(
+            last_mouse.head(2),
+            viewer.core.view * viewer.core.model,
+            viewer.core.proj, 
+            viewer.core.viewport, 
+            curV, F, 
+            fid, bary))
+        {
+            long c;
+            bary.maxCoeff(&c);
+            dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.001,0.0,0.0); //Epsilon offset so we don't div by 0
+            dragged_vert = F(fid,c);
+            is_dragging = true;
 
-    // viewer.callback_mouse_up = [&](igl::viewer::Viewer&, int, int)->bool
-    // {
-    //     is_dragging = false;
-    //     forceSpring->getImpl().setStiffness(0.0);
-    //     // auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
-    //     // pinned_q = Eigen::RowVector3d(-10000.0,0.0,0.0); // Move the point out of view
 
-    //     return false;
-    // };
+            // forceSpring->getImpl().setStiffness(spring_stiffness);
+            // auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
+            // pinned_q = dragged_pos;//(dragged_pos).cast<double>(); // necessary?
 
-    // viewer.callback_mouse_move = [&](igl::viewer::Viewer &, int,int)->bool
-    // {
-    //     if(is_dragging) {
-    //         Eigen::RowVector3f drag_mouse(
-    //             viewer.current_mouse_x,
-    //             viewer.core.viewport(3) - viewer.current_mouse_y,
-    //             last_mouse(2));
+            // fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl().getV());
+            // forceSpring->getImpl().setPosition0(fem_attached_pos);
 
-    //         Eigen::RowVector3f drag_scene,last_scene;
+            return true;
+        }
+        
+        return false; // TODO false vs true??
+    };
 
-    //         igl::unproject(
-    //             drag_mouse,
-    //             viewer.core.view*viewer.core.model,
-    //             viewer.core.proj,
-    //             viewer.core.viewport,
-    //             drag_scene);
-    //         igl::unproject(
-    //             last_mouse,
-    //             viewer.core.view*viewer.core.model,
-    //             viewer.core.proj,
-    //             viewer.core.viewport,
-    //             last_scene);
+    viewer.callback_mouse_up = [&](igl::viewer::Viewer&, int, int)->bool
+    {
+        is_dragging = false;
+        return false;
+    };
 
-    //         dragged_pos += ((drag_scene-last_scene)*4.5).cast<double>(); //TODO why do I need to fine tune this
-    //         // dragged_pos += (drag_mouse-last_mouse).cast<double>();
-    //         last_mouse = drag_mouse;
+    viewer.callback_mouse_move = [&](igl::viewer::Viewer &, int,int)->bool
+    {
+        if(is_dragging) {
+            Eigen::RowVector3f drag_mouse(
+                viewer.current_mouse_x,
+                viewer.core.viewport(3) - viewer.current_mouse_y,
+                last_mouse(2));
 
-    //         // Update the system
-    //         // TODO dedupe this
-    //         auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
-    //         pinned_q = dragged_pos; //(dragged_pos).cast<double>(); // necessary?
-    //     }
+            Eigen::RowVector3f drag_scene,last_scene;
 
-    //     return false;
-    // };
+            igl::unproject(
+                drag_mouse,
+                viewer.core.view*viewer.core.model,
+                viewer.core.proj,
+                viewer.core.viewport,
+                drag_scene);
+            igl::unproject(
+                last_mouse,
+                viewer.core.view*viewer.core.model,
+                viewer.core.proj,
+                viewer.core.viewport,
+                last_scene);
+
+            dragged_pos += ((drag_scene-last_scene)*4.5).cast<double>(); //TODO why do I need to fine tune this
+
+            last_mouse = drag_mouse;
+        }
+
+        return false;
+    };
 
     viewer.data.set_mesh(V,F);
     viewer.core.show_lines = true;

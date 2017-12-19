@@ -1,4 +1,5 @@
 import time
+import subprocess
 
 import numpy
 import scipy
@@ -16,10 +17,12 @@ modes = {0: 'baseline', 1:'pca', 2:'autoencoder'}
 current_mode = 0
 current_frame = 0
 visualize_test_data = True
-training_data_root = 'training_data/first_interaction/'
-test_data_root = 'training_data/test_interaction/'
+# training_data_root = 'training_data/first_interaction/'
+# test_data_root = 'training_data/test_interaction/'
+training_data_root = 'training_data/fixed_material_model/'
+test_data_root = 'training_data/fixed_material_model_test/'
 
-def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=100, layers=[32, 16], pca_weights=None, pca_object=None, do_fine_tuning=False):
+def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=100, layers=[32, 16], pca_weights=None, pca_object=None, do_fine_tuning=False, model_base_filename=None):
     """
     Returns and encoder and decoder for going into and out of the reduced latent space.
     If pca_weights is given, then do a weighted mse.
@@ -148,8 +151,25 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
     
     autoencoder,encoder, decoder = my_utils.decompose_ae(autoencoder)
 
+    # Save the models in both tensorflow and keras formats
+    if model_base_filename:
+        print("Saving model...")
+        models_with_names = [
+            (autoencoder, "_autoencoder"),
+            (encoder, "_encoder"),
+            (decoder, "_decoder")
+        ]
+
+        for keras_model, name in models_with_names:
+            keras_model_file = model_base_filename + name + ".hdf5" 
+            tf_model_file = model_base_filename + name + ".pb" 
+            autoencoder.save(keras_model_file)  # Save the keras model
+            subprocess.run(["python", "keras_to_tensorflow.py", "-input_model_file", keras_model_file, "-output_model_file", tf_model_file], stdout=subprocess.PIPE)
+
+        print ("Saved model to " + model_base_filename + "_<stage>.hdf5")
+
     def encode(decoded_data):
-        return encoder.predict(normalize(flatten_data(decoded_data)))
+        return encoder.predict(normalize(flatten_data(decoded_data))) 
     def decode(encoded_data):
         return unflatten_data(denormalize(decoder.predict(encoded_data)))
 
@@ -179,9 +199,11 @@ def pca_analysis(data, n_components, plot_explained_variance=False):
     mse = mean_squared_error(flattened_data, pca.inverse_transform(pca.transform(flattened_data)))
 
     def encode(decoded_data):
-        return pca.transform(flatten_data(decoded_data))        
+        #return pca.transform(flatten_data(decoded_data))        
+        return pca.components_ @ flatten_data(decoded_data).T # We don't need to subtract the mean before going to/from reduced space?
     def decode(encoded_data):
-        return unflatten_data(pca.inverse_transform(encoded_data))
+        # return unflatten_data(pca.inverse_transform(encoded_data))
+        return unflatten_data((pca.components_.T @ encoded_data).T)
 
     return pca, encode, decode, pca.explained_variance_ratio_, mse
 
@@ -228,9 +250,12 @@ def main():
     pca_ae_train_dim = 20
     pca_dim = 3
     ae_dim = 3
-    ae_epochs = 2000
-    train_autoencoder = False
-    train_in_pca_space = True
+    ae_epochs = 200
+    train_autoencoder = True
+    train_in_pca_space = False
+    save_pca_components = False
+    save_autoencoder = True
+    model_base_filename = training_data_root + "model"
 
     # Normal low dim pca first
     pca, pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(displacements, pca_dim)
@@ -238,6 +263,9 @@ def main():
     decoded_pca_displacements = pca_decode(encoded_pca_displacements)
     encoded_pca_test_displacements = pca_encode(test_displacements)
     decoded_pca_test_displacements = pca_decode(encoded_pca_test_displacements)
+
+    if save_pca_components:
+        my_utils.save_numpy_mat_to_dmat(training_data_root + "pca_components_" + str(pca_dim) + ".dmat", numpy.ascontiguousarray(pca.components_))
 
     print("PCA MSE =", pca_mse)
     print("PCA Test MSE =", mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements)))
@@ -257,7 +285,7 @@ def main():
                                             epochs=ae_epochs,
                                             batch_size=len(displacements),
                                             layers=[200, 200],
-                                            pca_weights=explained_var,
+                                            #pca_weights=explained_var,
                                         )
 
             decoded_autoencoder_displacements = high_dim_pca_decode(ae_decode(ae_encode(encoded_high_dim_pca_displacements)))
@@ -278,6 +306,7 @@ def main():
                                             layers=[200, 200], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
                                             pca_object=high_dim_pca,
                                             do_fine_tuning=False,
+                                            model_base_filename=model_base_filename
                                         )
 
             decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
