@@ -100,7 +100,7 @@ using Eigen::SparseMatrix;
 using namespace LBFGSpp;
 
 
-template <typename ReducedSpaceImpl>
+template <typename ReducedSpaceImpl, typename JacType>
 class ReducedSpace
 {
 public:
@@ -116,7 +116,7 @@ public:
         return m_impl.decode(z);
     }
 
-    inline MatrixXd jacobian(const VectorXd &z) {
+    inline JacType jacobian(const VectorXd &z) {
         // d decode / d z
         return m_impl.jacobian(z);
     }
@@ -135,7 +135,7 @@ public:
 
     inline VectorXd encode(const VectorXd &q) {return q;}
     inline VectorXd decode(const VectorXd &z) {return z;}
-    inline MatrixXd jacobian(const VectorXd &z) {return m_I;}
+    inline SparseMatrix<double> jacobian(const VectorXd &z) {return m_I;}
 
 private:
     SparseMatrix<double> m_I;
@@ -166,71 +166,74 @@ template <typename ReducedSpaceType>
 class GPLC
 {
 public:
-    GPLC(VectorXd cur_Pq,
-        VectorXd prev_Pq,
+    GPLC(VectorXd cur_z,
+        VectorXd prev_z,
         double h,
         MyWorld *world,
         NeohookeanTets *tets,
-        SparseMatrix<double> &constraint_matrix_P,
         ReducedSpaceType *reduced_space ) : 
-            m_cur_Pq(cur_Pq),
-            m_prev_Pq(prev_Pq),
-            h(h),
-            world(world),
-            tets(tets),
-            P(constraint_matrix_P),
-            reduced_space(reduced_space)
+            m_cur_z(cur_z),
+            m_prev_z(prev_z),
+            m_h(h),
+            m_world(world),
+            m_tets(tets),
+            m_reduced_space(reduced_space)
     {
         // Construct mass matrix and external forces
         AssemblerEigenSparseMatrix<double> M_asm;
-        getMassMatrix(M_asm, *world);
+        getMassMatrix(M_asm, *m_world);
 
-        M = P * *M_asm * P.transpose();
-        VectorXd g(cur_Pq.size());
+        m_M = *M_asm;
+        VectorXd g(cur_z.size());
         for(int i=0; i < g.size(); i += 3) {
             g[i] = 0.0;
             g[i+1] = -9.8;
             g[i+2] = 0.0;
         }
 
-        F_ext = M * g;
+        m_F_ext = m_M * g;
     }
 
-    void set_prev_Pqs(const VectorXd &cur_Pq, const VectorXd &prev_Pq) {
-        m_cur_Pq = cur_Pq;
-        m_prev_Pq = prev_Pq;
+    void set_prev_zs(const VectorXd &cur_z, const VectorXd &prev_z) {
+        m_cur_z = cur_z;
+        m_prev_z = prev_z;
     }
 
-    
-    double operator()(const VectorXd& new_Pq, VectorXd& grad)
+    // Just short helpers
+    VectorXd inline dec(const VectorXd &z) { return m_reduced_space->decode(z); }
+    VectorXd inline enc(const VectorXd &q) { return m_reduced_space->encode(q); }
+    MatrixXd inline jac(const VectorXd &z) { return m_reduced_space->jacobian(z); }
+
+    double operator()(const VectorXd& new_z, VectorXd& grad)
     {
         // Update the tets with candidate configuration
-        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(tets->getQ(), *world);
-        VectorXd expanded_q = reduced_space->decode(P.transpose() * new_Pq);
+        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+        VectorXd new_q = dec(new_z);
         for(int i=0; i < q.size(); i++) {
-            q[i] = expanded_q[i]; // TODO is this the fastest way to do this?
+            q[i] = new_q[i]; // TODO is this the fastest way to do this?
         }
 
         // -- Compute GPLC objective
         double obj_val = 0.0;
-        VectorXd A = new_Pq - 2.0 * m_cur_Pq + m_prev_Pq;
-        double energy = tets->getPotentialEnergy(world->getState());
+        VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z); // TODO: avoid decodes here by saving the qs aswell
+        double energy = m_tets->getPotentialEnergy(m_world->getState());
 
-        obj_val = 0.5 * A.transpose() * M * A + h * h * energy - h * h * A.transpose() * F_ext;
+        obj_val = 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * m_F_ext;
 
         // -- Compute gradient
         AssemblerEigenVector<double> internal_force; //maybe?
-        ASSEMBLEVECINIT(internal_force, P.cols());
-        tets->getInternalForce(internal_force, world->getState());
+        ASSEMBLEVECINIT(internal_force, new_q.size());
+        m_tets->getInternalForce(internal_force, m_world->getState());
         ASSEMBLEEND(internal_force);
 
-        grad = M * A - h * h * P * (*internal_force) - h * h * F_ext;
+        MatrixXd jac_z_T = jac(new_z).transpose();
+        grad = jac_z_T * m_M * A - m_h * m_h * jac_z_T * (*internal_force) - m_h * m_h * jac_z_T * m_F_ext;
 
         // Finite differences gradient
         // double t = 0.000001;
-        // for(int i = 0; i < new_Pq.size(); i++) {
-        //     VectorXd dq_pos(new_Pq);
-        //     VectorXd dq_neg(new_Pq);
+        // for(int i = 0; i < new_z.size(); i++) {
+        //     VectorXd dq_pos(new_z);
+        //     VectorXd dq_neg(new_z);
         //     dq_pos[i] += t;
         //     dq_neg[i] -= t;
         //     grad[i] = (objective(dq_pos) - objective(dq_neg)) / (2.0 * t);
@@ -240,24 +243,23 @@ public:
         return obj_val;
     }
 private:
-    VectorXd m_cur_Pq;
-    VectorXd m_prev_Pq;
-    VectorXd F_ext;
-    SparseMatrix<double> M; // mass matrix
-    SparseMatrix<double> P;
+    VectorXd m_cur_z;
+    VectorXd m_prev_z;
+    VectorXd m_F_ext;
+    SparseMatrix<double> m_M; // mass matrix
 
-    double h;
+    double m_h;
 
-    MyWorld *world;
-    NeohookeanTets *tets;
+    MyWorld *m_world;
+    NeohookeanTets *m_tets;
 
-    ReducedSpaceType *reduced_space;
+    ReducedSpaceType *m_reduced_space;
 };
 
 template <typename ReducedSpaceType>
 class GPLCTimeStepper {
 public:
-    GPLCTimeStepper(MyWorld *world, NeohookeanTets *tets, double timestep, const SparseMatrix<double> &constraints_P, ReducedSpaceType *reduced_space) :
+    GPLCTimeStepper(MyWorld *world, NeohookeanTets *tets, double timestep, ReducedSpaceType *reduced_space) :
         m_world(world), m_tets(tets), m_reduced_space(reduced_space) {
         // Set up lbfgs params
         m_lbfgs_param.epsilon = 1e-3; //1e-8// TODO replace convergence test with abs difference
@@ -265,12 +267,8 @@ public:
         m_lbfgs_param.max_iterations = 10000;
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
-        m_P = constraints_P;
-        Eigen::Map<Eigen::VectorXd> gauss_map_q = mapDOFEigen(tets->getQ(), *world);
-        m_prev_Pq = m_P * gauss_map_q;
-        m_cur_Pq = m_P * gauss_map_q;
-
-        m_gplc_objective = new GPLC<ReducedSpaceType>(m_cur_Pq, m_prev_Pq, timestep, world, tets, m_P, reduced_space);
+        reset_zs_to_current_world();
+        m_gplc_objective = new GPLC<ReducedSpaceType>(m_cur_z, m_prev_z, timestep, world, tets, reduced_space);
     }
 
     ~GPLCTimeStepper() {
@@ -281,17 +279,17 @@ public:
     void step() {
         double start_time = igl::get_seconds();
 
-        VectorXd Pq_param = m_cur_Pq; // Stores both the first guess and the final result
+        VectorXd z_param = m_cur_z; // Stores both the first guess and the final result
         double min_val_res;
 
-        m_gplc_objective->set_prev_Pqs(m_cur_Pq, m_prev_Pq);
-        int niter = m_solver->minimize(*m_gplc_objective, Pq_param, min_val_res);
+        m_gplc_objective->set_prev_zs(m_cur_z, m_prev_z);
+        int niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);
 
         std::cout << niter << " iterations" << std::endl;
         std::cout << "objective val = " << min_val_res << std::endl;
 
-        m_prev_Pq = m_cur_Pq;
-        m_cur_Pq = Pq_param; // TODO: Use pointers to avoid copies
+        m_prev_z = m_cur_z;
+        m_cur_z = z_param; // TODO: Use pointers to avoid copies
 
         update_world_with_current_configuration();
 
@@ -302,23 +300,23 @@ public:
     void update_world_with_current_configuration() {
         // TODO: is this the fastest way to do this?
         Eigen::Map<Eigen::VectorXd> gauss_map_q = mapDOFEigen(m_tets->getQ(), *m_world);
-        VectorXd expanded_q = m_P.transpose() * m_cur_Pq;
-        for(int i=0; i < expanded_q.size(); i++) {
-            gauss_map_q[i] = expanded_q[i];
+        VectorXd cur_q = m_reduced_space->decode(m_cur_z);
+        for(int i=0; i < cur_q.size(); i++) {
+            gauss_map_q[i] = cur_q[i];
         }
     }
 
-    void reset() {
+    void reset_zs_to_current_world() {
         Eigen::Map<Eigen::VectorXd> gauss_map_q = mapDOFEigen(m_tets->getQ(), *m_world);
-        m_prev_Pq = m_P * gauss_map_q;
-        m_cur_Pq = m_P * gauss_map_q;
+        m_prev_z = m_reduced_space->encode(gauss_map_q);
+        m_cur_z = m_reduced_space->encode(gauss_map_q);
     }
 
     void test_gradient() {
         auto q_map = mapDOFEigen(m_tets->getQ(), *m_world);
-        VectorXd q(m_P * q_map);
+        VectorXd q(m_reduced_space->encode(q_map));
 
-        GPLC<ReducedSpaceType> fun(q, q, 0.001, m_world, m_tets, m_P);
+        GPLC<ReducedSpaceType> fun(q, q, 0.001, m_world, m_tets);
         
         VectorXd fun_grad(q.size());
         double fun_val = fun(q, fun_grad);
@@ -347,9 +345,8 @@ private:
     LBFGSSolver<double> *m_solver;
     GPLC<ReducedSpaceType> *m_gplc_objective;
 
-    SparseMatrix<double> m_P; // TODO sparse?
-    VectorXd m_prev_Pq;
-    VectorXd m_cur_Pq;
+    VectorXd m_prev_z;
+    VectorXd m_cur_z;
 
     MyWorld *m_world;
     NeohookeanTets *m_tets;
@@ -397,7 +394,7 @@ SparseMatrix<double> construct_constraints_P(NeohookeanTets *tets) {
     return P;
 }
 
-typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
+typedef ReducedSpace<IdentitySpaceImpl, SparseMatrix<double> > IdentitySpace;
 
 int main(int argc, char **argv) {
     std::cout<<"Testt Neohookean FEM \n";
@@ -417,9 +414,9 @@ int main(int argc, char **argv) {
     
     reset_world(world);
 
-    SparseMatrix<double> P = construct_constraints_P(tets);
-    IdentitySpace reduced_space(P.rows());
-    GPLCTimeStepper<IdentitySpace> gplc_stepper(&world, tets, 0.05, P, &reduced_space);
+    // SparseMatrix<double> P = construct_constraints_P(tets);
+    IdentitySpace reduced_space(tets->getImpl().getV().rows() * 3);
+    GPLCTimeStepper<IdentitySpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
     // gplc_stepper.test_gradient();
 
     /** libigl display stuff **/
@@ -473,7 +470,7 @@ int main(int argc, char **argv) {
             case 'R':
             {
                 reset_world(world);
-                gplc_stepper.reset();
+                gplc_stepper.reset_zs_to_current_world();
                 break;
             }
             default:
