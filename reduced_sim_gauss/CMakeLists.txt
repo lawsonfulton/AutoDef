@@ -3,6 +3,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 project(ReduceSimExample)
 
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 14)
 
 #Output directories
@@ -12,12 +13,18 @@ set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib )
 #grab important packages
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+#Tensorflow
+find_package(TensorflowCC REQUIRED)
+
+
+
 # Optimization lib
 include_directories("/home/lawson/Workspace/LBFGSpp/include")
 
 #Gauss
 set(LIBIGL_INCLUDE_PATH "/home/lawson/Workspace/libigl/include") # Weird that I have to do this for GAUSS seperately
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -fPIC)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(Gauss_ROOT_DIR "/home/lawson/Workspace/GAUSS/")
 find_package(Gauss REQUIRED)
 
@@ -58,7 +65,7 @@ include_directories(${Gauss_INCLUDE_DIRS})
 #Example codes
 link_directories(${Gauss_LIB_DIR_RELEASE})
 add_executable(ReduceSimExample ${ReduceSimExample_SOURCE_DIR}/src/reduced_sim_example.cpp)
-target_link_libraries(ReduceSimExample ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer)
+target_link_libraries(ReduceSimExample ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer TensorflowCC::Static)
 
 # add_executable(ViewData ${ReduceSimExample_SOURCE_DIR}/src/cpp/viewData.cpp)
 # target_link_libraries(ViewData ${Gauss_LIBS} ${UI_LIBS})

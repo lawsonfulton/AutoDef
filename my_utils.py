@@ -8,6 +8,11 @@ import numpy
 import pyigl as igl
 from iglhelpers import e2p, p2e
 
+def save_numpy_mat_to_dmat(filename, numpy_mat):
+    eigen_mat = p2e(numpy_mat)
+    igl.writeDMAT(filename, eigen_mat, False) # Save as binary dmat
+    print("Saved dmat to", filename)
+
 def load_base_vert_and_face_dmat_to_numpy(base_path):
     """ Returns a tuple (verts, faces) """
     verts_filename = base_path + 'base_verts.dmat'
@@ -53,13 +58,13 @@ def decompose_ae(autoencoder):
     from keras.models import Model, load_model
     def get_encoded_layer_and_index(): # Stupid hack
         for i, layer in enumerate(autoencoder.layers):
-            if layer.name == 'encoded':
+            if layer.name == 'encoded_layer':
                 return layer, i
 
     encoded_layer, encoded_layer_idx = get_encoded_layer_and_index()
     encoder = Model(inputs=autoencoder.input, outputs=encoded_layer.output)
 
-    decoder_input = Input(shape=(encoded_layer.output_shape[-1],))
+    decoder_input = Input(shape=(encoded_layer.output_shape[-1],), name="decoder_input")
     old_decoder_layers = autoencoder.layers[encoded_layer_idx+1:] # Need to rebuild the tensor I guess
     decoder_output = decoder_input
     for layer in old_decoder_layers:

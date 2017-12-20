@@ -98,27 +98,36 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
                     return (input_shape[0], len(self.pca_object.components_))
 
     ## Set up the network
-    activation = 'elu' #keras.layers.advanced_activations.LeakyReLU(alpha=0.3) #'relu'
+    activation = 'relu' #keras.layers.advanced_activations.LeakyReLU(alpha=0.3) #'relu'
     
-    input = Input(shape=(len(train_data[0]),))
+    input = Input(shape=(len(train_data[0]),), name="encoder_input")
     output = input
     
     if pca_object is not None:
         # output = Lambda(pca_transform_layer)(output)
-        output = PCALayer(pca_object, is_inv=False, fine_tune=do_fine_tuning)(output)
+        # output = PCALayer(pca_object, is_inv=False, fine_tune=do_fine_tuning)(output)
 
-    for layer_width in layers:
-        output = Dense(layer_width, activation=activation)(output)
-    output = Dense(latent_dim, activation=activation, name="encoded")(output)  # TODO Tanh into encoded layer to bound vars?
-    for layer_width in reversed(layers):
-        output = Dense(layer_width, activation=activation)(output)
+        W = pca_object.components_.T
+        b =  -pca_object.mean_ @ pca_object.components_.T
+        output = Dense(pca_object.n_components_, activation='linear', weights=[W,b], trainable=do_fine_tuning, name="pca_encode_layer")(output)
+
+    for i, layer_width in enumerate(layers):
+        output = Dense(layer_width, activation=activation, name="dense_encode_layer_" + str(i))(output)
+
+    output = Dense(latent_dim, activation=activation, name="encoded_layer")(output)  # TODO Tanh into encoded layer to bound vars?
+    for i, layer_width in enumerate(reversed(layers)):
+        output = Dense(layer_width, activation=activation, name="dense_decode_layer_" + str(i))(output)
     
     if pca_object is not None:
-        output = Dense(len(pca_object.components_), activation='linear')(output) ## TODO is this right??
+        output = Dense(len(pca_object.components_), activation='linear', name="to_pca_decode_layer")(output) ## TODO is this right?? Possibly should just change earlier layer width
         # output = Lambda(pca_inv_transform_layer)(output)
-        output = PCALayer(pca_object, is_inv=True, fine_tune=do_fine_tuning)(output)
+        # output = PCALayer(pca_object, is_inv=True, fine_tune=do_fine_tuning)(output)
+
+        W = pca_object.components_
+        b = pca_object.mean_
+        output = Dense(len(train_data[0]), activation='linear', weights=[W,b], trainable=do_fine_tuning, name="pca_decode_layer")(output)
     else:
-        output = Dense(len(train_data[0]), activation='linear')(output)#'linear',)(output) # First test seems to indicate no change on output with linear
+        output = Dense(len(train_data[0]), activation='linear', name="decoder_output_layer")(output)#'linear',)(output) # First test seems to indicate no change on output with linear
 
     autoencoder = Model(input, output)
 
@@ -163,8 +172,13 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
         for keras_model, name in models_with_names:
             keras_model_file = model_base_filename + name + ".hdf5" 
             tf_model_file = model_base_filename + name + ".pb" 
-            autoencoder.save(keras_model_file)  # Save the keras model
-            subprocess.run(["python", "keras_to_tensorflow.py", "-input_model_file", keras_model_file, "-output_model_file", tf_model_file], stdout=subprocess.PIPE)
+            
+            keras_model.save(keras_model_file)  # Save the keras model
+            
+            import my_keras_to_tensorflow
+            # loaded_model = load_model(keras_model_file) # Maybe this will work?
+            my_keras_to_tensorflow.save_keras_model_as_tf(keras_model, tf_model_file)
+            # subprocess.run(["python", "keras_to_tensorflow.py", "-input_model_file", keras_model_file, "-output_model_file", tf_model_file], stdout=subprocess.PIPE)
 
         print ("Saved model to " + model_base_filename + "_<stage>.hdf5")
 
@@ -250,7 +264,7 @@ def main():
     pca_ae_train_dim = 20
     pca_dim = 3
     ae_dim = 3
-    ae_epochs = 200
+    ae_epochs = 1500
     train_autoencoder = True
     train_in_pca_space = False
     save_pca_components = False

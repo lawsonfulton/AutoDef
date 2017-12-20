@@ -25,6 +25,10 @@
 // Optimization
 #include <LBFGS.h>
 
+// Tensorflow
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/public/session.h>
+
 using namespace Gauss;
 using namespace FEM;
 using namespace ParticleSystem; //For Force Spring
@@ -168,11 +172,156 @@ private:
     MatrixXd m_U;
 };
 
-template <typename ReducedSpaceType>
-class GPLC
+namespace tf = tensorflow;
+class AutoEncoderSpaceImpl
 {
 public:
-    GPLC(VectorXd cur_z,
+    AutoEncoderSpaceImpl(std::string model_dir_path) {
+        std::string decoder_path = model_dir_path + "model_decoder.pb";
+        std::string decoder_jac_path = model_dir_path + "model_decoder_jac.pb";
+        std::string encoder_path = model_dir_path + "model_encoder.pb";
+
+        // Decoder
+        tf::Status status = tf::NewSession(tf::SessionOptions(), &m_decoder_session);
+        checkStatus(status);
+        tf::GraphDef decoder_graph_def;
+        status = ReadBinaryProto(tf::Env::Default(), decoder_path, &decoder_graph_def);
+        checkStatus(status);
+        status = m_decoder_session->Create(decoder_graph_def);
+        checkStatus(status);
+
+        // Decoder Jacobian
+        status = tf::NewSession(tf::SessionOptions(), &m_decoder_jac_session);
+        checkStatus(status);
+        tf::GraphDef decoder_jac_graph_def;
+        status = ReadBinaryProto(tf::Env::Default(), decoder_jac_path, &decoder_jac_graph_def);
+        checkStatus(status);
+        status = m_decoder_jac_session->Create(decoder_jac_graph_def);
+        checkStatus(status);
+
+        // Encoder
+        status = tf::NewSession(tf::SessionOptions(), &m_encoder_session);
+        checkStatus(status);
+        tf::GraphDef encoder_graph_def;
+        status = ReadBinaryProto(tf::Env::Default(), encoder_path, &encoder_graph_def);
+        checkStatus(status);
+        status = m_encoder_session->Create(encoder_graph_def);
+        checkStatus(status);
+
+
+        // -- Testing
+
+        // tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3}));
+        // auto z_tensor_mapped = z_tensor.tensor<float, 2>();
+        // z_tensor_mapped(0, 0) = 0.0;
+        // z_tensor_mapped(0, 1) = 0.0;
+        // z_tensor_mapped(0, 2) = 0.0;
+
+        // tf::Tensor q_tensor(tf::DT_FLOAT, tf::TensorShape({1, 1908}));
+        // auto q_tensor_mapped = q_tensor.tensor<float, 2>();
+        // for(int i =0; i < 1908; i++) {
+        //     q_tensor_mapped(0, i) = 0.0;
+        // }
+
+        // // std::vector<std::pair<tf::string, tf::Tensor>> input_tensors = {{"x", x}, {"y", y}};
+        // std::vector<tf::Tensor> q_outputs;
+        // status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
+        //                            {"output_node0:0"}, {}, &q_outputs);
+        // checkStatus(status);
+
+        // std::vector<tf::Tensor> z_outputs;
+        // status = m_encoder_session->Run({{"encoder_input:0", q_tensor}},
+        //                            {"output_node0:0"}, {}, &z_outputs);
+        // checkStatus(status);
+
+        // tf::Tensor q_output = q_outputs[0];
+        // std::cout << "Success: " << q_output.flat<float>() << "!" << std::endl;
+        // tf::Tensor z_output = z_outputs[0];
+        // std::cout << "Success: " << z_output.flat<float>() << "!" << std::endl;
+        // std::cout << "Jac: " << jacobian(Vector3d(0.0,0.0,0.0)) << std::endl;
+    }
+
+    inline VectorXd encode(const VectorXd &q) {
+        tf::Tensor q_tensor(tf::DT_FLOAT, tf::TensorShape({1, n_dof}));
+        auto q_tensor_mapped = q_tensor.tensor<float, 2>();
+        for(int i =0; i < q.size(); i++) {
+            q_tensor_mapped(0, i) = q[i];
+        } // TODO map with proper function
+
+        std::vector<tf::Tensor> z_outputs;
+        tf::Status status = m_encoder_session->Run({{"encoder_input:0", q_tensor}},
+                                   {"output_node0:0"}, {}, &z_outputs);
+
+        auto z_tensor_mapped = z_outputs[0].tensor<float, 2>();
+        VectorXd res(3); // TODO generalize and below in decode
+        for(int i = 0; i < res.size(); i++) {
+            res[i] = z_tensor_mapped(0,i);
+        }
+
+        return res;
+    }
+
+    inline VectorXd decode(const VectorXd &z) {
+        tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3})); // TODO generalize
+        auto z_tensor_mapped = z_tensor.tensor<float, 2>();
+        for(int i =0; i < z.size(); i++) {
+            z_tensor_mapped(0, i) = (float)z[i];
+        } // TODO map with proper function
+
+        std::vector<tf::Tensor> q_outputs;
+        tf::Status status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
+                                   {"output_node0:0"}, {}, &q_outputs);
+
+        auto q_tensor_mapped = q_outputs[0].tensor<float, 2>();
+        VectorXd res(n_dof);
+        for(int i = 0; i < res.size(); i++) {
+            res[i] = q_tensor_mapped(0,i);
+        }
+
+        return res;
+    }
+
+    inline MatrixXd jacobian(const VectorXd &z) { // TODO: do this without copy?
+        tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3})); // TODO generalize
+        auto z_tensor_mapped = z_tensor.tensor<float, 2>();
+        for(int i =0; i < z.size(); i++) {
+            z_tensor_mapped(0, i) = (float)z[i];
+        } // TODO map with proper function
+
+        std::vector<tf::Tensor> jac_outputs;
+        tf::Status status = m_decoder_jac_session->Run({{"decoder_input:0", z_tensor}},
+                                   {"TensorArrayStack/TensorArrayGatherV3:0"}, {}, &jac_outputs); // TODO get better names
+
+        auto jac_tensor_mapped = jac_outputs[0].tensor<float, 3>();
+        
+        MatrixXd res(n_dof, 3); // TODO generalize
+        for(int i = 0; i < res.rows(); i++) {
+            for(int j = 0; j < res.cols(); j++) {
+                res(i,j) = jac_tensor_mapped(0,i,j);
+            }
+        }
+
+        return res;
+    }
+
+    void checkStatus(const tf::Status& status) {
+      if (!status.ok()) {
+        std::cout << status.ToString() << std::endl;
+        exit(1);
+      }
+    }
+
+private:
+    tf::Session* m_decoder_session;
+    tf::Session* m_decoder_jac_session;
+    tf::Session* m_encoder_session;
+};
+
+template <typename ReducedSpaceType>
+class GPLCObjective
+{
+public:
+    GPLCObjective(VectorXd cur_z,
         VectorXd prev_z,
         double h,
         MyWorld *world,
@@ -215,6 +364,22 @@ public:
     inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
     inline auto jac(const VectorXd &z) { return m_reduced_space->jacobian(z); }
 
+    // double objective(const VectorXd &new_z) { // TODO delete when done with finite differnece
+    //     Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+    //     VectorXd new_q = dec(new_z);
+    //     for(int i=0; i < q.size(); i++) {
+    //         q[i] = new_q[i]; // TODO is this the fastest way to do this?
+    //     }
+
+    //     // -- Compute GPLCObjective objective
+    //     double obj_val = 0.0;
+    //     VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z); // TODO: avoid decodes here by saving the qs aswell
+    //     double energy = m_tets->getPotentialEnergy(m_world->getState());
+
+    //     obj_val = 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
+    //     return obj_val;
+    // }
+
     double operator()(const VectorXd& new_z, VectorXd& grad)
     {
         // Update the tets with candidate configuration
@@ -224,7 +389,7 @@ public:
             q[i] = new_q[i]; // TODO is this the fastest way to do this?
         }
 
-        // -- Compute GPLC objective
+        // -- Compute GPLCObjective objective
         double obj_val = 0.0;
         VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z); // TODO: avoid decodes here by saving the qs aswell
         double energy = m_tets->getPotentialEnergy(m_world->getState());
@@ -241,7 +406,7 @@ public:
         grad = jac_z_T * (m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * (m_F_ext + m_interaction_force));
 
         // Finite differences gradient
-        // double t = 0.000001;
+        // double t = 0.0001;
         // for(int i = 0; i < new_z.size(); i++) {
         //     VectorXd dq_pos(new_z);
         //     VectorXd dq_neg(new_z);
@@ -251,6 +416,8 @@ public:
         // }
 
         // std::cout << "Objective: " << obj_val << std::endl;
+        // std::cout << "grad: " << grad << std::endl;
+        // std::cout << "z: " << new_z << std::endl;
         return obj_val;
     }
 private:
@@ -277,11 +444,11 @@ public:
         // Set up lbfgs params
         m_lbfgs_param.epsilon = 1e-3; //1e-8// TODO replace convergence test with abs difference
         //m_lbfgs_param.delta = 1e-3;
-        m_lbfgs_param.max_iterations = 300;
+        m_lbfgs_param.max_iterations = 5;//300;
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
         reset_zs_to_current_world();
-        m_gplc_objective = new GPLC<ReducedSpaceType>(m_cur_z, m_prev_z, timestep, world, tets, reduced_space);
+        m_gplc_objective = new GPLCObjective<ReducedSpaceType>(m_cur_z, m_prev_z, timestep, world, tets, reduced_space);
     }
 
     ~GPLCTimeStepper() {
@@ -324,13 +491,14 @@ public:
         Eigen::Map<Eigen::VectorXd> gauss_map_q = mapDOFEigen(m_tets->getQ(), *m_world);
         m_prev_z = m_reduced_space->encode(gauss_map_q);
         m_cur_z = m_reduced_space->encode(gauss_map_q);
+        update_world_with_current_configuration();
     }
 
     void test_gradient() {
         auto q_map = mapDOFEigen(m_tets->getQ(), *m_world);
         VectorXd q(m_reduced_space->encode(q_map));
 
-        GPLC<ReducedSpaceType> fun(q, q, 0.001, m_world, m_tets);
+        GPLCObjective<ReducedSpaceType> fun(q, q, 0.001, m_world, m_tets);
         
         VectorXd fun_grad(q.size());
         double fun_val = fun(q, fun_grad);
@@ -357,7 +525,7 @@ public:
 private:
     LBFGSParam<double> m_lbfgs_param;
     LBFGSSolver<double> *m_solver;
-    GPLC<ReducedSpaceType> *m_gplc_objective;
+    GPLCObjective<ReducedSpaceType> *m_gplc_objective;
 
     VectorXd m_prev_z;
     VectorXd m_cur_z;
@@ -423,8 +591,14 @@ VectorXd compute_interaction_force(const Vector3d &dragged_pos, int dragged_vert
     return force;
 }
 
+
+// example.cpp
+
+
+
 typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
 typedef ReducedSpace<LinearSpaceImpl> LinearSpace;
+typedef ReducedSpace<AutoEncoderSpaceImpl> AutoencoderSpace;
 
 int main(int argc, char **argv) {
     std::cout<<"Test Reduced Neohookean FEM \n";
@@ -437,7 +611,7 @@ int main(int argc, char **argv) {
     n_dof = tets->getImpl().getV().rows() * 3;
     for(auto element: tets->getImpl().getElements()) {
         element->setDensity(1000.0);
-        element->setParameters(300000, 0.45);
+        element->setParameters(300000, 0.45);   
     }
 
     world.addSystem(tets);
@@ -452,11 +626,19 @@ int main(int argc, char **argv) {
     double spring_stiffness = 1000000.0;
     VectorXd interaction_force = VectorXd::Zero(n_dof);
 
-    MatrixXd U;
-    igl::readDMAT("../../training_data/fixed_material_model/pca_components_3.dmat", U);
-    LinearSpace reduced_space(U);
-    GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+    // Linear Subspace
+    // MatrixXd U;
+    // igl::readDMAT("../../training_data/fixed_material_model/pca_components.dmat", U);
+    // LinearSpace reduced_space(U);
+    // GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
 
+    // Autoencoder Subspace
+    AutoencoderSpace reduced_space("../../training_data/fixed_material_model/");
+    GPLCTimeStepper<AutoencoderSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+
+
+
+    // Identity subspace - TODO Sparse Constraint/Linear Subspace
     // IdentitySpace reduced_space(tets->getImpl().getV().rows() * 3);
     // GPLCTimeStepper<IdentitySpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
     // gplc_stepper.test_gradient();
