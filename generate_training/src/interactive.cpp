@@ -95,15 +95,16 @@ int main(int argc, char **argv) {
     igl::readMESH(argv[1], V, T, F);
     NeohookeanTets *tets = new NeohookeanTets(V,T);
     for(auto element: tets->getImpl().getElements()) {
-        element->setDensity(atoi(argv[2]));//1000.0);
+        element->setDensity(1000.0);//1000.0);
+        element->setParameters(300000, 0.45);
     }
 
     // // Pinned particle to attach spring for dragging
     PhysicalSystemParticleSingle<double> *pinned_point = new PhysicalSystemParticleSingle<double>();
-    pinned_point->getImpl().setMass(atoi(argv[4])); //10000000
+    pinned_point->getImpl().setMass(100000000); //10000000
     auto fem_attached_pos = PosFEM<double>(&tets->getQ()[0],0, &tets->getImpl().getV());
 
-    double spring_stiffness = atoi(argv[3]);//100.0;
+    double spring_stiffness = 150.0;
     double spring_rest_length = 0.1;
     ForceSpringFEMParticle<double> *forceSpring = new ForceSpringFEMParticle<double>(fem_attached_pos, // TODO compare getV to V. Get rid of double use of index
                                                                                      PosParticle<double>(&pinned_point->getQ()),

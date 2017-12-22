@@ -15,6 +15,7 @@
 #include <igl/readMESH.h>
 #include <igl/unproject_onto_mesh.h>
 #include <igl/get_seconds.h>
+#include <igl/jet.h>
 
 #include <stdlib.h>
 #include <iostream>
@@ -591,14 +592,39 @@ VectorXd compute_interaction_force(const Vector3d &dragged_pos, int dragged_vert
     return force;
 }
 
+VectorXd get_von_mises_stresses(NeohookeanTets *tets, MyWorld &world) {
+    // Compute cauchy stress
+    int n_ele = tets->getImpl().getF().rows();
 
-// example.cpp
+    Eigen::Matrix<double, 3,3> stress = MatrixXd::Zero(3,3);
+    VectorXd vm_stresses(n_ele);
+
+    for(unsigned int i=0; i < n_ele; ++i) {
+        tets->getImpl().getElement(i)->getCauchyStress(stress, Vec3d(0,0,0), world.getState());
+
+        double s11 = stress(0, 0);
+        double s22 = stress(1, 1);
+        double s33 = stress(2, 2);
+        double s23 = stress(1, 2);
+        double s31 = stress(2, 0);
+        double s12 = stress(0, 1);
+        vm_stresses[i] = sqrt(0.5 * (s11-s22)*(s11-s22) + (s33-s11)*(s33-s11) + 6.0 * (s23*s23 + s31*s31 + s12*s12));
+    }
+
+    return vm_stresses;
+}
 
 
 
 typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
 typedef ReducedSpace<LinearSpaceImpl> LinearSpace;
 typedef ReducedSpace<AutoEncoderSpaceImpl> AutoencoderSpace;
+
+enum SUBSPACE_TYPE {
+    LINEAR,
+    AUTOENCODER,
+    FULL,
+};
 
 int main(int argc, char **argv) {
     std::cout<<"Test Reduced Neohookean FEM \n";
@@ -626,15 +652,23 @@ int main(int argc, char **argv) {
     double spring_stiffness = 1000000.0;
     VectorXd interaction_force = VectorXd::Zero(n_dof);
 
-    // Linear Subspace
-    // MatrixXd U;
-    // igl::readDMAT("../../training_data/fixed_material_model/pca_components.dmat", U);
-    // LinearSpace reduced_space(U);
-    // GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
 
-    // Autoencoder Subspace
-    AutoencoderSpace reduced_space("../../training_data/fixed_material_model/");
-    GPLCTimeStepper<AutoencoderSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+
+    // SUBSPACE_TYPE subspace_type = SUBSPACE_TYPE::LINEAR;
+    // if(subspace_type == SUBSPACE_TYPE::LINEAR) {
+        MatrixXd U;
+        igl::readDMAT("../../training_data/fixed_material_model/pca_components.dmat", U);
+        LinearSpace reduced_space(U);
+        GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+    // }
+    // else if(subspace_type == SUBSPACE_TYPE::AUTOENCODER) {
+    //     AutoencoderSpace reduced_space("../../training_data/fixed_material_model/");
+    //     GPLCTimeStepper<AutoencoderSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+    // }
+    // else {
+    //     std::cout << "Not yet implemented." << std::endl;
+    //     return 1;
+    // }
 
 
 
@@ -665,7 +699,8 @@ int main(int argc, char **argv) {
 
             viewer.data.set_points(part_pos, orange);
         } else {
-            Eigen::MatrixXd part_pos;
+            Eigen::MatrixXd part_pos = MatrixXd::Zero(1,3);
+            part_pos(0,0)=100000.0;
             viewer.data.set_points(part_pos, orange);
         }
 
@@ -681,7 +716,6 @@ int main(int argc, char **argv) {
             // stepper.step(world);
             auto q = mapDOFEigen(tets->getQ(), world);
             std::cout << "Potential = " << tets->getPotentialEnergy(world.getState()) << std::endl;
-            q *= 1.01;
 
             Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
             // std::cout<< newV.block(0,0,10,3) << std::endl;
@@ -693,6 +727,34 @@ int main(int argc, char **argv) {
             gplc_stepper.step(interaction_force);
             // test_gradient(world, tets);
         }
+
+        // Do stress field viz
+        VectorXd vm_stresses = get_von_mises_stresses(tets, world);
+        // vm_stresses is per element... Need to compute avg value per vertex
+        VectorXd vm_per_vert = VectorXd::Zero(V.rows());
+        VectorXi neighbors_per_vert = VectorXi::Zero(V.rows());
+        
+        int t = 0;
+        for(int i=0; i < T.rows(); i++) {
+            for(int j=0; j < 4; j++) {
+                t++;
+                int vert_index = T(i,j);
+                vm_per_vert[vert_index] += vm_stresses[i];
+                neighbors_per_vert[vert_index]++;
+            }
+        }
+        for(int i=0; i < vm_per_vert.size(); i++) {
+            vm_per_vert[i] /= neighbors_per_vert[i];
+        }
+        VectorXd vm_per_face = VectorXd::Zero(F.rows());
+        for(int i=0; i < vm_per_face.size(); i++) {
+            vm_per_face[i] = (vm_per_vert[F(i,0)] + vm_per_vert[F(i,1)] + vm_per_vert[F(i,2)])/3.0;
+        }
+        MatrixXd C;
+        igl::jet(vm_per_face, true, C);
+        viewer.data.set_colors(C);
+
+
         return false;
     };
 
