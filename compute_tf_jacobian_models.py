@@ -30,8 +30,11 @@ def tf_jacobian(y, x, n):
 
 
 
-model_filename ='./training_data/fixed_material_model/model_decoder.pb'
-output_filename = './training_data/fixed_material_model/model_decoder_jac.pb'
+training_data_root = "./training_data/fixed_material_model/"
+model_base_filename = training_data_root + "elu_model"
+
+model_filename =model_base_filename + '_decoder.pb'
+output_filename = model_base_filename + '_decoder_jac.pb'
 with gfile.FastGFile(model_filename,'rb') as f:
     graph_def = tf.GraphDef()
     graph_def.ParseFromString(f.read())

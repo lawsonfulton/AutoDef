@@ -1,5 +1,6 @@
 import time
 import subprocess
+import json
 
 import numpy
 import scipy
@@ -35,6 +36,7 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
     from keras.layers import Input, Dense, Lambda
     from keras.models import Model, load_model
     from keras.engine.topology import Layer
+    from keras.callbacks import History 
 
     flatten_data, unflatten_data = my_utils.get_flattners(data)
 
@@ -98,7 +100,7 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
                     return (input_shape[0], len(self.pca_object.components_))
 
     ## Set up the network
-    activation = 'relu' #keras.layers.advanced_activations.LeakyReLU(alpha=0.3) #'relu'
+    activation = 'elu' #keras.layers.advanced_activations.LeakyReLU(alpha=0.3) #'relu'
     
     input = Input(shape=(len(train_data[0]),), name="encoder_input")
     output = input
@@ -144,14 +146,16 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
         loss='mean_squared_error' if pca_weights is None else pca_weighted_mse
     )
     
+    hist = History()
     model_start_time = time.time()
     autoencoder.fit(
         train_data, train_data,
         epochs=epochs,
         batch_size=batch_size,
         shuffle=True,
-        validation_data=(test_data, test_data)
-    )
+        validation_data=(test_data, test_data),
+        callbacks=[hist]
+        )
 
     # output_path = 'trained_models/' + datetime.datetime.now().strftime("%I %M%p %B %d %Y") + '.h5'
     # autoencoder.save(output_path)
@@ -180,6 +184,10 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
             my_keras_to_tensorflow.save_keras_model_as_tf(keras_model, tf_model_file)
             # subprocess.run(["python", "keras_to_tensorflow.py", "-input_model_file", keras_model_file, "-output_model_file", tf_model_file], stdout=subprocess.PIPE)
 
+        history_path = model_base_filename + "_history.json"
+        with open(history_path, 'w') as f:
+            json.dump(hist.history, f, indent=2)
+
         print ("Saved model to " + model_base_filename + "_<stage>.hdf5")
 
     def encode(decoded_data):
@@ -187,7 +195,7 @@ def autoencoder_analysis(data, test_data, latent_dim=3, epochs=100, batch_size=1
     def decode(encoded_data):
         return unflatten_data(denormalize(decoder.predict(encoded_data)))
 
-    return encode, decode
+    return encode, decode, hist
 
 
 def pca_analysis(data, n_components, plot_explained_variance=False):
@@ -264,12 +272,12 @@ def main():
     pca_ae_train_dim = 20
     pca_dim = 3
     ae_dim = 3
-    ae_epochs = 1500
+    ae_epochs = 1000
     train_autoencoder = True
     train_in_pca_space = False
     save_pca_components = False
     save_autoencoder = True
-    model_base_filename = training_data_root + "model"
+    model_base_filename = training_data_root + "elu_model" #"models/baseline_relu" #
 
     # Normal low dim pca first
     pca, pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(displacements, pca_dim)
@@ -292,7 +300,7 @@ def main():
             encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
             encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
 
-            ae_encode, ae_decode = autoencoder_analysis(
+            ae_encode, ae_decode, hist = autoencoder_analysis(
                                             encoded_high_dim_pca_displacements,
                                             encoded_high_dim_pca_test_displacements,
                                             latent_dim=ae_dim,
@@ -311,7 +319,7 @@ def main():
             encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
             encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
 
-            ae_encode, ae_decode = autoencoder_analysis(
+            ae_encode, ae_decode, hist = autoencoder_analysis(
                                             displacements,
                                             test_displacements,
                                             latent_dim=ae_dim,
@@ -336,7 +344,22 @@ def main():
         plt.plot(mse_per_pose)
         plt.show(block=False)
 
+        encoded_output_pca = model_base_filename + '_pca_encoded.json'
+        encoded_output_ae = model_base_filename + '_ae_encoded.json'
+        decoder_jacobian_norms_path = model_base_filename + '_decoder_jacobian_norms.json'
+        encoded_output_pca_data = encoded_pca_displacements.T
+        encoded_output_ae_data = ae_encode(displacements)
+        
+        print("Computing jacobians...")
+        decoder_jacobian_norms = [numpy.linalg.norm(my_utils.fd_jacobian(ae_decode, x, 0.0005, is_keras=True), ord='fro') for x in encoded_output_ae_data]
+        print("Done.")
 
+        with open(encoded_output_pca, 'w') as f:
+            json.dump(encoded_output_pca_data.tolist(), f)
+        with open(encoded_output_ae, 'w') as f:
+            json.dump(encoded_output_ae_data.tolist(), f)
+        with open(decoder_jacobian_norms_path, 'w') as f:
+            json.dump(decoder_jacobian_norms, f)
     # libigl Set up
     viewer = igl.viewer.Viewer()
     viewer.data.set_mesh(base_verts_eig, face_indices_eig)

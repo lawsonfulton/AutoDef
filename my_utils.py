@@ -90,3 +90,26 @@ def get_flattners(data):
         return flattened_data.reshape((n_samples, sample_dim, point_dim))
 
     return flatten_data, unflatten_data
+
+def fd_jacobian(f_orig, x, eps=None, is_keras=False):
+    """
+    Computes the jacobian matrix of f at x with finite diffences.
+    If is_keras is true, then x will be wrapped in an additional array before being passed to f.
+    """
+    if eps is None:
+        eps = numpy.sqrt(numpy.finfo(float).eps)
+
+    n_x = len(x)
+    if is_keras:
+        f = lambda x: f_orig(numpy.array([x])).flatten()
+    else:
+        f = f_orig
+
+    jac = numpy.zeros([n_x, len(f(x))])
+    dx = numpy.zeros(n_x)
+    for i in range(n_x): # TODO can do this without for loop
+       dx[i] = eps
+       jac[i] = (f(x + dx ) - f(x - dx)) / (2.0 * eps)
+       dx[i] = 0.0
+
+    return jac.transpose()
