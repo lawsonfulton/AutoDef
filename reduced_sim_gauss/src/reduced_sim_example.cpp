@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <string>
 #include <sstream>
@@ -26,9 +27,21 @@
 // Optimization
 #include <LBFGS.h>
 
+// JSON
+#include <json.hpp>
+
 // Tensorflow
 #include <tensorflow/core/platform/env.h>
 #include <tensorflow/core/public/session.h>
+
+using json = nlohmann::json;
+
+using Eigen::VectorXd;
+using Eigen::Vector3d;
+using Eigen::VectorXi;
+using Eigen::MatrixXd;
+using Eigen::SparseMatrix;
+using namespace LBFGSpp;
 
 using namespace Gauss;
 using namespace FEM;
@@ -99,15 +112,6 @@ void reset_world (MyWorld &world) {
 
 
 // -- My integrator
-
-using Eigen::VectorXd;
-using Eigen::Vector3d;
-using Eigen::VectorXi;
-using Eigen::MatrixXd;
-using Eigen::SparseMatrix;
-using namespace LBFGSpp;
-
-
 template <typename ReducedSpaceImpl>
 class ReducedSpace
 {
@@ -124,9 +128,9 @@ public:
         return m_impl.decode(z);
     }
 
-    inline auto jacobian(const VectorXd &z) { // todo should be const auto?
-        // d decode / d z
-        return m_impl.jacobian(z);
+    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {
+        // d decode / d z * q
+        return m_impl.jacobian_transpose_vector_product(z, q);
     }
 
 private:
@@ -143,10 +147,25 @@ public:
 
     inline VectorXd encode(const VectorXd &q) {return q;}
     inline VectorXd decode(const VectorXd &z) {return z;}
-    inline const SparseMatrix<double>& jacobian(const VectorXd &z) {return m_I;}
+    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return q;}
 
 private:
     SparseMatrix<double> m_I;
+};
+
+class ConstraintSpaceImpl
+{
+public:
+    ConstraintSpaceImpl(const SparseMatrix<double> &P) {
+        m_P = P;
+    }
+
+    inline VectorXd encode(const VectorXd &q) {return m_P * q;}
+    inline VectorXd decode(const VectorXd &z) {return m_P.transpose() * z;}
+    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return m_P * q;}
+
+private:
+    SparseMatrix<double> m_P;
 };
 
 class LinearSpaceImpl
@@ -165,8 +184,8 @@ public:
         return m_U.transpose() * z;
     }
 
-    inline auto jacobian(const VectorXd &z) { // TODO: do this without copy?
-        return m_U.transpose();
+    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
+        return m_U * q;
     }
 
 private:
@@ -178,9 +197,9 @@ class AutoEncoderSpaceImpl
 {
 public:
     AutoEncoderSpaceImpl(std::string model_dir_path) {
-        std::string decoder_path = model_dir_path + "model_decoder.pb";
-        std::string decoder_jac_path = model_dir_path + "model_decoder_jac.pb";
-        std::string encoder_path = model_dir_path + "model_encoder.pb";
+        std::string decoder_path = model_dir_path + "_decoder.pb";
+        std::string decoder_jac_path = model_dir_path + "_decoder_jac.pb";
+        std::string encoder_path = model_dir_path + "_encoder.pb";
 
         // Decoder
         tf::Status status = tf::NewSession(tf::SessionOptions(), &m_decoder_session);
@@ -282,28 +301,47 @@ public:
         return res;
     }
 
-    inline MatrixXd jacobian(const VectorXd &z) { // TODO: do this without copy?
-        tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3})); // TODO generalize
-        auto z_tensor_mapped = z_tensor.tensor<float, 2>();
-        for(int i =0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = (float)z[i];
-        } // TODO map with proper function
+    // Using finite differences
+    // TODO I should be able to do this as a single pass right? put all the inputs into one tensor
+    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
+        VectorXd res(z.size());
 
-        std::vector<tf::Tensor> jac_outputs;
-        tf::Status status = m_decoder_jac_session->Run({{"decoder_input:0", z_tensor}},
-                                   {"TensorArrayStack/TensorArrayGatherV3:0"}, {}, &jac_outputs); // TODO get better names
-
-        auto jac_tensor_mapped = jac_outputs[0].tensor<float, 3>();
-        
-        MatrixXd res(n_dof, 3); // TODO generalize
-        for(int i = 0; i < res.rows(); i++) {
-            for(int j = 0; j < res.cols(); j++) {
-                res(i,j) = jac_tensor_mapped(0,i,j);
-            }
+        //Finite differences gradient
+        double t = 0.0005;
+        for(int i = 0; i < z.size(); i++) {
+            VectorXd dz_pos(z);
+            VectorXd dz_neg(z);
+            dz_pos[i] += t;
+            dz_neg[i] -= t;
+            res[i] = q.dot((decode(dz_pos) - decode(dz_neg)) / (2.0 * t));
         }
 
         return res;
     }
+
+    // Analytical
+    // inline VectorXd jacobian_transpose_vector_product(const VectorXd &z) { // TODO: do this without copy?
+    //     tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3})); // TODO generalize
+    //     auto z_tensor_mapped = z_tensor.tensor<float, 2>();
+    //     for(int i =0; i < z.size(); i++) {
+    //         z_tensor_mapped(0, i) = (float)z[i];
+    //     } // TODO map with proper function
+
+    //     std::vector<tf::Tensor> jac_outputs;
+    //     tf::Status status = m_decoder_jac_session->Run({{"decoder_input:0", z_tensor}},
+    //                                {"TensorArrayStack/TensorArrayGatherV3:0"}, {}, &jac_outputs); // TODO get better names
+
+    //     auto jac_tensor_mapped = jac_outputs[0].tensor<float, 3>();
+        
+    //     MatrixXd res(n_dof, 3); // TODO generalize
+    //     for(int i = 0; i < res.rows(); i++) {
+    //         for(int j = 0; j < res.cols(); j++) {
+    //             res(i,j) = jac_tensor_mapped(0,i,j);
+    //         }
+    //     }
+
+    //     return res;
+    // }
 
     void checkStatus(const tf::Status& status) {
       if (!status.ok()) {
@@ -363,7 +401,7 @@ public:
     // Just short helpers
     inline VectorXd dec(const VectorXd &z) { return m_reduced_space->decode(z); }
     inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
-    inline auto jac(const VectorXd &z) { return m_reduced_space->jacobian(z); }
+    inline VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
 
     // double objective(const VectorXd &new_z) { // TODO delete when done with finite differnece
     //     Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
@@ -403,8 +441,7 @@ public:
         m_tets->getInternalForce(internal_force, m_world->getState());
         ASSEMBLEEND(internal_force);
 
-        auto jac_z_T = jac(new_z).transpose();
-        grad = jac_z_T * (m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * (m_F_ext + m_interaction_force));
+        grad = jtvp(new_z, m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * (m_F_ext + m_interaction_force));
 
         // Finite differences gradient
         // double t = 0.0001;
@@ -445,7 +482,7 @@ public:
         // Set up lbfgs params
         m_lbfgs_param.epsilon = 1e-3; //1e-8// TODO replace convergence test with abs difference
         //m_lbfgs_param.delta = 1e-3;
-        m_lbfgs_param.max_iterations = 5;//300;
+        m_lbfgs_param.max_iterations = 5;//500;//300;
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
         reset_zs_to_current_world();
@@ -617,6 +654,7 @@ VectorXd get_von_mises_stresses(NeohookeanTets *tets, MyWorld &world) {
 
 
 typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
+typedef ReducedSpace<ConstraintSpaceImpl> ConstraintSpace;
 typedef ReducedSpace<LinearSpaceImpl> LinearSpace;
 typedef ReducedSpace<AutoEncoderSpaceImpl> AutoencoderSpace;
 
@@ -627,7 +665,10 @@ enum SUBSPACE_TYPE {
 };
 
 int main(int argc, char **argv) {
-    std::cout<<"Test Reduced Neohookean FEM \n";
+    // Load the configuration file
+    // std::ifstream fin(argv[1]);
+    // json config;
+    // fin >> config;
     
     // -- Setting up GAUSS
     MyWorld world;
@@ -656,14 +697,18 @@ int main(int argc, char **argv) {
 
     // SUBSPACE_TYPE subspace_type = SUBSPACE_TYPE::LINEAR;
     // if(subspace_type == SUBSPACE_TYPE::LINEAR) {
-        MatrixXd U;
-        igl::readDMAT("../../training_data/fixed_material_model/pca_components.dmat", U);
-        LinearSpace reduced_space(U);
-        GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+        // MatrixXd U;
+        // igl::readDMAT("../../training_data/fixed_material_model/pca_components.dmat", U);
+        // LinearSpace reduced_space(U);
+        // GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
     // }
     // else if(subspace_type == SUBSPACE_TYPE::AUTOENCODER) {
-    //     AutoencoderSpace reduced_space("../../training_data/fixed_material_model/");
-    //     GPLCTimeStepper<AutoencoderSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+        AutoencoderSpace reduced_space("../../training_data/fixed_material_model/elu_model");
+        GPLCTimeStepper<AutoencoderSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
+    // }
+    // else if(subspace_type == SUBSPACE_TYPE::AUTOENCODER) {
+        // ConstraintSpace reduced_space(construct_constraints_P(tets));
+        // GPLCTimeStepper<ConstraintSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
     // }
     // else {
     //     std::cout << "Not yet implemented." << std::endl;
@@ -750,8 +795,10 @@ int main(int argc, char **argv) {
         for(int i=0; i < vm_per_face.size(); i++) {
             vm_per_face[i] = (vm_per_vert[F(i,0)] + vm_per_vert[F(i,1)] + vm_per_vert[F(i,2)])/3.0;
         }
+        std::cout << vm_per_face.maxCoeff() << " " <<  vm_per_face.minCoeff() << std::endl;
         MatrixXd C;
-        igl::jet(vm_per_face, true, C);
+        //VectorXd((vm_per_face.array() -  vm_per_face.minCoeff()) / vm_per_face.maxCoeff())
+        igl::jet(vm_per_face / 60.0, false, C);
         viewer.data.set_colors(C);
 
 

@@ -21,6 +21,9 @@ find_package(TensorflowCC REQUIRED)
 # Optimization lib
 include_directories("/home/lawson/Workspace/LBFGSpp/include")
 
+# JSON lib
+include_directories("/home/lawson/Workspace/json/src")
+
 #Gauss
 set(LIBIGL_INCLUDE_PATH "/home/lawson/Workspace/libigl/include") # Weird that I have to do this for GAUSS seperately
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -fPIC)

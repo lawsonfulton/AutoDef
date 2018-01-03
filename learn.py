@@ -277,7 +277,8 @@ def main():
     train_in_pca_space = False
     save_pca_components = False
     save_autoencoder = True
-    model_base_filename = training_data_root + "elu_model" #"models/baseline_relu" #
+    # model_base_filename = training_data_root + "elu_model" #
+    model_base_filename = "models/baseline_elu" #
 
     # Normal low dim pca first
     pca, pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(displacements, pca_dim)
@@ -341,17 +342,21 @@ def main():
         print("PCA Train MSE =", pca_mse)
 
         mse_per_pose = [mean_squared_error(d, dt) for d, dt in zip(decoded_autoencoder_test_displacements, test_displacements)]
-        plt.plot(mse_per_pose)
-        plt.show(block=False)
+        
+        
 
         encoded_output_pca = model_base_filename + '_pca_encoded.json'
         encoded_output_ae = model_base_filename + '_ae_encoded.json'
         decoder_jacobian_norms_path = model_base_filename + '_decoder_jacobian_norms.json'
-        encoded_output_pca_data = encoded_pca_displacements.T
-        encoded_output_ae_data = ae_encode(displacements)
+        encoded_output_pca_data = encoded_pca_test_displacements.T
+        encoded_output_ae_data = ae_encode(test_displacements)
         
         print("Computing jacobians...")
         decoder_jacobian_norms = [numpy.linalg.norm(my_utils.fd_jacobian(ae_decode, x, 0.0005, is_keras=True), ord='fro') for x in encoded_output_ae_data]
+        fig, ax1 = plt.subplots()
+        plt.plot(mse_per_pose)
+        ax2 = ax1.twinx()
+        ax2.plot(decoder_jacobian_norms)
         print("Done.")
 
         with open(encoded_output_pca, 'w') as f:
@@ -360,6 +365,8 @@ def main():
             json.dump(encoded_output_ae_data.tolist(), f)
         with open(decoder_jacobian_norms_path, 'w') as f:
             json.dump(decoder_jacobian_norms, f)
+
+        plt.show(block=False)
     # libigl Set up
     viewer = igl.viewer.Viewer()
     viewer.data.set_mesh(base_verts_eig, face_indices_eig)
