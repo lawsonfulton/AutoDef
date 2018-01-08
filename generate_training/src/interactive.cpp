@@ -19,6 +19,9 @@
 #include <string>
 #include <sstream>
 
+#include <json.hpp>
+
+using json = nlohmann::json;
 using namespace Gauss;
 using namespace FEM;
 using namespace ParticleSystem; //For Force Spring
@@ -51,14 +54,20 @@ int current_frame = 0;
 // Parameters
 bool saving_training_data = true;
 std::string output_dir = "output_data/";
+json energy_json;
 
-
-void save_displacements_DMAT(const std::string path, MyWorld &world, NeohookeanTets *tets) { // TODO: Add mouse position data to ouput
+void save_displacements_DMAT_and_energy(const std::string path, MyWorld &world, NeohookeanTets *tets, json energy_json) { // TODO: Add mouse position data to ouput
     auto q = mapDOFEigen(tets->getQ(), world);
     Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
     Eigen::MatrixXd displacements = dV.transpose();
 
     igl::writeDMAT(path, displacements, false); // Don't use ascii
+
+
+    std::ofstream fout(output_dir + "energy.json");
+    fout << energy_json;
+    fout.close();
+
 }
 
 void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
@@ -96,9 +105,10 @@ int main(int argc, char **argv) {
     NeohookeanTets *tets = new NeohookeanTets(V,T);
     for(auto element: tets->getImpl().getElements()) {
         element->setDensity(1000.0);//1000.0);
-        element->setParameters(300000, 0.45);
+        element->setParameters(1000000, 0.45);
     }
 
+    energy_json["potential_energy_per_frame"] = json::array();
     // // Pinned particle to attach spring for dragging
     PhysicalSystemParticleSingle<double> *pinned_point = new PhysicalSystemParticleSingle<double>();
     pinned_point->getImpl().setMass(100000000); //10000000
@@ -113,7 +123,7 @@ int main(int argc, char **argv) {
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
     world.addSystem(tets);
-    fixDisplacementMin(world, tets);
+    fixDisplacementMin(world, tets, 1);
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
     
     reset_world(world);
@@ -149,9 +159,16 @@ int main(int argc, char **argv) {
         if(viewer.core.is_animating)
         {   
             // Save Current configuration
-            std::stringstream filename;
-            filename << output_dir << "displacements_" << current_frame << ".dmat";
-            save_displacements_DMAT(filename.str(), world, tets);
+            std::stringstream displacements_filename;
+            displacements_filename << output_dir << "displacements_" << current_frame << ".dmat";
+
+            double energy = tets->getPotentialEnergy(world.getState());
+            energy_json["potential_energy_per_frame"].push_back(energy);
+            if(energy_json["potential_energy_per_frame"].size() == current_frame) {
+                std::cout << "Index mismatch!" << std::endl;
+            }
+
+            save_displacements_DMAT_and_energy(displacements_filename.str(), world, tets, energy_json);
 
             stepper.step(world);
 

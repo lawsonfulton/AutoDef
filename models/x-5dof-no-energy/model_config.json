@@ -1,0 +1,28 @@
+{
+  "mesh": "../meshes/X.1.mesh",
+
+  "training_dataset": "../training_data/x-interaction/training",
+  "validation_dataset": "../training_data/x-interaction/validation",
+
+  "learning_config": {
+    "skip_training": false,
+    "skip_jacobian": false,
+    "autoencoder_config": {
+      "pca_compare_dims": [5, 10, 20],
+
+      "pca_layer_dim": 30,
+      "non_pca_layer_sizes": [200, 200],
+      "ae_encoded_dim": 6,
+      "activation": "elu",
+
+      "batch_size": -1,
+      "training_epochs": 600,
+      "do_fine_tuning": false
+    },
+    "energy_model_config": {
+      "enabled": true,
+      "layer_sizes": [200, 200],
+      "activation": "elu"
+    }
+  }
+}

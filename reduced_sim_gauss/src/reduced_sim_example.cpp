@@ -24,6 +24,8 @@
 #include <string>
 #include <sstream>
 
+#include <boost/filesystem.hpp>
+
 // Optimization
 #include <LBFGS.h>
 
@@ -35,6 +37,7 @@
 #include <tensorflow/core/public/session.h>
 
 using json = nlohmann::json;
+namespace fs = boost::filesystem;
 
 using Eigen::VectorXd;
 using Eigen::Vector3d;
@@ -193,19 +196,24 @@ private:
 };
 
 namespace tf = tensorflow;
+auto tf_dtype = tf::DT_DOUBLE;
+typedef double tf_dtype_type;
+
 class AutoEncoderSpaceImpl
 {
 public:
-    AutoEncoderSpaceImpl(std::string model_dir_path) {
-        std::string decoder_path = model_dir_path + "_decoder.pb";
-        std::string decoder_jac_path = model_dir_path + "_decoder_jac.pb";
-        std::string encoder_path = model_dir_path + "_encoder.pb";
+    AutoEncoderSpaceImpl(fs::path tf_models_root, json integrator_config) {
+        m_enc_dim = integrator_config["ae_encoded_dim"];
+
+        fs::path decoder_path = tf_models_root / "decoder.pb";
+        fs::path decoder_jac_path = tf_models_root / "decoder_jac.pb";
+        fs::path encoder_path = tf_models_root / "encoder.pb";
 
         // Decoder
         tf::Status status = tf::NewSession(tf::SessionOptions(), &m_decoder_session);
         checkStatus(status);
         tf::GraphDef decoder_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), decoder_path, &decoder_graph_def);
+        status = ReadBinaryProto(tf::Env::Default(), decoder_path.string(), &decoder_graph_def);
         checkStatus(status);
         status = m_decoder_session->Create(decoder_graph_def);
         checkStatus(status);
@@ -214,7 +222,7 @@ public:
         status = tf::NewSession(tf::SessionOptions(), &m_decoder_jac_session);
         checkStatus(status);
         tf::GraphDef decoder_jac_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), decoder_jac_path, &decoder_jac_graph_def);
+        status = ReadBinaryProto(tf::Env::Default(), decoder_jac_path.string(), &decoder_jac_graph_def);
         checkStatus(status);
         status = m_decoder_jac_session->Create(decoder_jac_graph_def);
         checkStatus(status);
@@ -223,7 +231,7 @@ public:
         status = tf::NewSession(tf::SessionOptions(), &m_encoder_session);
         checkStatus(status);
         tf::GraphDef encoder_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), encoder_path, &encoder_graph_def);
+        status = ReadBinaryProto(tf::Env::Default(), encoder_path.string(), &encoder_graph_def);
         checkStatus(status);
         status = m_encoder_session->Create(encoder_graph_def);
         checkStatus(status);
@@ -232,13 +240,13 @@ public:
         // -- Testing
 
         // tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3}));
-        // auto z_tensor_mapped = z_tensor.tensor<float, 2>();
+        // auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
         // z_tensor_mapped(0, 0) = 0.0;
         // z_tensor_mapped(0, 1) = 0.0;
         // z_tensor_mapped(0, 2) = 0.0;
 
         // tf::Tensor q_tensor(tf::DT_FLOAT, tf::TensorShape({1, 1908}));
-        // auto q_tensor_mapped = q_tensor.tensor<float, 2>();
+        // auto q_tensor_mapped = q_tensor.tensor<tf_dtype_type, 2>();
         // for(int i =0; i < 1908; i++) {
         //     q_tensor_mapped(0, i) = 0.0;
         // }
@@ -255,15 +263,15 @@ public:
         // checkStatus(status);
 
         // tf::Tensor q_output = q_outputs[0];
-        // std::cout << "Success: " << q_output.flat<float>() << "!" << std::endl;
+        // std::cout << "Success: " << q_output.flat<tf_dtype_type>() << "!" << std::endl;
         // tf::Tensor z_output = z_outputs[0];
-        // std::cout << "Success: " << z_output.flat<float>() << "!" << std::endl;
+        // std::cout << "Success: " << z_output.flat<tf_dtype_type>() << "!" << std::endl;
         // std::cout << "Jac: " << jacobian(Vector3d(0.0,0.0,0.0)) << std::endl;
     }
 
     inline VectorXd encode(const VectorXd &q) {
-        tf::Tensor q_tensor(tf::DT_FLOAT, tf::TensorShape({1, n_dof}));
-        auto q_tensor_mapped = q_tensor.tensor<float, 2>();
+        tf::Tensor q_tensor(tf_dtype, tf::TensorShape({1, n_dof}));
+        auto q_tensor_mapped = q_tensor.tensor<tf_dtype_type, 2>();
         for(int i =0; i < q.size(); i++) {
             q_tensor_mapped(0, i) = q[i];
         } // TODO map with proper function
@@ -272,8 +280,8 @@ public:
         tf::Status status = m_encoder_session->Run({{"encoder_input:0", q_tensor}},
                                    {"output_node0:0"}, {}, &z_outputs);
 
-        auto z_tensor_mapped = z_outputs[0].tensor<float, 2>();
-        VectorXd res(3); // TODO generalize and below in decode
+        auto z_tensor_mapped = z_outputs[0].tensor<tf_dtype_type, 2>();
+        VectorXd res(m_enc_dim); // TODO generalize and below in decode
         for(int i = 0; i < res.size(); i++) {
             res[i] = z_tensor_mapped(0,i);
         }
@@ -282,8 +290,8 @@ public:
     }
 
     inline VectorXd decode(const VectorXd &z) {
-        tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3})); // TODO generalize
-        auto z_tensor_mapped = z_tensor.tensor<float, 2>();
+        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
+        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
         for(int i =0; i < z.size(); i++) {
             z_tensor_mapped(0, i) = (float)z[i];
         } // TODO map with proper function
@@ -292,7 +300,7 @@ public:
         tf::Status status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
                                    {"output_node0:0"}, {}, &q_outputs);
 
-        auto q_tensor_mapped = q_outputs[0].tensor<float, 2>();
+        auto q_tensor_mapped = q_outputs[0].tensor<tf_dtype_type, 2>();
         VectorXd res(n_dof);
         for(int i = 0; i < res.size(); i++) {
             res[i] = q_tensor_mapped(0,i);
@@ -321,8 +329,8 @@ public:
 
     // Analytical
     // inline VectorXd jacobian_transpose_vector_product(const VectorXd &z) { // TODO: do this without copy?
-    //     tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3})); // TODO generalize
-    //     auto z_tensor_mapped = z_tensor.tensor<float, 2>();
+    //     tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
+    //     auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
     //     for(int i =0; i < z.size(); i++) {
     //         z_tensor_mapped(0, i) = (float)z[i];
     //     } // TODO map with proper function
@@ -331,9 +339,9 @@ public:
     //     tf::Status status = m_decoder_jac_session->Run({{"decoder_input:0", z_tensor}},
     //                                {"TensorArrayStack/TensorArrayGatherV3:0"}, {}, &jac_outputs); // TODO get better names
 
-    //     auto jac_tensor_mapped = jac_outputs[0].tensor<float, 3>();
+    //     auto jac_tensor_mapped = jac_outputs[0].tensor<tf_dtype_type, m_enc_dim>();
         
-    //     MatrixXd res(n_dof, 3); // TODO generalize
+    //     MatrixXd res(n_dof, m_enc_dim); // TODO generalize
     //     for(int i = 0; i < res.rows(); i++) {
     //         for(int j = 0; j < res.cols(); j++) {
     //             res(i,j) = jac_tensor_mapped(0,i,j);
@@ -351,6 +359,8 @@ public:
     }
 
 private:
+    int m_enc_dim;
+
     tf::Session* m_decoder_session;
     tf::Session* m_decoder_jac_session;
     tf::Session* m_encoder_session;
@@ -360,19 +370,20 @@ template <typename ReducedSpaceType>
 class GPLCObjective
 {
 public:
-    GPLCObjective(VectorXd cur_z,
+    GPLCObjective(
+        json integrator_config,
+        VectorXd cur_z,
         VectorXd prev_z,
-        double h,
         MyWorld *world,
         NeohookeanTets *tets,
         ReducedSpaceType *reduced_space ) : 
             m_cur_z(cur_z),
             m_prev_z(prev_z),
-            m_h(h),
             m_world(world),
             m_tets(tets),
             m_reduced_space(reduced_space)
     {
+        m_h = integrator_config["timestep"];
         // Construct mass matrix and external forces
         AssemblerEigenSparseMatrix<double> M_asm;
         getMassMatrix(M_asm, *m_world);
@@ -381,7 +392,7 @@ public:
         VectorXd g(m_M.cols());
         for(int i=0; i < g.size(); i += 3) {
             g[i] = 0.0;
-            g[i+1] = -9.8;
+            g[i+1] = integrator_config["gravity"];
             g[i+2] = 0.0;
         }
 
@@ -477,16 +488,17 @@ private:
 template <typename ReducedSpaceType>
 class GPLCTimeStepper {
 public:
-    GPLCTimeStepper(MyWorld *world, NeohookeanTets *tets, double timestep, ReducedSpaceType *reduced_space) :
+    GPLCTimeStepper(json integrator_config, MyWorld *world, NeohookeanTets *tets, ReducedSpaceType *reduced_space) :
         m_world(world), m_tets(tets), m_reduced_space(reduced_space) {
         // Set up lbfgs params
-        m_lbfgs_param.epsilon = 1e-3; //1e-8// TODO replace convergence test with abs difference
+        json lbfgs_config = integrator_config["lbfgs_config"];
+        m_lbfgs_param.epsilon = lbfgs_config["lbfgs_epsilon"]; //1e-8// TODO replace convergence test with abs difference
         //m_lbfgs_param.delta = 1e-3;
-        m_lbfgs_param.max_iterations = 5;//500;//300;
+        m_lbfgs_param.max_iterations = lbfgs_config["lbfgs_max_iterations"];//500;//300;
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
         reset_zs_to_current_world();
-        m_gplc_objective = new GPLCObjective<ReducedSpaceType>(m_cur_z, m_prev_z, timestep, world, tets, reduced_space);
+        m_gplc_objective = new GPLCObjective<ReducedSpaceType>(integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
     }
 
     ~GPLCTimeStepper() {
@@ -658,27 +670,21 @@ typedef ReducedSpace<ConstraintSpaceImpl> ConstraintSpace;
 typedef ReducedSpace<LinearSpaceImpl> LinearSpace;
 typedef ReducedSpace<AutoEncoderSpaceImpl> AutoencoderSpace;
 
-enum SUBSPACE_TYPE {
-    LINEAR,
-    AUTOENCODER,
-    FULL,
-};
-
-int main(int argc, char **argv) {
-    // Load the configuration file
-    // std::ifstream fin(argv[1]);
-    // json config;
-    // fin >> config;
-    
+template <typename ReducedSpaceType>
+void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path &model_root) {
     // -- Setting up GAUSS
     MyWorld world;
-    igl::readMESH(argv[1], V, T, F);
+    igl::readMESH((model_root / "tets.mesh").string(), V, T, F);
+
+    auto material_config = config["material_config"];
+    auto integrator_config = config["integrator_config"];
+    auto visualization_config = config["visualization_config"];
 
     NeohookeanTets *tets = new NeohookeanTets(V,T);
     n_dof = tets->getImpl().getV().rows() * 3;
     for(auto element: tets->getImpl().getElements()) {
-        element->setDensity(1000.0);
-        element->setParameters(300000, 0.45);   
+        element->setDensity(material_config["density"]);
+        element->setParameters(material_config["youngs_modulus"], material_config["poissons_ratio"]);   
     }
 
     world.addSystem(tets);
@@ -690,40 +696,13 @@ int main(int argc, char **argv) {
     
 
     // --- My integrator set up
-    double spring_stiffness = 1000000.0;
+    double spring_stiffness = visualization_config["interaction_spring_stiffness"];
     VectorXd interaction_force = VectorXd::Zero(n_dof);
 
 
+    GPLCTimeStepper<ReducedSpaceType> gplc_stepper(integrator_config, &world, tets, reduced_space);
 
-    // SUBSPACE_TYPE subspace_type = SUBSPACE_TYPE::LINEAR;
-    // if(subspace_type == SUBSPACE_TYPE::LINEAR) {
-        // MatrixXd U;
-        // igl::readDMAT("../../training_data/fixed_material_model/pca_components.dmat", U);
-        // LinearSpace reduced_space(U);
-        // GPLCTimeStepper<LinearSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
-    // }
-    // else if(subspace_type == SUBSPACE_TYPE::AUTOENCODER) {
-        AutoencoderSpace reduced_space("../../training_data/fixed_material_model/elu_model");
-        GPLCTimeStepper<AutoencoderSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
-    // }
-    // else if(subspace_type == SUBSPACE_TYPE::AUTOENCODER) {
-        // ConstraintSpace reduced_space(construct_constraints_P(tets));
-        // GPLCTimeStepper<ConstraintSpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
-    // }
-    // else {
-    //     std::cout << "Not yet implemented." << std::endl;
-    //     return 1;
-    // }
-
-
-
-    // Identity subspace - TODO Sparse Constraint/Linear Subspace
-    // IdentitySpace reduced_space(tets->getImpl().getV().rows() * 3);
-    // GPLCTimeStepper<IdentitySpace> gplc_stepper(&world, tets, 0.05, &reduced_space);
-    // gplc_stepper.test_gradient();
-
-
-
+    bool show_stress = visualization_config["show_stress"];
 
     /** libigl display stuff **/
     igl::viewer::Viewer viewer;
@@ -773,34 +752,35 @@ int main(int argc, char **argv) {
             // test_gradient(world, tets);
         }
 
-        // Do stress field viz
-        VectorXd vm_stresses = get_von_mises_stresses(tets, world);
-        // vm_stresses is per element... Need to compute avg value per vertex
-        VectorXd vm_per_vert = VectorXd::Zero(V.rows());
-        VectorXi neighbors_per_vert = VectorXi::Zero(V.rows());
-        
-        int t = 0;
-        for(int i=0; i < T.rows(); i++) {
-            for(int j=0; j < 4; j++) {
-                t++;
-                int vert_index = T(i,j);
-                vm_per_vert[vert_index] += vm_stresses[i];
-                neighbors_per_vert[vert_index]++;
+        if(show_stress) {
+            // Do stress field viz
+            VectorXd vm_stresses = get_von_mises_stresses(tets, world);
+            // vm_stresses is per element... Need to compute avg value per vertex
+            VectorXd vm_per_vert = VectorXd::Zero(V.rows());
+            VectorXi neighbors_per_vert = VectorXi::Zero(V.rows());
+            
+            int t = 0;
+            for(int i=0; i < T.rows(); i++) {
+                for(int j=0; j < 4; j++) {
+                    t++;
+                    int vert_index = T(i,j);
+                    vm_per_vert[vert_index] += vm_stresses[i];
+                    neighbors_per_vert[vert_index]++;
+                }
             }
+            for(int i=0; i < vm_per_vert.size(); i++) {
+                vm_per_vert[i] /= neighbors_per_vert[i];
+            }
+            VectorXd vm_per_face = VectorXd::Zero(F.rows());
+            for(int i=0; i < vm_per_face.size(); i++) {
+                vm_per_face[i] = (vm_per_vert[F(i,0)] + vm_per_vert[F(i,1)] + vm_per_vert[F(i,2)])/3.0;
+            }
+            std::cout << vm_per_face.maxCoeff() << " " <<  vm_per_face.minCoeff() << std::endl;
+            MatrixXd C;
+            //VectorXd((vm_per_face.array() -  vm_per_face.minCoeff()) / vm_per_face.maxCoeff())
+            igl::jet(vm_per_face / 60.0, false, C);
+            viewer.data.set_colors(C);
         }
-        for(int i=0; i < vm_per_vert.size(); i++) {
-            vm_per_vert[i] /= neighbors_per_vert[i];
-        }
-        VectorXd vm_per_face = VectorXd::Zero(F.rows());
-        for(int i=0; i < vm_per_face.size(); i++) {
-            vm_per_face[i] = (vm_per_vert[F(i,0)] + vm_per_vert[F(i,1)] + vm_per_vert[F(i,2)])/3.0;
-        }
-        std::cout << vm_per_face.maxCoeff() << " " <<  vm_per_face.minCoeff() << std::endl;
-        MatrixXd C;
-        //VectorXd((vm_per_face.array() -  vm_per_face.minCoeff()) / vm_per_face.maxCoeff())
-        igl::jet(vm_per_face / 60.0, false, C);
-        viewer.data.set_colors(C);
-
 
         return false;
     };
@@ -908,6 +888,46 @@ int main(int argc, char **argv) {
     viewer.data.face_based = true;
 
     viewer.launch();
+}
+
+int main(int argc, char **argv) {
+    // Load the configuration file
+    fs::path model_root(argv[1]);
+    fs::path sim_config("sim_config.json");
+
+    std::ifstream fin((model_root / sim_config).string());
+    json config;
+    fin >> config;
+
+    auto integrator_config = config["integrator_config"];
+    std::string reduced_space_string = integrator_config["reduced_space_type"];
+
+    if(reduced_space_string == "linear") {
+        std::string pca_dim(std::to_string((int)integrator_config["pca_dim"]));
+        fs::path pca_components_path("pca_results/pca_components_" + pca_dim + ".dmat");
+
+        MatrixXd U;
+        igl::readDMAT((model_root / pca_components_path).string(), U);
+        LinearSpace reduced_space(U);
+
+        run_sim<LinearSpace>(&reduced_space, config, model_root);
+    }
+    else if(reduced_space_string == "autoencoder") {
+        fs::path tf_models_root(model_root / "tf_models/");
+        AutoencoderSpace reduced_space(tf_models_root, integrator_config);
+        run_sim<AutoencoderSpace>(&reduced_space, config, model_root);
+
+    }
+    else if(reduced_space_string == "full") {
+        std::cout << "Not yet implemented." << std::endl;
+        // ConstraintSpace reduced_space(construct_constraints_P(tets));
+        // run_sim<ConstraintSpace>(&reduced_space, config, model_root);
+    }
+    else {
+        std::cout << "Not yet implemented." << std::endl;
+        return 1;
+    }
+    
     return EXIT_SUCCESS;
 }
 

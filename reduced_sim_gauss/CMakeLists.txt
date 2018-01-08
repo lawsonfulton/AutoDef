@@ -3,7 +3,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 project(ReduceSimExample)
 
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 set(CMAKE_CXX_STANDARD 14)
 
 #Output directories
@@ -23,6 +23,12 @@ include_directories("/home/lawson/Workspace/LBFGSpp/include")
 
 # JSON lib
 include_directories("/home/lawson/Workspace/json/src")
+
+# BOOST
+set(Boost_USE_STATIC_LIBS OFF) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME OFF) 
+find_package(Boost COMPONENTS filesystem REQUIRED) 
 
 #Gauss
 set(LIBIGL_INCLUDE_PATH "/home/lawson/Workspace/libigl/include") # Weird that I have to do this for GAUSS seperately
@@ -68,7 +74,7 @@ include_directories(${Gauss_INCLUDE_DIRS})
 #Example codes
 link_directories(${Gauss_LIB_DIR_RELEASE})
 add_executable(ReduceSimExample ${ReduceSimExample_SOURCE_DIR}/src/reduced_sim_example.cpp)
-target_link_libraries(ReduceSimExample ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer TensorflowCC::Static)
+target_link_libraries(ReduceSimExample ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer TensorflowCC::Static Boost::filesystem)
 
 # add_executable(ViewData ${ReduceSimExample_SOURCE_DIR}/src/cpp/viewData.cpp)
 # target_link_libraries(ViewData ${Gauss_LIBS} ${UI_LIBS})

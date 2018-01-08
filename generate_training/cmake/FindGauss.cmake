@@ -40,7 +40,7 @@ else (Gauss_ROOT_DIR)
     _Gauss_check_version()
   endif(Gauss_ROOT_DIR)
 
-  
+
   mark_as_advanced(Gauss_ROOT_DIR)
 
 endif(Gauss_ROOT_DIR)
@@ -53,17 +53,19 @@ message(WARNING ${Gauss_ROOT_DIR})
 load_cache(${Gauss_ROOT_DIR}/build/)
 
 #include files
-set(Gauss_INCLUDE_DIRS  ${LIBIGL_INCLUDE_PATH}
+set(Gauss_INCLUDE_DIRS  ${Gauss_EXT_INCLUDE_DIRS}
+                        ${LIBIGL_INCLUDE_PATH}
                         ${EIGEN3_INCLUDE_DIR}
-			                  ${SolversLinear_SOURCE_DIR}/include
+                        ${SolversLinear_SOURCE_DIR}/include
+                        ${Optimization_SOURCE_DIR}/include 
                         ${Base_SOURCE_DIR}/include 
                         ${Core_SOURCE_DIR}/include
                         ${ParticleSystem_SOURCE_DIR}/include
                         ${FEM_SOURCE_DIR}/include
                         ${Core_SOURCE_DIR}/include
+                        ${Collisions_SOURCE_DIR}/include
                         ${UI_SOURCE_DIR}/include
                         )
-
 if(APPLE)
   if(USE_OPENMP)
           set(CMAKE_C_COMPILER ${LLVM_BIN}/clang CACHE STRING "C compiler" FORCE)
@@ -76,20 +78,33 @@ if(APPLE)
   endif(USE_OPENMP)
 endif(APPLE)
 
+#not sure how to do this more elegantly so for now manual list of cases
+if(USE_PARDISO)
+  add_definitions(-DGAUSS_PARDISO)
+endif(USE_PARDISO)
+
+if(USE_SPECTRA)
+  add_definitions(-DGAUSS_SPECTRA)
+endif(USE_SPECTRA)
+
+
+
 #define the initUI macro
 include(${UI_SOURCE_DIR}/UISetup.txt)
 
 #Currently for xcode builds 
 #libraries
-#set(Gauss_LIB_DIR_DEBUG ${Gauss_ROOT_DIR}/build/lib/Debug)
-set(Gauss_LIB_DIR_RELEASE ${Gauss_ROOT_DIR}/build/lib)
+set(Gauss_LIB_DIR_DEBUG ${Gauss_EXT_LIBDIR} ${Gauss_ROOT_DIR}/build/lib/Debug)
+set(Gauss_LIB_DIR_RELEASE ${Gauss_EXT_LIBDIR} ${Gauss_ROOT_DIR}/build/lib/)
 
 set(Gauss_LIBS  libBase.a
                 libCore.a
                 libFEM.a
                 libUI.a
+                libCollisions.a
                 ${Gauss_EXT_LIBS})
 
 message(WARNING "INCLUDES: " ${Gauss_INCLUDE_DIRS})
+message(WARNING "DEBUG LIB DIR: " ${Gauss_LIB_DIR_DEBUG})
 message(WARNING "DEBUG LIBS: " ${Gauss_LIBS})
 

@@ -1,0 +1,21 @@
+{
+  "mesh": "../meshes/Fine_beam.mesh",
+
+  "training_dataset": "../training_data/fixed_material_model",
+  "validation_dataset": "../training_data/fixed_material_model_test",
+
+  "skip_training": false,
+  "skip_jacobian": false,
+  "autoencoder_config": {
+    "pca_compare_dims": [3, 5, 10],
+
+    "pca_layer_dim": 20,
+    "non_pca_layer_sizes": [200, 200],
+    "ae_encoded_dim": 3,
+    "activation": "relu",
+
+    "batch_size": -1,
+    "training_epochs": 100,
+    "do_fine_tuning": false
+  }
+}
