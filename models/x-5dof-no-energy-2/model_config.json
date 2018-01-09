@@ -15,16 +15,16 @@
       "ae_encoded_dim": 6,
       "activation": "elu",
 
-      "batch_size": 100,
-      "training_epochs": 1000,
+      "batch_size": -1,
+      "training_epochs": 600,
       "do_fine_tuning": false,
       "loss_weight": 1.0
     },
     "energy_model_config": {
-      "enabled": true,
-      "layer_sizes": [20, 20],
-      "activation": "sigmoid",
-      "loss_weight": 0.5
+      "enabled": false,
+      "layer_sizes": [100, 100],
+      "activation": "elu",
+      "loss_weight": 0.1
     }
   }
 }

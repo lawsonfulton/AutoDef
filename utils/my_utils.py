@@ -41,7 +41,7 @@ def load_displacement_dmats_to_numpy(base_path, num_samples=None):
     if num_samples is None:  # Compute number of configurations to load automatically
         filenames = [f for f in os.listdir(base_path) if os.path.isfile(os.path.join(base_path, f))]
         numbers_strings = [re.findall('\d+', f) for f in filenames]
-        num_samples = max(int(n_str[0]) for n_str in numbers_strings if n_str)
+        num_samples = max(int(n_str[0]) + 1 for n_str in numbers_strings if n_str)
 
     print('Loading', num_samples, 'samples...', end='', flush=True)
     p = Pool(16)
@@ -52,7 +52,7 @@ def load_displacement_dmats_to_numpy(base_path, num_samples=None):
     print('Done.')
     return displacements_samples
 
-def decompose_ae(autoencoder):
+def decompose_ae(autoencoder, do_energy=False):
     """ Takes a Keras autoencoder model and splits it into three seperate models """
     import keras
     from keras.layers import Input, Dense
@@ -66,12 +66,24 @@ def decompose_ae(autoencoder):
     encoder = Model(inputs=autoencoder.input, outputs=encoded_layer.output)
 
     decoder_input = Input(shape=(encoded_layer.output_shape[-1],), name="decoder_input")
-    old_decoder_layers = autoencoder.layers[encoded_layer_idx+1:] # Need to rebuild the tensor I guess
+    #old_decoder_layers = autoencoder.layers[encoded_layer_idx+1:] # Need to rebuild the tensor I guess
     decoder_output = decoder_input
-    for layer in old_decoder_layers:
-        decoder_output = layer(decoder_output)
+    for layer in autoencoder.layers:
+        if 'decode' in layer.name:
+            decoder_output = layer(decoder_output)
 
     decoder = Model(inputs=decoder_input, outputs=decoder_output)
+
+    if do_energy:
+        energy_input = Input(shape=(encoded_layer.output_shape[-1],), name="energy_model_input")
+        energy_output = energy_input
+        for layer in autoencoder.layers:
+            if 'energy' in layer.name:
+                energy_output = layer(energy_output)
+
+        energy_model = Model(inputs=energy_input, outputs=energy_output)
+
+        return autoencoder, encoder, decoder, energy_model
 
     return autoencoder, encoder, decoder
 

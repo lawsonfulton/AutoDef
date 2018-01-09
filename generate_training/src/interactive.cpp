@@ -56,18 +56,26 @@ bool saving_training_data = true;
 std::string output_dir = "output_data/";
 json energy_json;
 
-void save_displacements_DMAT_and_energy(const std::string path, MyWorld &world, NeohookeanTets *tets, json energy_json) { // TODO: Add mouse position data to ouput
+void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, NeohookeanTets *tets, json energy_json) { // TODO: Add mouse position data to ouput
     auto q = mapDOFEigen(tets->getQ(), world);
     Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
     Eigen::MatrixXd displacements = dV.transpose();
 
-    igl::writeDMAT(path, displacements, false); // Don't use ascii
+    std::stringstream displacements_filename;
+    displacements_filename << output_dir << "displacements_" << current_frame << ".dmat";
+    igl::writeDMAT(displacements_filename.str(), displacements, false); // Don't use ascii
 
+    std::stringstream energy_filename;
+    energy_filename << output_dir << "energy_" << current_frame << ".dmat";
+    Eigen::MatrixXd energy_vec = tets->getStrainEnergyPerElement(world.getState());
+    igl::writeDMAT(energy_filename.str(), energy_vec, false); // Don't use ascii
 
     std::ofstream fout(output_dir + "energy.json");
     fout << energy_json;
     fout.close();
 
+    std::cout << "Saved " << displacements_filename.str() << std::endl;
+    std::cout << "Saved " << energy_filename.str() << std::endl;
 }
 
 void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
@@ -159,16 +167,14 @@ int main(int argc, char **argv) {
         if(viewer.core.is_animating)
         {   
             // Save Current configuration
-            std::stringstream displacements_filename;
-            displacements_filename << output_dir << "displacements_" << current_frame << ".dmat";
-
-            double energy = tets->getPotentialEnergy(world.getState());
+            
+            double energy = tets->getStrainEnergy(world.getState());
             energy_json["potential_energy_per_frame"].push_back(energy);
             if(energy_json["potential_energy_per_frame"].size() == current_frame) {
                 std::cout << "Index mismatch!" << std::endl;
             }
 
-            save_displacements_DMAT_and_energy(displacements_filename.str(), world, tets, energy_json);
+            save_displacements_DMAT_and_energy(current_frame, world, tets, energy_json);
 
             stepper.step(world);
 

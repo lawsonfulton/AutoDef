@@ -14,10 +14,10 @@ from utils import learn
 from utils.convert_keras_models_to_tf import convert_keras_models_to_tf
 from utils.compute_tf_jacobian_models import generate_jacobian_for_tf_model
 
-import numpy
-numpy.random.seed(0)
-from tensorflow import set_random_seed
-set_random_seed(0)
+# import numpy
+# numpy.random.seed(0)
+# from tensorflow import set_random_seed
+# set_random_seed(0)
 
 def make_output_dir(path):
     if os.path.exists(path):
@@ -117,11 +117,12 @@ def main():
 
         'integrator_config': {
             'reduced_space_type': 'autoencoder', # Options are one of ['autoencoder, linear, full']
+            'use_reduced_energy': config['learning_config']['energy_model_config']['enabled'],
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
             'timestep': 0.05,
             'lbfgs_config': {
-                'lbfgs_max_iterations': 1000,
+                'lbfgs_max_iterations': 300,
                 'lbfgs_epsilon': 1e-3,
             },
             'gravity': -9.8,

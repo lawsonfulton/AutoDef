@@ -136,6 +136,10 @@ public:
         return m_impl.jacobian_transpose_vector_product(z, q);
     }
 
+    inline double get_energy(const VectorXd &z) {
+        return m_impl.get_energy(z);
+    }
+
 private:
     ReducedSpaceImpl m_impl;
 };
@@ -151,6 +155,7 @@ public:
     inline VectorXd encode(const VectorXd &q) {return q;}
     inline VectorXd decode(const VectorXd &z) {return z;}
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return q;}
+    inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
 
 private:
     SparseMatrix<double> m_I;
@@ -166,6 +171,7 @@ public:
     inline VectorXd encode(const VectorXd &q) {return m_P * q;}
     inline VectorXd decode(const VectorXd &z) {return m_P.transpose() * z;}
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return m_P * q;}
+    inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
 
 private:
     SparseMatrix<double> m_P;
@@ -190,6 +196,8 @@ public:
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
         return m_U * q;
     }
+
+    inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
 
 private:
     MatrixXd m_U;
@@ -237,6 +245,17 @@ public:
         checkStatus(status);
 
 
+        if(integrator_config["use_reduced_energy"]) {
+            fs::path energy_model_path = tf_models_root / "energy_model.pb";
+
+            status = tf::NewSession(tf::SessionOptions(), &m_energy_model_session);
+            checkStatus(status);
+            tf::GraphDef energy_model_graph_def;
+            status = ReadBinaryProto(tf::Env::Default(), energy_model_path.string(), &energy_model_graph_def);
+            checkStatus(status);
+            status = m_energy_model_session->Create(energy_model_graph_def);
+            checkStatus(status);
+        }
         // -- Testing
 
         // tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3}));
@@ -251,7 +270,7 @@ public:
         //     q_tensor_mapped(0, i) = 0.0;
         // }
 
-        // // std::vector<std::pair<tf::string, tf::Tensor>> input_tensors = {{"x", x}, {"y", y}};
+        // // std::vector<std::pair<tf::string, tf::Tensor>>integrator_config["energy_model_config"]["enabled"] input_tensors = {{"x", x}, {"y", y}};
         // std::vector<tf::Tensor> q_outputs;
         // status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
         //                            {"output_node0:0"}, {}, &q_outputs);
@@ -351,6 +370,22 @@ public:
     //     return res;
     // }
 
+    inline double get_energy(const VectorXd &z) {
+        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
+        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
+        for(int i =0; i < z.size(); i++) {
+            z_tensor_mapped(0, i) = (float)z[i];
+        } // TODO map with proper function
+
+        std::vector<tf::Tensor> q_outputs;
+        tf::Status status = m_energy_model_session->Run({{"energy_model_input:0", z_tensor}},
+                                   {"output_node0:0"}, {}, &q_outputs);
+
+        auto energy_tensor_mapped = q_outputs[0].tensor<tf_dtype_type, 2>();
+
+        return energy_tensor_mapped(0,0) * 40000.0; // TODO keep track of this normalizaiton factor
+    }
+
     void checkStatus(const tf::Status& status) {
       if (!status.ok()) {
         std::cout << status.ToString() << std::endl;
@@ -364,6 +399,7 @@ private:
     tf::Session* m_decoder_session;
     tf::Session* m_decoder_jac_session;
     tf::Session* m_encoder_session;
+    tf::Session* m_energy_model_session;
 };
 
 template <typename ReducedSpaceType>
@@ -383,6 +419,7 @@ public:
             m_tets(tets),
             m_reduced_space(reduced_space)
     {
+        m_use_reduced_energy = integrator_config["use_reduced_energy"];
         m_h = integrator_config["timestep"];
         // Construct mass matrix and external forces
         AssemblerEigenSparseMatrix<double> M_asm;
@@ -414,55 +451,75 @@ public:
     inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
     inline VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
 
-    // double objective(const VectorXd &new_z) { // TODO delete when done with finite differnece
-    //     Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
-    //     VectorXd new_q = dec(new_z);
-    //     for(int i=0; i < q.size(); i++) {
-    //         q[i] = new_q[i]; // TODO is this the fastest way to do this?
-    //     }
+    double objective(const VectorXd &new_z) { // TODO delete when done with finite differnece
+        // -- Compute GPLCObjective objective
+        double energy, reduced_energy;
+        // if(m_use_reduced_energy) {
+            reduced_energy = m_reduced_space->get_energy(new_z);
+        // }
+        // else {
+            Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+            VectorXd new_q = dec(new_z);
+            for(int i=0; i < q.size(); i++) {
+                q[i] = new_q[i]; // TODO is this the fastest way to do this?
+            }
+            energy = m_tets->getStrainEnergy(m_world->getState());
+        // }
 
-    //     // -- Compute GPLCObjective objective
-    //     double obj_val = 0.0;
-    //     VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z); // TODO: avoid decodes here by saving the qs aswell
-    //     double energy = m_tets->getPotentialEnergy(m_world->getState());
 
-    //     obj_val = 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
-    //     return obj_val;
-    // }
+        std::cout << "Energy: " << energy << ", Reduced Energy: " << reduced_energy << std::endl;
+        if(m_use_reduced_energy) {
+            energy = reduced_energy;
+        }
+        VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
+        return 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
+    }
 
     double operator()(const VectorXd& new_z, VectorXd& grad)
     {
         // Update the tets with candidate configuration
-        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
-        VectorXd new_q = dec(new_z);
-        for(int i=0; i < q.size(); i++) {
-            q[i] = new_q[i]; // TODO is this the fastest way to do this?
-        }
+        // Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+        // VectorXd new_q = dec(new_z);
+        // for(int i=0; i < q.size(); i++) {
+        //     q[i] = new_q[i]; // TODO is this the fastest way to do this?
+        // }
 
         // -- Compute GPLCObjective objective
         double obj_val = 0.0;
-        VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z); // TODO: avoid decodes here by saving the qs aswell
-        double energy = m_tets->getPotentialEnergy(m_world->getState());
+        // VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z); // TODO: avoid decodes here by saving the qs aswell
 
-        obj_val = 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
-
-        // -- Compute gradient
-        AssemblerEigenVector<double> internal_force; //maybe?
-        ASSEMBLEVECINIT(internal_force, new_q.size());
-        m_tets->getInternalForce(internal_force, m_world->getState());
-        ASSEMBLEEND(internal_force);
-
-        grad = jtvp(new_z, m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * (m_F_ext + m_interaction_force));
-
-        // Finite differences gradient
-        // double t = 0.0001;
-        // for(int i = 0; i < new_z.size(); i++) {
-        //     VectorXd dq_pos(new_z);
-        //     VectorXd dq_neg(new_z);
-        //     dq_pos[i] += t;
-        //     dq_neg[i] -= t;
-        //     grad[i] = (objective(dq_pos) - objective(dq_neg)) / (2.0 * t);
+        obj_val = objective(new_z);
+        // double energy;
+        // if(m_use_reduced_energy) {
+        //     energy = m_reduced_space->get_energy(z);
         // }
+        // else {
+        //     energy = m_tets->getStrainEnergy(m_world->getState());
+        // }
+
+        // obj_val = 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
+
+        if(m_use_reduced_energy) {
+            // Finite differences gradient
+            double t = 0.0005;
+            for(int i = 0; i < new_z.size(); i++) {
+                VectorXd dq_pos(new_z);
+                VectorXd dq_neg(new_z);
+                dq_pos[i] += t;
+                dq_neg[i] -= t;
+                grad[i] = (objective(dq_pos) - objective(dq_neg)) / (2.0 * t);
+            }
+        } else {
+            VectorXd new_q = dec(new_z);
+            VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
+            // -- Compute gradient
+            AssemblerEigenVector<double> internal_force; //maybe?
+            ASSEMBLEVECINIT(internal_force, new_q.size());
+            m_tets->getInternalForce(internal_force, m_world->getState());
+            ASSEMBLEEND(internal_force);
+
+            grad = jtvp(new_z, m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * (m_F_ext + m_interaction_force));
+        }
 
         // std::cout << "Objective: " << obj_val << std::endl;
         // std::cout << "grad: " << grad << std::endl;
@@ -482,6 +539,7 @@ private:
     MyWorld *m_world;
     NeohookeanTets *m_tets;
 
+    bool m_use_reduced_energy;
     ReducedSpaceType *m_reduced_space;
 };
 
@@ -739,7 +797,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
             // stepper.step(world);
             auto q = mapDOFEigen(tets->getQ(), world);
-            std::cout << "Potential = " << tets->getPotentialEnergy(world.getState()) << std::endl;
+            std::cout << "Potential = " << tets->getStrainEnergy(world.getState()) << std::endl;
 
             Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
             // std::cout<< newV.block(0,0,10,3) << std::endl;

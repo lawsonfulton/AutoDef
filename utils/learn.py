@@ -30,12 +30,12 @@ def autoencoder_analysis(
     latent_dim=3,
     epochs=100,
     batch_size=100,
-    layers=[32,
-    16],
+    layers=[32, 16],
     pca_weights=None,
     pca_object=None,
     do_fine_tuning=False,
     model_root=None,
+    autoencoder_config=None,
     energy_model_config=None): # TODO should probably just pass in both configs here 
     """
     Returns and encoder and decoder for going into and out of the reduced latent space.
@@ -56,6 +56,21 @@ def autoencoder_analysis(
     # TODO: Do I need to shuffle?
     train_data = flatten_data(data)
     test_data = flatten_data(data[:10] if test_data is None else test_data)
+
+    if energy_model_config['enabled']:
+        energy_train_path = os.path.join(model_root, 'training_data/training/energy.json')
+        energy_test_path = os.path.join(model_root, 'training_data/validation/energy.json')
+        with open(energy_train_path, 'r') as f:
+            energy_json = json.load(f)
+            energy_train_data = energy_json['potential_energy_per_frame']
+        with open(energy_test_path, 'r') as f:
+            energy_json = json.load(f)
+            energy_test_data = energy_json['potential_energy_per_frame']
+
+#        normalize_factor = 1e6 # TODO should get this from simulation data?
+        normalize_factor = 40000.0
+        energy_train_data = numpy.array(energy_train_data) / normalize_factor 
+        energy_test_data =  numpy.array(energy_test_data) / normalize_factor 
 
     ## Preprocess the data
     # mean = numpy.mean(train_data, axis=0)
@@ -131,12 +146,12 @@ def autoencoder_analysis(
     # -- Encoded layer
     output = Dense(latent_dim, activation=activation, name="encoded_layer")(output)  # TODO Tanh into encoded layer to bound vars?
 
-    # if energy_model_config['enabled']:
-    #     energy_output = output
-    #     for i, layer_width in enumerate(energy_model_config['layer_sizes']):
-    #         energy_output = Dense(layer_width, activation=energy_model_config['activation'], name="dense_energy_layer_" + str(i))(energy_output)
-    #     # TODO what kind of activation on the last layer?            
-    #     energy_output = Dense(1, activation='linear', name="energy_output")(energy_output)
+    if energy_model_config['enabled']:
+        energy_output = output
+        for i, layer_width in enumerate(energy_model_config['layer_sizes']):
+            energy_output = Dense(layer_width, activation=energy_model_config['activation'], name="dense_energy_layer_" + str(i))(energy_output)
+        # TODO what kind of activation on the last layer?            
+        energy_output = Dense(1, activation='linear', name="energy_output")(energy_output)
 
 
     for i, layer_width in enumerate(reversed(layers)):
@@ -154,8 +169,10 @@ def autoencoder_analysis(
         output = Dense(len(train_data[0]), activation='linear', name="decoder_output_layer")(output)#'linear',)(output) # First test seems to indicate no change on output with linear
 
     # TODO make it work when energy_model_config['enabled'] is false
-    autoencoder = Model(input, output)
-    # autoencoder = Model(input, outputs=[output, energy_output])
+    if energy_model_config['enabled']:
+        autoencoder = Model(input, outputs=[output, energy_output])
+    else:
+        autoencoder = Model(input, output)
 
 
     ## Set the optimization parameters
@@ -165,37 +182,77 @@ def autoencoder_analysis(
         return mse
 
     optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
-    autoencoder.compile(
-        optimizer=optimizer,
-        loss='mean_squared_error' if pca_weights is None else pca_weighted_mse
-    )
+    if energy_model_config['enabled']:
+        autoencoder.compile(
+            optimizer=optimizer,
+            loss={
+                'pca_decode_layer': 'mean_squared_error',
+                'energy_output': 'mean_squared_error'
+            },
+            loss_weights={
+                'pca_decode_layer': autoencoder_config['loss_weight'],
+                'energy_output': energy_model_config['loss_weight']
+            }
+        )
+    else:
+        autoencoder.compile(
+            optimizer=optimizer,
+            loss='mean_squared_error' if pca_weights is None else pca_weighted_mse,
+        )
+    
     
     hist = History()
     model_start_time = time.time()
-    autoencoder.fit(
-        train_data, train_data,
-        epochs=epochs,
-        batch_size=batch_size,
-        shuffle=True,
-        validation_data=(test_data, test_data),
-        callbacks=[hist]
+    if energy_model_config['enabled']:
+        autoencoder.fit(
+            {'encoder_input': train_data},
+            {'pca_decode_layer': train_data, 'energy_output': energy_train_data},
+            epochs=epochs,
+            batch_size=batch_size,
+            shuffle=True,
+            #validation_split=0.02,
+            validation_data=[ # TODO get this working with my validation set
+                test_data,
+                [test_data, energy_test_data],
+            ],
+            callbacks=[hist]
         )
+    else:
+        autoencoder.fit(
+            train_data, train_data,
+            epochs=epochs,
+            batch_size=batch_size,
+            shuffle=True,
+            validation_data=(test_data, test_data),
+            callbacks=[hist]
+            )
 
     # output_path = 'trained_models/' + datetime.datetime.now().strftime("%I %M%p %B %d %Y") + '.h5'
     # autoencoder.save(output_path)
 
     print("Total training time: ", time.time() - model_start_time)
     
-    autoencoder,encoder, decoder = my_utils.decompose_ae(autoencoder)
+    if energy_model_config['enabled']:
+        autoencoder,encoder, decoder, energy_model = my_utils.decompose_ae(autoencoder, do_energy=True)
+    else:
+        autoencoder,encoder, decoder = my_utils.decompose_ae(autoencoder, do_energy=False)
 
     # Save the models in both tensorflow and keras formats
     if model_root:
         print("Saving model...")
-        models_with_names = [
-            (autoencoder, "autoencoder"),
-            (encoder, "encoder"),
-            (decoder, "decoder")
-        ]
+        if energy_model_config['enabled']:
+            models_with_names = [
+                (autoencoder, "autoencoder"),
+                (encoder, "encoder"),
+                (decoder, "decoder"),
+                (energy_model, "energy_model")
+            ]
+        else:
+            models_with_names = [
+                (autoencoder, "autoencoder"),
+                (encoder, "encoder"),
+                (decoder, "decoder"),
+            ]
 
         keras_models_dir = os.path.join(model_root, 'keras_models')
         my_utils.create_dir_if_not_exist(keras_models_dir)
@@ -379,6 +436,7 @@ def generate_model(
                                     pca_object=high_dim_pca,
                                     do_fine_tuning=do_fine_tuning,
                                     model_root=model_root,
+                                    autoencoder_config=autoencoder_config,
                                     energy_model_config=energy_model_config,
                                 )
 
@@ -387,6 +445,7 @@ def generate_model(
     training_results['autoencoder']['training-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
     training_results['autoencoder']['validation-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements))
 
+    # TODO output energy loss as well
     with open(os.path.join(model_root, 'training_results.json'), 'w') as f:
         json.dump(training_results, f, indent=2)
     # print("Autoencoder Test MSE =", mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements)))
