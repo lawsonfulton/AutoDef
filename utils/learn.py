@@ -458,6 +458,87 @@ def nn_analysis(
 
     return decode, hist
 
+def discrete_nn_analysis(
+    reduced_space_samples,
+    energy_samples,
+    reduced_space_validation_samples,
+    energy_validation_samples,
+    activation='relu',
+    epochs=100,
+    batch_size=100,
+    layers=[32, 16],
+    do_fine_tuning=False,
+    model_root=None,
+    autoencoder_config=None,
+    energy_model_config=None): # TODO should probably just pass in both configs here 
+    """
+    Returns and encoder and decoder for going into and out of the reduced latent space.
+    If pca_weights is given, then do a weighted mse.
+    If pca_object is given, then the first and final layers will do a pca transformation of the reduced_space_samples.
+    """
+    
+
+    import keras
+    import keras.backend as K
+    from keras.layers import Input, Dense, Lambda
+    from keras.models import Model, load_model
+    from keras.engine.topology import Layer
+    from keras.callbacks import History 
+
+    flatten_data, unflatten_data = my_utils.get_flattners(reduced_space_samples)
+
+    # TODO: Do I need to shuffle?
+    reduced_space_samples = flatten_data(reduced_space_samples)
+    energy_samples = flatten_data(energy_samples)
+    reduced_space_validation_samples = flatten_data(reduced_space_samples[:10] if reduced_space_validation_samples is None else reduced_space_validation_samples)
+    energy_validation_samples = flatten_data(energy_samples[:10] if energy_validation_samples is None else energy_validation_samples)
+
+
+    input = Input(shape=(len(reduced_space_samples[0]),), name="energy_model_input")
+    output = input
+
+    for i, layer_width in enumerate(layers):
+        output = Dense(layer_width, activation=activation, name="dense_decode_layer_" + str(i))(output)
+
+    output = Dense(len(energy_samples[0]), activation='relu', name="output_layer" + str(i),
+                    activity_regularizer=keras.regularizers.l1(0.01),
+                    bias_constraint=keras.constraints.non_neg())(output)
+
+    model = Model(input, output)
+
+    def energy_loss(y_true, y_pred):
+        return K.square(K.dot(y_pred, K.transpose(y_true)) - K.sum(y_true, axis=1))
+
+    optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
+    model.compile(
+        optimizer=optimizer,
+        loss=energy_loss#'mean_squared_error',
+    )
+    
+    
+    hist = History()
+    model_start_time = time.time()
+
+    model.fit(
+        reduced_space_samples, energy_samples,
+        epochs=epochs,
+        batch_size=batch_size,
+        shuffle=True,
+        validation_data=(reduced_space_validation_samples, energy_validation_samples),
+        callbacks=[hist]
+        )
+
+    # output_path = 'trained_models/' + datetime.datetime.now().strftime("%I %M%p %B %d %Y") + '.h5'
+    # model.save(output_path)
+
+    print("Total training time: ", time.time() - model_start_time)
+    model.save('energy_model.hdf5')
+    # if energy_model_confiredict(normalize(flatten_data(decoded_data))) 
+    def decode(encoded_data):
+        return unflatten_data(model.predict(encoded_data))
+
+    return decode, hist
+
 
 def pca_analysis(data, n_components, plot_explained_variance=False):
     """ Returns and encoder and decoder for projecting into and out of the PCA reduced space """
@@ -526,15 +607,15 @@ def load_energy(model_root):
     test_displacements = my_utils.load_energy_dmats_to_numpy(validation_data_path)
 
 def main():
-    training_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/training_data/x-interaction-with-energy/training'
-    validation_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/training_data/x-interaction-with-energy/validation'
+    training_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/training_data/training'
+    validation_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/training_data/validation'
 
     displacements = my_utils.load_displacement_dmats_to_numpy(training_data_path)
     test_displacements = my_utils.load_displacement_dmats_to_numpy(validation_data_path)
     flatten_displ, unflatten_displ = my_utils.get_flattners(displacements)
 
     from keras.models import Model, load_model
-    encoder = load_model('/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/keras_models/encoder.hdf5')
+    encoder = load_model('/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/keras_models/encoder.hdf5')
     encoded_displacements = encoder.predict(flatten_displ(displacements))
     encoded_test_displacements = encoder.predict(flatten_displ(test_displacements))
 
@@ -597,15 +678,16 @@ def main():
 
 
 def sparse_learn():
-    training_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/training_data/training'
-    validation_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/training_data/validation'
+    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/'
+    training_data_path = os.path.join(base_path,'training_data/training')
+    validation_data_path = os.path.join(base_path,'training_data/validation')
 
     displacements = my_utils.load_displacement_dmats_to_numpy(training_data_path)
     test_displacements = my_utils.load_displacement_dmats_to_numpy(validation_data_path)
     flatten_displ, unflatten_displ = my_utils.get_flattners(displacements)
 
     from keras.models import Model, load_model
-    encoder = load_model('/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/keras_models/encoder.hdf5')
+    encoder = load_model(os.path.join(base_path,'keras_models/encoder.hdf5'))
     encoded_displacements = encoder.predict(flatten_displ(displacements))
     encoded_test_displacements = encoder.predict(flatten_displ(test_displacements))
 
@@ -621,34 +703,21 @@ def sparse_learn():
 
     index = 300
     actual = scale * sum(energies[index])
-    print(energies[index])
-    print(actual)
-    print(displacements[index])
-    pca_dim = 50
-    high_dim_energy_pca, high_dim_energy_pca_encode, high_dim_energy_pca_decode, explained_energy_var, good_energy_pca_mse = pca_analysis(energies, pca_dim)
-    
-    high_dim_pca, high_dim_pca_encode, high_dim_pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_dim)
-    
 
-    # predict = scale * sum(high_dim_energy_pca_decode(high_dim_energy_pca_encode(energies[index])))
-    # print(high_dim_energy_pca_encode(energies[index]))
-    # print(high_dim_pca_encode(numpy.array([displacements[index]])))
-    # print(predict)
-    # print(actual - predict)
 
-    print(energies)
-    energies = numpy.sum(energies,axis=1)
-    print(energies)
-    energies_test = numpy.sum(energies_test,axis=1)
+    # print(energies)
+    # energies = numpy.sum(energies,axis=1)
+    # print(energies)
+    # energies_test = numpy.sum(energies_test,axis=1)
     flatten_data, unflatten_data = my_utils.get_flattners(energies)
-    ae_decode, hist = nn_analysis(
-                                    encoded_displacements, energies,
-                                    encoded_test_displacements, energies_test,
+    ae_decode, hist = discrete_nn_analysis(
+                                    encoded_displacements, flatten_data(energies),
+                                    encoded_test_displacements, flatten_data(energies_test),
                                     activation='elu',
-                                    epochs=550,
-                                    batch_size=len(energies),#100,
+                                    epochs=50,
+                                    batch_size=100,#len(energies),#100,
                                     layers=[200,200], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
-                                    pca_object=high_dim_energy_pca,
+                            
                                     do_fine_tuning=False,
                                     model_root='/tmp',
                                     autoencoder_config=None,
@@ -656,15 +725,18 @@ def sparse_learn():
                                 )
 
     decoded_autoencoder_energies = ae_decode(encoded_displacements)
-    decoded_autoencoder_test_displacements = ae_decode(encoded_test_displacements)
-    train_mse = mean_squared_error(flatten_data(decoded_autoencoder_energies), flatten_data(energies))
-    val_mse = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(energies_test))
+    print(numpy.sort(decoded_autoencoder_energies))
+    print(numpy.nonzero(decoded_autoencoder_energies[150]))
+    print(len(numpy.nonzero(decoded_autoencoder_energies[150])[0]))
+    # decoded_autoencoder_test_displacements = ae_decode(encoded_test_displacements)
+    # train_mse = mean_squared_error(flatten_data(decoded_autoencoder_energies), flatten_data(energies))
+    # val_mse = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(energies_test))
 
-    # mean_squared_error(energies, numpy.sum(high_dim_energy_pca_decode(high_dim_pca_encode())))
-    print("energy pca mse", good_energy_pca_mse)
-    print("displacement pca mse", good_pca_mse)
-    print("pca-ae train mse", train_mse)
-    print("pca-ae test mse", val_mse)
+    # # mean_squared_error(energies, numpy.sum(high_dim_energy_pca_decode(high_dim_pca_encode())))
+    # print("energy pca mse", good_energy_pca_mse)
+    # print("displacement pca mse", good_pca_mse)
+    # print("pca-ae train mse", train_mse)
+    # print("pca-ae test mse", val_mse)
 
 
 def generate_model(

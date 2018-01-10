@@ -1,8 +1,8 @@
 {
   "mesh": "../meshes/X.1.mesh",
 
-  "training_dataset": "../training_data/x-interaction/training",
-  "validation_dataset": "../training_data/x-interaction/validation",
+  "training_dataset": "../training_data/x-interaction-with-energy/training",
+  "validation_dataset": "../training_data/x-interaction-with-energy/validation",
 
   "learning_config": {
     "skip_training": false,
@@ -20,7 +20,7 @@
       "do_fine_tuning": false
     },
     "energy_model_config": {
-      "enabled": true,
+      "enabled": false,
       "layer_sizes": [200, 200],
       "activation": "elu"
     }

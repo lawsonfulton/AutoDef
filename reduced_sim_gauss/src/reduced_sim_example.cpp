@@ -509,7 +509,7 @@ public:
                 VectorXd dq_neg(new_z);
                 dq_pos[i] += t;
                 dq_neg[i] -= t;
-                grad[i] = (objective(dq_pos) - objective(dq_neg)) / (2.0 * t);
+                grad[i] = (objective(dq_pos) - obj_val) / (1.0 * t);
             }
         } else {
             VectorXd new_q = dec(new_z);
@@ -799,7 +799,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
             // stepper.step(world);
             auto q = mapDOFEigen(tets->getQ(), world);
-            std::cout << "Potential = " << tets->getStrainEnergy(world.getState()) << std::endl;
+            // std::cout << "Potential = " << tets->getStrainEnergy(world.getState()) << std::endl;
 
             Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
             // std::cout<< newV.block(0,0,10,3) << std::endl;
