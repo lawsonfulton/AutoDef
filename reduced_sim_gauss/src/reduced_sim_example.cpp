@@ -383,7 +383,7 @@ public:
 
         auto energy_tensor_mapped = q_outputs[0].tensor<tf_dtype_type, 2>();
 
-        return energy_tensor_mapped(0,0) * 40000.0; // TODO keep track of this normalizaiton factor
+        return energy_tensor_mapped(0,0) * 1000.0; // TODO keep track of this normalizaiton factor
     }
 
     void checkStatus(const tf::Status& status) {
@@ -419,6 +419,7 @@ public:
             m_tets(tets),
             m_reduced_space(reduced_space)
     {
+
         m_use_reduced_energy = integrator_config["use_reduced_energy"];
         m_h = integrator_config["timestep"];
         // Construct mass matrix and external forces
@@ -463,11 +464,12 @@ public:
             for(int i=0; i < q.size(); i++) {
                 q[i] = new_q[i]; // TODO is this the fastest way to do this?
             }
-            energy = m_tets->getStrainEnergy(m_world->getState());
+            // energy = m_tets->getStrainEnergy(m_world->getState());
         // }
 
 
-        std::cout << "Energy: " << energy << ", Reduced Energy: " << reduced_energy << std::endl;
+        // std::cout << "Energy: " << energy << ", Reduced Energy: " << reduced_energy << std::endl;
+        // std::cout << m_use_reduced_energy << std::endl;
         if(m_use_reduced_energy) {
             energy = reduced_energy;
         }
