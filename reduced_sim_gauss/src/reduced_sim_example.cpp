@@ -140,6 +140,10 @@ public:
         return m_impl.get_energy(z);
     }
 
+    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {
+        return m_impl.get_energy_discrete(z, world, tets);
+    }
+
 private:
     ReducedSpaceImpl m_impl;
 };
@@ -156,6 +160,7 @@ public:
     inline VectorXd decode(const VectorXd &z) {return z;}
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return q;}
     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
+    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
 
 private:
     SparseMatrix<double> m_I;
@@ -172,6 +177,7 @@ public:
     inline VectorXd decode(const VectorXd &z) {return m_P.transpose() * z;}
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return m_P * q;}
     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
+    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
 
 private:
     SparseMatrix<double> m_P;
@@ -198,7 +204,7 @@ public:
     }
 
     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-
+    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
 private:
     MatrixXd m_U;
 };
@@ -254,6 +260,19 @@ public:
             status = ReadBinaryProto(tf::Env::Default(), energy_model_path.string(), &energy_model_graph_def);
             checkStatus(status);
             status = m_energy_model_session->Create(energy_model_graph_def);
+            checkStatus(status);
+        }
+
+
+        if(integrator_config["use_discrete_reduced_energy"]) {
+            fs::path discrete_energy_model_path = tf_models_root / "discrete_energy_model.pb";
+
+            status = tf::NewSession(tf::SessionOptions(), &m_discrete_energy_model_session);
+            checkStatus(status);
+            tf::GraphDef discrete_energy_model_graph_def;
+            status = ReadBinaryProto(tf::Env::Default(), discrete_energy_model_path.string(), &discrete_energy_model_graph_def);
+            checkStatus(status);
+            status = m_discrete_energy_model_session->Create(discrete_energy_model_graph_def);
             checkStatus(status);
         }
         // -- Testing
@@ -386,6 +405,40 @@ public:
         return energy_tensor_mapped(0,0) * 1000.0; // TODO keep track of this normalizaiton factor
     }
 
+    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {
+        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
+        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
+        for(int i =0; i < z.size(); i++) {
+            z_tensor_mapped(0, i) = (float)z[i];
+        } // TODO map with proper function
+
+        std::vector<tf::Tensor> energy_weight_outputs;
+        tf::Status status = m_discrete_energy_model_session->Run({{"energy_model_input:0", z_tensor}},
+                                   {"output_node0:0"}, {}, &energy_weight_outputs);
+
+        auto energy_weight_tensor_mapped = energy_weight_outputs[0].tensor<tf_dtype_type, 2>();
+
+
+        int n_tets = tets->getImpl().getNumElements();
+        double eps = 0.01;
+        double scale = 1000.0; // TODO link this to training data
+        double summed_energy = 0.0;
+        int n_tets_used = 0;
+        for(int i = 0; i < n_tets; i++) {
+            double energy_weight_i = energy_weight_tensor_mapped(0, i);
+            // std::cout << energy_weight_i << ", ";
+            if(energy_weight_i > eps) {
+                auto element = tets->getImpl().getElement(i);
+                summed_energy = energy_weight_i * element->getStrainEnergy(world->getState()); //TODO is the scale right? Is getting the state slow?
+                n_tets_used++;
+            }
+        }
+        // std::cout << std::endl;
+        // std::cout << "n_tets_used: " << n_tets_used << std::endl;
+
+        return summed_energy;
+    }
+
     void checkStatus(const tf::Status& status) {
       if (!status.ok()) {
         std::cout << status.ToString() << std::endl;
@@ -400,6 +453,7 @@ private:
     tf::Session* m_decoder_jac_session;
     tf::Session* m_encoder_session;
     tf::Session* m_energy_model_session;
+    tf::Session* m_discrete_energy_model_session;
 };
 
 template <typename ReducedSpaceType>
@@ -456,14 +510,16 @@ public:
         // -- Compute GPLCObjective objective
         double energy, reduced_energy;
         // if(m_use_reduced_energy) {
-            reduced_energy = m_reduced_space->get_energy(new_z);
+            // reduced_energy = m_reduced_space->get_energy(new_z);
+        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+        VectorXd new_q = dec(new_z);
+        for(int i=0; i < q.size(); i++) {
+            q[i] = new_q[i]; // TODO is this the fastest way to do this?
+        }
+        reduced_energy = m_reduced_space->get_energy_discrete(new_z, m_world, m_tets);
         // }
         // else {
-            Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
-            VectorXd new_q = dec(new_z);
-            for(int i=0; i < q.size(); i++) {
-                q[i] = new_q[i]; // TODO is this the fastest way to do this?
-            }
+            
             // energy = m_tets->getStrainEnergy(m_world->getState());
         // }
 

@@ -532,7 +532,7 @@ def discrete_nn_analysis(
     # model.save(output_path)
 
     print("Total training time: ", time.time() - model_start_time)
-    model.save('energy_model.hdf5')
+    model.save('discrete_energy_model.hdf5')
     # if energy_model_confiredict(normalize(flatten_data(decoded_data))) 
     def decode(encoded_data):
         return unflatten_data(model.predict(encoded_data))
@@ -678,7 +678,7 @@ def main():
 
 
 def sparse_learn():
-    base_path = '/Users/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/'
+    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/'
     training_data_path = os.path.join(base_path,'training_data/training')
     validation_data_path = os.path.join(base_path,'training_data/validation')
 
@@ -715,8 +715,8 @@ def sparse_learn():
                                     encoded_test_displacements, flatten_data(energies_test),
                                     activation='elu',
                                     epochs=100,
-                                    batch_size=100,#len(energies),#100,
-                                    layers=[100,200,400], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
+                                    batch_size=50,#len(energies),#100,
+                                    layers=[200,200], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
                             
                                     do_fine_tuning=False,
                                     model_root='/tmp',
@@ -724,7 +724,7 @@ def sparse_learn():
                                     energy_model_config={'enabled':False},
                                 )
 
-    decoded_energy_weights = ae_decode(encoded_displacements)
+    decoded_energy_weights = ae_decode(encoded_test_displacements)
     print(numpy.sort(decoded_energy_weights))
     non_zero = numpy.nonzero(decoded_energy_weights)
     print(decoded_energy_weights[non_zero])
@@ -732,12 +732,15 @@ def sparse_learn():
     print("mean nonzero_entries:",numpy.mean(nonzero_per_sample))
 
     from numpy.core.umath_tests import inner1d
-    flat_energies = flatten_data(energies)
-    decoded_energies = inner1d(decoded_energy_weights, flat_energies)
-    summed_energies = numpy.sum(flat_energies, axis=1)
-    mse = mean_squared_error(summed_energies, decoded_energies)
-    print((summed_energies - decoded_energies) * scale)
-    # print(decoded_energies)
+    flat_energies = flatten_data(energies_test) 
+
+    decoded_summed_energies = inner1d(decoded_energy_weights, flat_energies) * scale
+    actual_summed_energies = numpy.sum(flat_energies, axis=1) * scale
+    mse = numpy.mean((actual_summed_energies - decoded_summed_energies) ** 2) / (len(actual_summed_energies) )
+    diff =(actual_summed_energies - decoded_summed_energies)
+    print(numpy.array(list(zip(diff, actual_summed_energies, decoded_summed_energies))))
+
+    # print(decoded_summed_energies)
     print("mse: ", mse)
 
     # print(len(numpy.nonzero(decoded_autoencoder_energies[150])[0]))

@@ -8,6 +8,7 @@
   "integrator_config": {
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
+    "use_discrete_reduced_energy": true,
     "pca_dim": 5,
     "ae_encoded_dim": 6,
     "timestep": 0.05,
