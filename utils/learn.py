@@ -501,7 +501,7 @@ def discrete_nn_analysis(
         output = Dense(layer_width, activation=activation, name="dense_decode_layer_" + str(i))(output)
 
     output = Dense(len(energy_samples[0]), activation='relu', name="output_layer" + str(i),
-                    activity_regularizer=keras.regularizers.l1(0.01),
+                    activity_regularizer=keras.regularizers.l1(0.01), # TODO what val? default was 0.01
                     bias_constraint=keras.constraints.non_neg())(output)
 
     model = Model(input, output)
@@ -678,7 +678,7 @@ def main():
 
 
 def sparse_learn():
-    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/'
+    base_path = '/Users/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/'
     training_data_path = os.path.join(base_path,'training_data/training')
     validation_data_path = os.path.join(base_path,'training_data/validation')
 
@@ -714,9 +714,9 @@ def sparse_learn():
                                     encoded_displacements, flatten_data(energies),
                                     encoded_test_displacements, flatten_data(energies_test),
                                     activation='elu',
-                                    epochs=50,
+                                    epochs=100,
                                     batch_size=100,#len(energies),#100,
-                                    layers=[200,200], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
+                                    layers=[100,200,400], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
                             
                                     do_fine_tuning=False,
                                     model_root='/tmp',
@@ -724,10 +724,23 @@ def sparse_learn():
                                     energy_model_config={'enabled':False},
                                 )
 
-    decoded_autoencoder_energies = ae_decode(encoded_displacements)
-    print(numpy.sort(decoded_autoencoder_energies))
-    print(numpy.nonzero(decoded_autoencoder_energies[150]))
-    print(len(numpy.nonzero(decoded_autoencoder_energies[150])[0]))
+    decoded_energy_weights = ae_decode(encoded_displacements)
+    print(numpy.sort(decoded_energy_weights))
+    non_zero = numpy.nonzero(decoded_energy_weights)
+    print(decoded_energy_weights[non_zero])
+    nonzero_per_sample = numpy.count_nonzero(decoded_energy_weights, axis=1)
+    print("mean nonzero_entries:",numpy.mean(nonzero_per_sample))
+
+    from numpy.core.umath_tests import inner1d
+    flat_energies = flatten_data(energies)
+    decoded_energies = inner1d(decoded_energy_weights, flat_energies)
+    summed_energies = numpy.sum(flat_energies, axis=1)
+    mse = mean_squared_error(summed_energies, decoded_energies)
+    print((summed_energies - decoded_energies) * scale)
+    # print(decoded_energies)
+    print("mse: ", mse)
+
+    # print(len(numpy.nonzero(decoded_autoencoder_energies[150])[0]))
     # decoded_autoencoder_test_displacements = ae_decode(encoded_test_displacements)
     # train_mse = mean_squared_error(flatten_data(decoded_autoencoder_energies), flatten_data(energies))
     # val_mse = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(energies_test))
