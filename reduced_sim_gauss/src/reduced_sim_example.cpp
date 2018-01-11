@@ -16,6 +16,7 @@
 #include <igl/unproject_onto_mesh.h>
 #include <igl/get_seconds.h>
 #include <igl/jet.h>
+#include <igl/slice.h>
 
 #include <stdlib.h>
 #include <iostream>
@@ -43,6 +44,7 @@ using Eigen::VectorXd;
 using Eigen::Vector3d;
 using Eigen::VectorXi;
 using Eigen::MatrixXd;
+using Eigen::MatrixXi;
 using Eigen::SparseMatrix;
 using namespace LBFGSpp;
 
@@ -461,6 +463,7 @@ class GPLCObjective
 {
 public:
     GPLCObjective(
+        fs::path model_root,
         json integrator_config,
         VectorXd cur_z,
         VectorXd prev_z,
@@ -490,6 +493,25 @@ public:
 
         m_F_ext = m_M * g;
         m_interaction_force = VectorXd::Zero(m_F_ext.size());
+
+        if(integrator_config["use_energy_completion"]) {
+            fs::path pca_components_path("pca_results/energy_pca_components.dmat");
+            fs::path sample_tets_path("pca_results/energy_indices.dmat");
+
+            MatrixXd U;
+            igl::readDMAT((model_root / pca_components_path).string(), U);
+
+            MatrixXi tet_indices_mat;
+            igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);\
+            
+            m_energy_sample_tets = tet_indices_mat;
+            m_energy_basis = U.transpose();
+            std::cout << m_energy_basis.rows() << " " <<  m_energy_basis.cols() <<std::endl;
+            std::cout << tet_indices_mat.maxCoeff() <<std::endl;
+            m_energy_sampled_basis = igl::slice(m_energy_basis, tet_indices_mat, 1);
+            m_summed_energy_basis = m_energy_basis.colwise().sum();
+            std::cout << m_summed_energy_basis.size()<<std::endl;
+        }
     }
 
     void set_prev_zs(const VectorXd &cur_z, const VectorXd &prev_z) {
@@ -506,6 +528,22 @@ public:
     inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
     inline VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
 
+    double current_energy_using_completion() {
+        int n_sample_tets = m_energy_sample_tets.rows();
+
+        VectorXd sampled_energy(n_sample_tets);
+        for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+            sampled_energy[i] = m_tets->getImpl().getElement(i)->getStrainEnergy(m_world->getState());
+        }
+
+        // VectorXd alpha = m_energy_sampled_basis.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sampled_energy);
+        VectorXd alpha = (m_energy_sampled_basis.transpose() * m_energy_sampled_basis).ldlt().solve(m_energy_sampled_basis.transpose() * sampled_energy);
+        // std::cout << alpha.size() << std::endl;
+        // std::cout << m_energy_sampled_basis.rows() << " " <<  m_energy_sampled_basis.cols() << std::endl;
+        // std::cout << sampled_energy.size() << std::endl;
+        return m_summed_energy_basis.dot(alpha); // TODO is this right?
+    }
+
     double objective(const VectorXd &new_z) { // TODO delete when done with finite differnece
         // -- Compute GPLCObjective objective
         double energy, reduced_energy;
@@ -516,7 +554,7 @@ public:
         for(int i=0; i < q.size(); i++) {
             q[i] = new_q[i]; // TODO is this the fastest way to do this?
         }
-        reduced_energy = m_reduced_space->get_energy_discrete(new_z, m_world, m_tets);
+        //m_reduced_space->get_energy_discrete(new_z, m_world, m_tets);
         // }
         // else {
             
@@ -527,8 +565,12 @@ public:
         // std::cout << "Energy: " << energy << ", Reduced Energy: " << reduced_energy << std::endl;
         // std::cout << m_use_reduced_energy << std::endl;
         if(m_use_reduced_energy) {
-            energy = reduced_energy;
+            energy = current_energy_using_completion();;
         }
+        else {
+            energy = m_tets->getStrainEnergy(m_world->getState());
+        }
+        
         VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
         return 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
     }
@@ -599,12 +641,17 @@ private:
 
     bool m_use_reduced_energy;
     ReducedSpaceType *m_reduced_space;
+
+    MatrixXi m_energy_sample_tets;
+    MatrixXd m_energy_basis;
+    MatrixXd m_energy_sampled_basis;
+    VectorXd m_summed_energy_basis;
 };
 
 template <typename ReducedSpaceType>
 class GPLCTimeStepper {
 public:
-    GPLCTimeStepper(json integrator_config, MyWorld *world, NeohookeanTets *tets, ReducedSpaceType *reduced_space) :
+    GPLCTimeStepper(fs::path model_root, json integrator_config, MyWorld *world, NeohookeanTets *tets, ReducedSpaceType *reduced_space) :
         m_world(world), m_tets(tets), m_reduced_space(reduced_space) {
         // Set up lbfgs params
         json lbfgs_config = integrator_config["lbfgs_config"];
@@ -614,7 +661,7 @@ public:
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
         reset_zs_to_current_world();
-        m_gplc_objective = new GPLCObjective<ReducedSpaceType>(integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
+        m_gplc_objective = new GPLCObjective<ReducedSpaceType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
     }
 
     ~GPLCTimeStepper() {
@@ -660,33 +707,33 @@ public:
         update_world_with_current_configuration();
     }
 
-    void test_gradient() {
-        auto q_map = mapDOFEigen(m_tets->getQ(), *m_world);
-        VectorXd q(m_reduced_space->encode(q_map));
+    // void test_gradient() {
+    //     auto q_map = mapDOFEigen(m_tets->getQ(), *m_world);
+    //     VectorXd q(m_reduced_space->encode(q_map));
 
-        GPLCObjective<ReducedSpaceType> fun(q, q, 0.001, m_world, m_tets);
+    //     GPLCObjective<ReducedSpaceType> fun(q, q, 0.001, m_world, m_tets);
         
-        VectorXd fun_grad(q.size());
-        double fun_val = fun(q, fun_grad);
+    //     VectorXd fun_grad(q.size());
+    //     double fun_val = fun(q, fun_grad);
 
-        VectorXd finite_diff_grad(q.size());
-        VectorXd empty(q.size());
-        double t = 0.000001;
-        for(int i = 0; i < q.size(); i++) {
-            VectorXd dq_pos(q);
-            VectorXd dq_neg(q);
-            dq_pos[i] += t;
-            dq_neg[i] -= t;
+    //     VectorXd finite_diff_grad(q.size());
+    //     VectorXd empty(q.size());
+    //     double t = 0.000001;
+    //     for(int i = 0; i < q.size(); i++) {
+    //         VectorXd dq_pos(q);
+    //         VectorXd dq_neg(q);
+    //         dq_pos[i] += t;
+    //         dq_neg[i] -= t;
 
-            finite_diff_grad[i] = (fun(dq_pos, empty) - fun(dq_neg, empty)) / (2.0 * t);
-        }
+    //         finite_diff_grad[i] = (fun(dq_pos, empty) - fun(dq_neg, empty)) / (2.0 * t);
+    //     }
 
-        VectorXd diff = fun_grad - finite_diff_grad;
-        std::cout << "q size: " << q.size() << std::endl;
-        std::cout << "Function val: " << fun_val << std::endl;
-        std::cout << "Gradient diff: " << diff.norm() << std::endl;
-        assert(diff.norm() < 1e-4);
-    }
+    //     VectorXd diff = fun_grad - finite_diff_grad;
+    //     std::cout << "q size: " << q.size() << std::endl;
+    //     std::cout << "Function val: " << fun_val << std::endl;
+    //     std::cout << "Gradient diff: " << diff.norm() << std::endl;
+    //     assert(diff.norm() < 1e-4);
+    // }
 
 private:
     LBFGSParam<double> m_lbfgs_param;
@@ -816,7 +863,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     VectorXd interaction_force = VectorXd::Zero(n_dof);
 
 
-    GPLCTimeStepper<ReducedSpaceType> gplc_stepper(integrator_config, &world, tets, reduced_space);
+    GPLCTimeStepper<ReducedSpaceType> gplc_stepper(model_root, integrator_config, &world, tets, reduced_space);
 
     bool show_stress = visualization_config["show_stress"];
 

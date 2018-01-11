@@ -621,7 +621,8 @@ def load_energy(model_root):
 
 
 
-def energy_basis():
+def main():
+    """energy basis"""
     base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/'
     training_data_path = os.path.join(base_path, 'training_data/training')
     validation_data_path = os.path.join(base_path, 'training_data/validation')
@@ -633,11 +634,13 @@ def energy_basis():
     energies = flatten_data(energies)
     energies_test = flatten_data(energies_test)
 
-    pca_dim = 100
+    do_save = True
+    pca_dim = 150
     energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(energies, pca_dim)
     
     pca_results_filename = 'pca_results/energy_pca_components.dmat'
-    my_utils.save_numpy_mat_to_dmat(os.path.join(base_path, pca_results_filename), numpy.ascontiguousarray(energy_pca.components_))
+    if do_save:
+        my_utils.save_numpy_mat_to_dmat(os.path.join(base_path, pca_results_filename), numpy.ascontiguousarray(energy_pca.components_))
 
     decoded_energy = pca_decode(pca_encode(energies))
     # decoded_energy = numpy.maximum(decoded_energy, 0, decoded_energy)
@@ -646,6 +649,8 @@ def energy_basis():
 
     print('train mse: ', mean_squared_error(energies, decoded_energy))    
     print('test mse:', mean_squared_error(energies_test, decoded_test_energy))    
+    print('explained var', sum(energy_pca.explained_variance_ratio_))
+    # return
     # decoded_energy_no_mean = (U @ U.T @ energies_test.T).T
     # print('no mean mse: ', mean_squared_error(decoded_energy_no_mean, energies_test))
 
@@ -679,7 +684,7 @@ def energy_basis():
     
     Es = energies
     U = energy_pca.components_.T
-    n_tets_sampled = 200
+    n_tets_sampled = 300
 
     from simanneal import Annealer
     class Problem(Annealer):
@@ -748,8 +753,9 @@ def energy_basis():
     completion_mse = mean_squared_error(completed_energies, Es)
     print('actual mse:', completion_mse)
 
-    pca_results_filename = 'pca_results/energy_indices.dmat'
-    my_utils.save_numpy_mat_to_dmat(os.path.join(base_path, pca_results_filename), numpy.ascontiguousarray(numpy.array(a,dtype=numpy.int32)))
+    if do_save:
+        pca_results_filename = 'pca_results/energy_indices.dmat'
+        my_utils.save_numpy_mat_to_dmat(os.path.join(base_path, pca_results_filename), numpy.ascontiguousarray(numpy.array(a,dtype=numpy.int32)))
 
     # for i in range(len(Es)):
     #     start = time.time()
@@ -763,7 +769,7 @@ def energy_basis():
     # print(numpy.array(list(zip(numpy.sum(Es, axis=1), numpy.sum(completed_energies, axis=1)) ))    )
 
 
-def main():
+def main_old():
     training_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/training_data/training'
     validation_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/training_data/validation'
 
