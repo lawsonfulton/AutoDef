@@ -344,10 +344,17 @@ def nn_analysis(
 
 
     for i, layer_width in enumerate(layers):
-        output = Dense(layer_width, activation=activation, name="dense_decode_layer_" + str(i))(output)
+        output = Dense(layer_width, activation=activation, name="dense_decode_layer_" + str(i),
+                       )(output)
+        output = keras.layers.Dropout(0.01)(output)
+    ## new
+    # output = Dense(len(data_labels[0]), activation='elu', name="pca_decode_layer")(output)
+
+    ## before
+    output = Dense(len(pca_object.components_), activation='linear', name="to_pca_decode_layer",
+                       )(output) ## TODO is this right?? Possibly should just change earlier layer width
     
 
-    output = Dense(len(pca_object.components_), activation='linear', name="to_pca_decode_layer")(output) ## TODO is this right?? Possibly should just change earlier layer width
     # output = Lambda(pca_inv_transform_layer)(output)
     # output = PCALayer(pca_object, is_inv=True, fine_tune=do_fine_tuning)(output)
 
@@ -355,8 +362,8 @@ def nn_analysis(
     b = pca_object.mean_
     output = Dense(len(b), activation='linear', weights=[W,b], trainable=do_fine_tuning, name="pca_decode_layer")(output)
 
-    #output = Lambda(lambda x: K.sum(x, axis=1,keepdims=True))(output)
-    output = Dense(1, activation='linear', weights=[numpy.array([numpy.ones(len(b))]).transpose(),numpy.zeros(1)], trainable=False, name="summed_energy_output")(output)
+    # #output = Lambda(lambda x: K.sum(x, axis=1,keepdims=True))(output)
+    # output = Dense(1, activation='linear', weights=[numpy.array([numpy.ones(len(b))]).transpose(),numpy.zeros(1)], trainable=False, name="summed_energy_output")(output)
 
     # TODO make it work when energy_model_config['enabled'] is false
     if energy_model_config['enabled']:
@@ -564,10 +571,16 @@ def pca_analysis(data, n_components, plot_explained_variance=False):
 
     def encode(decoded_data):
         #return pca.transform(flatten_data(decoded_data))        
-        return pca.components_ @ flatten_data(decoded_data).T # We don't need to subtract the mean before going to/from reduced space?
+        #return pca.components_ @ flatten_data(decoded_data).T # We don't need to subtract the mean before going to/from reduced space?
+        X = flatten_data(decoded_data) - pca.mean_
+        return numpy.dot(X, pca.components_.T)
+
     def decode(encoded_data):
         # return unflatten_data(pca.inverse_transform(encoded_data))
-        return unflatten_data((pca.components_.T @ encoded_data).T)
+        # return unflatten_data((pca.components_.T @ encoded_data).T)
+        X_original = numpy.dot(encoded_data, pca.components_)
+        X_original = X_original + pca.mean_
+        return unflatten_data(X_original)
 
     return pca, encode, decode, pca.explained_variance_ratio_, mse
 
@@ -606,6 +619,150 @@ def load_energy(model_root):
     displacements = my_utils.load_energy_dmats_to_numpy(training_data_path)
     test_displacements = my_utils.load_energy_dmats_to_numpy(validation_data_path)
 
+
+
+def energy_basis():
+    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/'
+    training_data_path = os.path.join(base_path, 'training_data/training')
+    validation_data_path = os.path.join(base_path, 'training_data/validation')
+
+    energies = my_utils.load_energy_dmats_to_numpy(training_data_path)
+    energies_test = my_utils.load_energy_dmats_to_numpy(validation_data_path)
+    flatten_data, unflatten_data = my_utils.get_flattners(energies)
+
+    energies = flatten_data(energies)
+    energies_test = flatten_data(energies_test)
+
+    pca_dim = 100
+    energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(energies, pca_dim)
+    
+    pca_results_filename = 'pca_results/energy_pca_components.dmat'
+    my_utils.save_numpy_mat_to_dmat(os.path.join(base_path, pca_results_filename), numpy.ascontiguousarray(energy_pca.components_))
+
+    decoded_energy = pca_decode(pca_encode(energies))
+    # decoded_energy = numpy.maximum(decoded_energy, 0, decoded_energy)
+    decoded_test_energy = pca_decode(pca_encode(energies_test))
+    # print(numpy.array(list(zip(numpy.sum(energies_test, axis=1), numpy.sum(decoded_test_energy, axis=1)) ))    )
+
+    print('train mse: ', mean_squared_error(energies, decoded_energy))    
+    print('test mse:', mean_squared_error(energies_test, decoded_test_energy))    
+    # decoded_energy_no_mean = (U @ U.T @ energies_test.T).T
+    # print('no mean mse: ', mean_squared_error(decoded_energy_no_mean, energies_test))
+
+    ##### Brute force
+    # Es = energies
+    # print(Es.shape)
+    # U = energy_pca.components_.T
+    # print(U.shape)
+    # min_mse = 1e100
+    # best_sample = None
+    # for i in range(500):
+    #     tet_sample = numpy.random.choice(U.shape[0], 200, replace=False)
+
+    #     U_bar = U[tet_sample, :]
+    #     E_bars = Es[:, tet_sample]
+    #     # print('rank ', numpy.linalg.matrix_rank(U_bar.T))
+
+    #     completed_energies = numpy.array(Es)
+    #     start = time.time()
+    #     sol = numpy.linalg.lstsq(U_bar, E_bars.T)
+    #     completed_energies = (U @ sol[0]).T
+    #     # print("solve took", time.time()-start)
+    #     completion_mse = mean_squared_error(completed_energies, Es)
+    #     if completion_mse < min_mse:
+    #         min_mse = completion_mse
+    #         best_sample = tet_sample
+    #     print('completion mse:', completion_mse)
+    #     print('min mse:', min_mse)
+    # print(best_sample)
+
+    
+    Es = energies
+    U = energy_pca.components_.T
+    n_tets_sampled = 200
+
+    from simanneal import Annealer
+    class Problem(Annealer):
+
+        """Test annealer with a travelling salesman problem.
+        """
+
+        # pass extra data (the distance matrix) into the constructor
+        def __init__(self, state):
+            super(Problem, self).__init__(state)  # important!
+
+        def move(self):
+            """Swaps two cities in the route."""
+            # a = random.randint(0, len(self.state) - 1)
+            # b = random.randint(0, len(self.state) - 1)
+            # self.state[a], self.state[b] = self.state[b], self.state[a]
+
+            #self.state = numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
+            for _ in range(1):
+                i = numpy.random.randint(0, n_tets_sampled)
+                while True:
+                    new_tet = numpy.random.randint(0, len(Es[0]))
+                    if new_tet in self.state:
+                        pass
+                        # print('yikes')
+                    else:
+                        break
+
+                self.state[i] = new_tet
+
+        def energy(self):
+            """Calculates the length of the route."""
+            U_bar = U[self.state, :]
+            E_bars = Es[:, self.state]
+
+            # start = time.time()
+            sol = numpy.linalg.lstsq(U_bar, E_bars.T)
+            completed_energies = (U @ sol[0]).T
+            # print("solve took", time.time()-start)
+            # check_samples = numpy.random.choice(Es.shape[0], 100, replace=False)
+            completion_mse = mean_squared_error(completed_energies, Es)
+            print(completion_mse)
+            return completion_mse
+
+
+
+
+    init_state = numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
+    prob = Problem(init_state)
+    
+    prob.Tmax = 60.0  # Max (starting) temperature
+    prob.Tmin = 0.0005      # Min (ending) temperature
+    prob.steps = 10000   # Number of iterations
+    prob.updates = 100 
+    # auto_schedule = prob.auto(minutes=0.1) 
+    # prob.set_schedule(auto_schedule)
+
+    a, b = prob.anneal()
+    print(a)
+    print('anneal mse:', b)
+
+    U_bar = U[a, :]
+    E_bars = Es[:, a]
+    sol = numpy.linalg.lstsq(U_bar, E_bars.T)
+    completed_energies = (U @ sol[0]).T
+    completion_mse = mean_squared_error(completed_energies, Es)
+    print('actual mse:', completion_mse)
+
+    pca_results_filename = 'pca_results/energy_indices.dmat'
+    my_utils.save_numpy_mat_to_dmat(os.path.join(base_path, pca_results_filename), numpy.ascontiguousarray(numpy.array(a,dtype=numpy.int32)))
+
+    # for i in range(len(Es)):
+    #     start = time.time()
+    #     sol = numpy.linalg.lstsq(U_bar, E_bars[i])
+    #     print("solve took", time.time()-start)
+    #     alpha = sol[0]
+
+    #     completed_energies[i] = U @ alpha
+    # min quad with fixed
+    # ldl solver
+    # print(numpy.array(list(zip(numpy.sum(Es, axis=1), numpy.sum(completed_energies, axis=1)) ))    )
+
+
 def main():
     training_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/training_data/training'
     validation_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/training_data/validation'
@@ -635,9 +792,9 @@ def main():
     print(actual)
     print(displacements[index])
     pca_dim = 50
-    high_dim_energy_pca, high_dim_energy_pca_encode, high_dim_energy_pca_decode, explained_energy_var, good_energy_pca_mse = pca_analysis(energies, pca_dim)
+    high_dim_energy_pca, energy_pca_encode, energy_pca_decode, expl_var, mse = pca_analysis(energies, pca_dim)
     
-    high_dim_pca, high_dim_pca_encode, high_dim_pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_dim)
+    # high_dim_pca, high_dim_pca_encode, high_dim_pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_dim)
     
 
     # predict = scale * sum(high_dim_energy_pca_decode(high_dim_energy_pca_encode(energies[index])))
@@ -646,18 +803,18 @@ def main():
     # print(predict)
     # print(actual - predict)
 
-    print(energies)
-    energies = numpy.sum(energies,axis=1)
-    print(energies)
-    energies_test = numpy.sum(energies_test,axis=1)
+    # print(energies)
+    # energies = numpy.sum(energies,axis=1)
+    # print(energies)
+    # energies_test = numpy.sum(energies_test,axis=1)
     flatten_data, unflatten_data = my_utils.get_flattners(energies)
     ae_decode, hist = nn_analysis(
-                                    encoded_displacements, energies,
-                                    encoded_test_displacements, energies_test,
+                                    encoded_displacements, flatten_data(energies),
+                                    encoded_test_displacements, flatten_data(energies_test),
                                     activation='elu',
-                                    epochs=550,
-                                    batch_size=len(energies),#100,
-                                    layers=[200,200], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
+                                    epochs=100,
+                                    batch_size=100,#len(energies),#100,
+                                    layers=[500,500], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
                                     pca_object=high_dim_energy_pca,
                                     do_fine_tuning=False,
                                     model_root='/tmp',
@@ -665,14 +822,20 @@ def main():
                                     energy_model_config={'enabled':False},
                                 )
 
+    flat_energy = flatten_data(energies)
+    flat_energy_test = flatten_data(energies_test)
     decoded_autoencoder_energies = ae_decode(encoded_displacements)
     decoded_autoencoder_test_displacements = ae_decode(encoded_test_displacements)
-    train_mse = mean_squared_error(flatten_data(decoded_autoencoder_energies), flatten_data(energies))
-    val_mse = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(energies_test))
+    train_mse = mean_squared_error(numpy.sum(flatten_data(decoded_autoencoder_energies), axis=1), numpy.sum(flatten_data(energies), axis=1))
+    val_mse = mean_squared_error(numpy.sum(flatten_data(decoded_autoencoder_test_displacements), axis=1), numpy.sum(flatten_data(energies_test), axis=1))
 
+    pca_train_mse = mean_squared_error(
+        numpy.sum(flatten_data(energy_pca_decode(energy_pca_encode(energies))), axis=1),
+        numpy.sum(flat_energy, axis=1))
+    pca_test_mse = mean_squared_error(numpy.sum(flatten_data(energy_pca_decode(energy_pca_encode(energies_test))), axis=1), numpy.sum(flat_energy_test, axis=1))
     # mean_squared_error(energies, numpy.sum(high_dim_energy_pca_decode(high_dim_pca_encode())))
-    print("energy pca mse", good_energy_pca_mse)
-    print("displacement pca mse", good_pca_mse)
+    print("energy pca mse", pca_train_mse)
+    print("energy pca test mse", pca_test_mse)
     print("pca-ae train mse", train_mse)
     print("pca-ae test mse", val_mse)
 
@@ -714,7 +877,7 @@ def sparse_learn():
                                     encoded_displacements, flatten_data(energies),
                                     encoded_test_displacements, flatten_data(energies_test),
                                     activation='elu',
-                                    epochs=100,
+                                    epochs=200,
                                     batch_size=50,#len(energies),#100,
                                     layers=[200,200], # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
                             
