@@ -636,6 +636,7 @@ def main():
 
     do_save = True
     pca_dim = 150
+    n_tets_sampled = 400
     energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(energies, pca_dim)
     
     pca_results_filename = 'pca_results/energy_pca_components.dmat'
@@ -684,7 +685,7 @@ def main():
     
     Es = energies
     U = energy_pca.components_.T
-    n_tets_sampled = 300
+    
 
     from simanneal import Annealer
     class Problem(Annealer):

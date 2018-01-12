@@ -37,6 +37,8 @@
 #include <tensorflow/core/platform/env.h>
 #include <tensorflow/core/public/session.h>
 
+#include <omp.h>
+
 using json = nlohmann::json;
 namespace fs = boost::filesystem;
 
@@ -505,12 +507,12 @@ public:
             igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);\
             
             m_energy_sample_tets = tet_indices_mat;
-            m_energy_basis = U.transpose();
-            std::cout << m_energy_basis.rows() << " " <<  m_energy_basis.cols() <<std::endl;
-            std::cout << tet_indices_mat.maxCoeff() <<std::endl;
+            m_energy_basis = U.transpose(); // TODO get rid of this transpose after I save the PCA result correctly
             m_energy_sampled_basis = igl::slice(m_energy_basis, tet_indices_mat, 1);
             m_summed_energy_basis = m_energy_basis.colwise().sum();
-            std::cout << m_summed_energy_basis.size()<<std::endl;
+
+            // Prefactor
+            m_energy_sampled_basis_qr = m_energy_sampled_basis.fullPivHouseholderQr();
         }
     }
 
@@ -532,12 +534,17 @@ public:
         int n_sample_tets = m_energy_sample_tets.rows();
 
         VectorXd sampled_energy(n_sample_tets);
+        #pragma omp parallel for schedule(static,16)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+            // std::cout << omp_get_num_threads() << std::endl;
+            // std::cout << omp_get_max_threads() << std::endl;
             sampled_energy[i] = m_tets->getImpl().getElement(i)->getStrainEnergy(m_world->getState());
         }
 
         // VectorXd alpha = m_energy_sampled_basis.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sampled_energy);
-        VectorXd alpha = (m_energy_sampled_basis.transpose() * m_energy_sampled_basis).ldlt().solve(m_energy_sampled_basis.transpose() * sampled_energy);
+        // VectorXd alpha = (m_energy_sampled_basis.transpose() * m_energy_sampled_basis).ldlt().solve(m_energy_sampled_basis.transpose() * sampled_energy);
+        VectorXd alpha = m_energy_sampled_basis_qr.solve(sampled_energy);
+
         // std::cout << alpha.size() << std::endl;
         // std::cout << m_energy_sampled_basis.rows() << " " <<  m_energy_sampled_basis.cols() << std::endl;
         // std::cout << sampled_energy.size() << std::endl;
@@ -570,7 +577,7 @@ public:
         else {
             energy = m_tets->getStrainEnergy(m_world->getState());
         }
-        
+
         VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
         return 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
     }
@@ -644,8 +651,9 @@ private:
 
     MatrixXi m_energy_sample_tets;
     MatrixXd m_energy_basis;
-    MatrixXd m_energy_sampled_basis;
     VectorXd m_summed_energy_basis;
+    MatrixXd m_energy_sampled_basis;
+    Eigen::FullPivHouseholderQR<MatrixXd> m_energy_sampled_basis_qr;
 };
 
 template <typename ReducedSpaceType>
