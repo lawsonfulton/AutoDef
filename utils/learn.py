@@ -620,72 +620,24 @@ def load_energy(model_root):
     test_displacements = my_utils.load_energy_dmats_to_numpy(validation_data_path)
 
 
-
-def main():
-    """energy basis"""
-    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/'
-    training_data_path = os.path.join(base_path, 'training_data/training')
-    validation_data_path = os.path.join(base_path, 'training_data/validation')
-
-    energies = my_utils.load_energy_dmats_to_numpy(training_data_path)
-    energies_test = my_utils.load_energy_dmats_to_numpy(validation_data_path)
-    flatten_data, unflatten_data = my_utils.get_flattners(energies)
-
-    energies = flatten_data(energies)
-    energies_test = flatten_data(energies_test)
-
-    do_save = True
-    pca_dim = 150
-    n_tets_sampled = 400
-    energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(energies, pca_dim)
+def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_dim, num_tets, do_save):
+    n_tets_sampled = num_tets
+    energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(samples, pca_dim)
     
-    pca_results_filename = 'pca_results/energy_pca_components.dmat'
     if do_save:
-        my_utils.save_numpy_mat_to_dmat(os.path.join(base_path, pca_results_filename), numpy.ascontiguousarray(energy_pca.components_))
+        my_utils.save_numpy_mat_to_dmat(basis_output_path, numpy.ascontiguousarray(energy_pca.components_))
 
-    decoded_energy = pca_decode(pca_encode(energies))
+    decoded_energy = pca_decode(pca_encode(samples))
     # decoded_energy = numpy.maximum(decoded_energy, 0, decoded_energy)
-    decoded_test_energy = pca_decode(pca_encode(energies_test))
-    # print(numpy.array(list(zip(numpy.sum(energies_test, axis=1), numpy.sum(decoded_test_energy, axis=1)) ))    )
+    decoded_test_energy = pca_decode(pca_encode(samples_test))
+    # print(numpy.array(list(zip(numpy.sum(samples_test, axis=1), numpy.sum(decoded_test_energy, axis=1)) ))    )
 
-    print('train mse: ', mean_squared_error(energies, decoded_energy))    
-    print('test mse:', mean_squared_error(energies_test, decoded_test_energy))    
+    print('train mse: ', mean_squared_error(samples, decoded_energy))    
+    print('test mse:', mean_squared_error(samples_test, decoded_test_energy))    
     print('explained var', sum(energy_pca.explained_variance_ratio_))
-    # return
-    # decoded_energy_no_mean = (U @ U.T @ energies_test.T).T
-    # print('no mean mse: ', mean_squared_error(decoded_energy_no_mean, energies_test))
-
-    ##### Brute force
-    # Es = energies
-    # print(Es.shape)
-    # U = energy_pca.components_.T
-    # print(U.shape)
-    # min_mse = 1e100
-    # best_sample = None
-    # for i in range(500):
-    #     tet_sample = numpy.random.choice(U.shape[0], 200, replace=False)
-
-    #     U_bar = U[tet_sample, :]
-    #     E_bars = Es[:, tet_sample]
-    #     # print('rank ', numpy.linalg.matrix_rank(U_bar.T))
-
-    #     completed_energies = numpy.array(Es)
-    #     start = time.time()
-    #     sol = numpy.linalg.lstsq(U_bar, E_bars.T)
-    #     completed_energies = (U @ sol[0]).T
-    #     # print("solve took", time.time()-start)
-    #     completion_mse = mean_squared_error(completed_energies, Es)
-    #     if completion_mse < min_mse:
-    #         min_mse = completion_mse
-    #         best_sample = tet_sample
-    #     print('completion mse:', completion_mse)
-    #     print('min mse:', min_mse)
-    # print(best_sample)
-
     
-    Es = energies
+    Es = samples
     U = energy_pca.components_.T
-    
 
     from simanneal import Annealer
     class Problem(Annealer):
@@ -730,9 +682,6 @@ def main():
             print(completion_mse)
             return completion_mse
 
-
-
-
     init_state = numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
     prob = Problem(init_state)
     
@@ -755,21 +704,73 @@ def main():
     print('actual mse:', completion_mse)
 
     if do_save:
-        pca_results_filename = 'pca_results/energy_indices.dmat'
-        my_utils.save_numpy_mat_to_dmat(os.path.join(base_path, pca_results_filename), numpy.ascontiguousarray(numpy.array(a,dtype=numpy.int32)))
+        my_utils.save_numpy_mat_to_dmat(index_output_path, numpy.ascontiguousarray(numpy.array(a,dtype=numpy.int32)))
 
-    # for i in range(len(Es)):
+
+# TODO refactor this..
+# Include it in the build model pipeline
+def main():
+    """energy basis"""
+    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-with-forces/'
+    training_data_path = os.path.join(base_path, 'training_data/training')
+    validation_data_path = os.path.join(base_path, 'training_data/validation')
+    
+    # Energies
+    # energies = my_utils.load_energy_dmats_to_numpy(training_data_path)
+    # energies_test = my_utils.load_energy_dmats_to_numpy(validation_data_path)
+    # flatten_data, unflatten_data = my_utils.get_flattners(energies)
+
+    # energies = flatten_data(energies)
+    # energies_test = flatten_data(energies_test)
+
+    # basis_path = 'pca_results/energy_pca_components.dmat'
+    # tet_path = 'pca_results/energy_indices.dmat'
+    # basis_opt(basis_path, tet_path, energies, energies_test, 100, 300, True)
+
+    # Forces
+    forces = my_utils.load_dmats(training_data_path, 'internalForces_')
+    forces_test = my_utils.load_dmats(validation_data_path, 'internalForces_')
+    flatten_forces_data, unflatten_data = my_utils.get_flattners(forces)
+
+    forces = flatten_forces_data(forces)
+    forces_test = flatten_forces_data(forces_test)
+
+    print(len(forces[0]))
+    # return
+    basis_path = 'pca_results/force_pca_components.dmat'
+    tet_path = 'pca_results/force_indices.dmat'
+    basis_opt(basis_path, tet_path, forces, forces_test, 300, 400, True)
+
+
+    ##### Brute force
+    # Es = energies
+    # print(Es.shape)
+    # U = energy_pca.components_.T
+    # print(U.shape)
+    # min_mse = 1e100
+    # best_sample = None
+    # for i in range(500):
+    #     tet_sample = numpy.random.choice(U.shape[0], 200, replace=False)
+
+    #     U_bar = U[tet_sample, :]
+    #     E_bars = Es[:, tet_sample]
+    #     # print('rank ', numpy.linalg.matrix_rank(U_bar.T))
+
+    #     completed_energies = numpy.array(Es)
     #     start = time.time()
-    #     sol = numpy.linalg.lstsq(U_bar, E_bars[i])
-    #     print("solve took", time.time()-start)
-    #     alpha = sol[0]
+    #     sol = numpy.linalg.lstsq(U_bar, E_bars.T)
+    #     completed_energies = (U @ sol[0]).T
+    #     # print("solve took", time.time()-start)
+    #     completion_mse = mean_squared_error(completed_energies, Es)
+    #     if completion_mse < min_mse:
+    #         min_mse = completion_mse
+    #         best_sample = tet_sample
+    #     print('completion mse:', completion_mse)
+    #     print('min mse:', min_mse)
+    # print(best_sample)
 
-    #     completed_energies[i] = U @ alpha
-    # min quad with fixed
-    # ldl solver
-    # print(numpy.array(list(zip(numpy.sum(Es, axis=1), numpy.sum(completed_energies, axis=1)) ))    )
-
-
+    
+   
 def main_old():
     training_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/training_data/training'
     validation_data_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/training_data/validation'

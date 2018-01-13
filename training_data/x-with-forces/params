@@ -1,0 +1,4 @@
+    for(auto element: tets->getImpl().getElements()) {
+        element->setDensity(1000.0);//1000.0);
+        element->setParameters(1000000, 0.45);
+    }

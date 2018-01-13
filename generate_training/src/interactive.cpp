@@ -8,6 +8,8 @@
 //Any extra things I need such as constraints
 #include <ConstraintFixedPoint.h>
 #include <TimeStepperEulerImplicitLinear.h>
+#include <TimeStepperEulerImplicit.h>
+#include <AssemblerParallel.h>
 
 #include <igl/writeDMAT.h>
 #include <igl/viewer/Viewer.h>
@@ -32,12 +34,12 @@ using namespace ParticleSystem; //For Force Spring
 
 typedef PhysicalSystemFEM<double, NeohookeanTet> NeohookeanTets;
 
-typedef World<double, 
+typedef World<double,
                         std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
                         std::tuple<ForceSpringFEMParticle<double> *>,
                         std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
-typedef TimeStepperEulerImplictLinear<double, AssemblerEigenSparseMatrix<double>,
-AssemblerEigenVector<double> > MyTimeStepper;
+typedef TimeStepperEulerImplicitLinear<double, AssemblerParallel<double, AssemblerEigenSparseMatrix<double>>,
+ AssemblerParallel<double, AssemblerEigenVector<double> >> MyTimeStepper;
 
 // Mesh
 Eigen::MatrixXd V; // Verts
@@ -54,9 +56,9 @@ int current_frame = 0;
 // Parameters
 bool saving_training_data = true;
 std::string output_dir = "output_data/";
-json energy_json;
+json mouse_json;
 
-void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, NeohookeanTets *tets, json energy_json) { // TODO: Add mouse position data to ouput
+void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, NeohookeanTets *tets, json mouse_json) { // TODO: Add mouse position data to ouput
     auto q = mapDOFEigen(tets->getQ(), world);
     Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
     Eigen::MatrixXd displacements = dV.transpose();
@@ -65,24 +67,35 @@ void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, Neoho
     displacements_filename << output_dir << "displacements_" << current_frame << ".dmat";
     igl::writeDMAT(displacements_filename.str(), displacements, false); // Don't use ascii
 
+    AssemblerEigenVector<double> internal_force; //maybe?
+    getInternalForceVector(internal_force, *tets, world);
+
+    std::stringstream force_filename;
+    force_filename<<output_dir<<"internalForces_"<<current_frame<<".dmat";
+    std::cout << (*internal_force).size() << " " << q.size() << std::endl;
+    igl::writeDMAT(force_filename.str(), *internal_force, false);
+
+
     std::stringstream energy_filename;
     energy_filename << output_dir << "energy_" << current_frame << ".dmat";
     Eigen::MatrixXd energy_vec = tets->getStrainEnergyPerElement(world.getState());
+    std::cout<<"here"<<std::endl;
     igl::writeDMAT(energy_filename.str(), energy_vec, false); // Don't use ascii
-
-    std::ofstream fout(output_dir + "energy.json");
-    fout << energy_json;
+    // std::cout<<energy_vec<<std::endl;
+    std::ofstream fout(output_dir + "mouse.json");
+    fout << mouse_json;
     fout.close();
 
     std::cout << "Saved " << displacements_filename.str() << std::endl;
     std::cout << "Saved " << energy_filename.str() << std::endl;
+    std::cout << "Saved " << force_filename.str() << std::endl;
 }
 
 void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
     std::stringstream verts_filename, faces_filename;
     verts_filename << output_dir << "base_verts.dmat";
     faces_filename << output_dir << "base_faces.dmat";
-    
+
     igl::writeDMAT(verts_filename.str(), V, false); // Don't use ascii
     igl::writeDMAT(faces_filename.str(), F, false); // Don't use ascii
 }
@@ -94,7 +107,7 @@ Eigen::MatrixXd getCurrentVertPositions(MyWorld &world, NeohookeanTets *tets) {
     auto q = mapDOFEigen(tets->getQ(), world);
     Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
 
-    return V + dV.transpose(); 
+    return V + dV.transpose();
 }
 
 
@@ -105,10 +118,10 @@ void reset_world (MyWorld &world) {
 
 int main(int argc, char **argv) {
     std::cout<<"Test Neohookean FEM \n";
-    
+
     //Setup Physics
     MyWorld world;
-    
+
     igl::readMESH(argv[1], V, T, F);
     NeohookeanTets *tets = new NeohookeanTets(V,T);
     for(auto element: tets->getImpl().getElements()) {
@@ -116,7 +129,7 @@ int main(int argc, char **argv) {
         element->setParameters(1000000, 0.45);
     }
 
-    energy_json["potential_energy_per_frame"] = json::array();
+    mouse_json["mouse_state_per_frame"] = json::array();
     // // Pinned particle to attach spring for dragging
     PhysicalSystemParticleSingle<double> *pinned_point = new PhysicalSystemParticleSingle<double>();
     pinned_point->getImpl().setMass(100000000); //10000000
@@ -131,14 +144,14 @@ int main(int argc, char **argv) {
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
     world.addSystem(tets);
-    fixDisplacementMin(world, tets, 1);
+    fixDisplacementMin(world, tets, 1 );
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
-    
+
     reset_world(world);
-    
+
     MyTimeStepper stepper(0.05);
     stepper.step(world);
-    
+
     if(saving_training_data) {
         save_base_configurations_DMAT(V, F);
     }
@@ -165,20 +178,23 @@ int main(int argc, char **argv) {
         }
 
         if(viewer.core.is_animating)
-        {   
+        {
             // Save Current configuration
-            
-            double energy = tets->getStrainEnergy(world.getState());
-            energy_json["potential_energy_per_frame"].push_back(energy);
-            if(energy_json["potential_energy_per_frame"].size() == current_frame) {
-                std::cout << "Index mismatch!" << std::endl;
+
+            json mouse_state;
+            mouse_state["dragged_pos"] = {dragged_pos[0], dragged_pos[1], dragged_pos[2]};
+            mouse_state["dragged_vert"] = dragged_vert;
+            mouse_state["is_dragging"] = is_dragging;
+            mouse_json["mouse_state_per_frame"].push_back(mouse_state);
+            // if(mouse_json["potential_energy_per_frame"].size() == current_frame) {
+            //     std::cout << "Index mismatch!" << std::endl;
+            // }
+            if(saving_training_data) {
+                save_displacements_DMAT_and_energy(current_frame, world, tets, mouse_json);
             }
-
-            save_displacements_DMAT_and_energy(current_frame, world, tets, energy_json);
-
             stepper.step(world);
 
-            Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
+            Eigen::MatrixXd newV = getCurrentVertPositions(world, tets);
             // std::cout<< newV.block(0,0,10,3) << std::endl;
             viewer.data.set_vertices(newV);
             viewer.data.compute_normals();
@@ -211,8 +227,8 @@ int main(int argc, char **argv) {
     };
 
     viewer.callback_mouse_down = [&](igl::viewer::Viewer&, int, int)->bool
-    {   
-        Eigen::MatrixXd curV = getCurrentVertPositions(world, tets); 
+    {
+        Eigen::MatrixXd curV = getCurrentVertPositions(world, tets);
         last_mouse = Eigen::RowVector3f(viewer.current_mouse_x,viewer.core.viewport(3)-viewer.current_mouse_y,0);
         std::cout << last_mouse << std::endl;
         // Find closest point on mesh to mouse position
@@ -221,9 +237,9 @@ int main(int argc, char **argv) {
         if(igl::unproject_onto_mesh(
             last_mouse.head(2),
             viewer.core.view * viewer.core.model,
-            viewer.core.proj, 
-            viewer.core.viewport, 
-            curV, F, 
+            viewer.core.proj,
+            viewer.core.viewport,
+            curV, F,
             fid, bary))
         {
             long c;
@@ -243,7 +259,7 @@ int main(int argc, char **argv) {
 
             return true;
         }
-        
+
         return false; // TODO false vs true??
     };
 
@@ -302,4 +318,3 @@ int main(int argc, char **argv) {
     viewer.launch();
     return EXIT_SUCCESS;
 }
-

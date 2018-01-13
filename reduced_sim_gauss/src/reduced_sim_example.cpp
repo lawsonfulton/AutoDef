@@ -8,6 +8,7 @@
 //Any extra things I need such as constraints
 #include <ConstraintFixedPoint.h>
 #include <TimeStepperEulerImplicitLinear.h>
+#include <AssemblerParallel.h>
 
 #include <igl/writeDMAT.h>
 #include <igl/readDMAT.h>
@@ -64,8 +65,9 @@ typedef World<double,
                         std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
                         std::tuple<ForceSpringFEMParticle<double> *>,
                         std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
-typedef TimeStepperEulerImplictLinear<double, AssemblerEigenSparseMatrix<double>,
-AssemblerEigenVector<double> > MyTimeStepper;
+typedef TimeStepperEulerImplicitLinear<double, AssemblerParallel<double, AssemblerEigenSparseMatrix<double>>,
+AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
+
 
 // Mesh
 Eigen::MatrixXd V; // Verts
@@ -254,31 +256,31 @@ public:
         status = m_encoder_session->Create(encoder_graph_def);
         checkStatus(status);
 
+        // Currently disabled
+        // if(integrator_config["use_reduced_energy"]) {
+        //     fs::path energy_model_path = tf_models_root / "energy_model.pb";
 
-        if(integrator_config["use_reduced_energy"]) {
-            fs::path energy_model_path = tf_models_root / "energy_model.pb";
-
-            status = tf::NewSession(tf::SessionOptions(), &m_energy_model_session);
-            checkStatus(status);
-            tf::GraphDef energy_model_graph_def;
-            status = ReadBinaryProto(tf::Env::Default(), energy_model_path.string(), &energy_model_graph_def);
-            checkStatus(status);
-            status = m_energy_model_session->Create(energy_model_graph_def);
-            checkStatus(status);
-        }
+        //     status = tf::NewSession(tf::SessionOptions(), &m_energy_model_session);
+        //     checkStatus(status);
+        //     tf::GraphDef energy_model_graph_def;
+        //     status = ReadBinaryProto(tf::Env::Default(), energy_model_path.string(), &energy_model_graph_def);
+        //     checkStatus(status);
+        //     status = m_energy_model_session->Create(energy_model_graph_def);
+        //     checkStatus(status);
+        // }
 
 
-        if(integrator_config["use_discrete_reduced_energy"]) {
-            fs::path discrete_energy_model_path = tf_models_root / "discrete_energy_model.pb";
+        // if(integrator_config["use_discrete_reduced_energy"]) {
+        //     fs::path discrete_energy_model_path = tf_models_root / "discrete_energy_model.pb";
 
-            status = tf::NewSession(tf::SessionOptions(), &m_discrete_energy_model_session);
-            checkStatus(status);
-            tf::GraphDef discrete_energy_model_graph_def;
-            status = ReadBinaryProto(tf::Env::Default(), discrete_energy_model_path.string(), &discrete_energy_model_graph_def);
-            checkStatus(status);
-            status = m_discrete_energy_model_session->Create(discrete_energy_model_graph_def);
-            checkStatus(status);
-        }
+        //     status = tf::NewSession(tf::SessionOptions(), &m_discrete_energy_model_session);
+        //     checkStatus(status);
+        //     tf::GraphDef discrete_energy_model_graph_def;
+        //     status = ReadBinaryProto(tf::Env::Default(), discrete_energy_model_path.string(), &discrete_energy_model_graph_def);
+        //     checkStatus(status);
+        //     status = m_discrete_energy_model_session->Create(discrete_energy_model_graph_def);
+        //     checkStatus(status);
+        // }
         // -- Testing
 
         // tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3}));
@@ -534,7 +536,7 @@ public:
         int n_sample_tets = m_energy_sample_tets.rows();
 
         VectorXd sampled_energy(n_sample_tets);
-        #pragma omp parallel for schedule(static,16)// TODO how to optimize this
+        // #pragma omp parallel for schedule(static,16)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
             // std::cout << omp_get_num_threads() << std::endl;
             // std::cout << omp_get_max_threads() << std::endl;
@@ -620,11 +622,19 @@ public:
             VectorXd new_q = dec(new_z);
             VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
             // -- Compute gradient
-            AssemblerEigenVector<double> internal_force; //maybe?
-            ASSEMBLEVECINIT(internal_force, new_q.size());
-            m_tets->getInternalForce(internal_force, m_world->getState());
-            ASSEMBLEEND(internal_force);
+            // AssemblerEigenVector<double> internal_force; //maybe?
+            // ASSEMBLEVECINIT(internal_force, new_q.size());
+            // m_tets->getInternalForce(internal_force, m_world->getState());
+            // ASSEMBLEEND(internal_force);
 
+            AssemblerEigenVector<double> internal_force; //maybe?
+            getInternalForceVector(internal_force, *m_tets, *m_world);
+            // AssemblerEigenVector<double> internal_force_2; //maybe?
+            // getForceVector(internal_force_2, *m_world);
+            // VectorXd force = (*internal_force);
+            // VectorXd diff = force - *internal_force_2;
+            // std::cout << diff << std::endl;
+           
             grad = jtvp(new_z, m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * (m_F_ext + m_interaction_force));
         }
 
@@ -695,7 +705,11 @@ public:
 
         update_world_with_current_configuration();
 
-        std::cout << "Timestep took: " << igl::get_seconds() - start_time << "s" << std::endl;
+        double update_time = igl::get_seconds() - start_time;
+        m_total_time += update_time;
+        m_current_frame++;
+        std::cout << "Timestep took: " << update_time << "s" << std::endl;
+        std::cout << "Avg timestep: " << m_total_time / (double)m_current_frame << "s" << std::endl;
         return;
     }
 
@@ -755,6 +769,9 @@ private:
     NeohookeanTets *m_tets;
 
     ReducedSpaceType *m_reduced_space;
+
+    int m_current_frame = 0;
+    double m_total_time = 0.0;
 };
 
 SparseMatrix<double> construct_constraints_P(NeohookeanTets *tets) {

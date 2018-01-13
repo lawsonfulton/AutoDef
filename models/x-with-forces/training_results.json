@@ -1,0 +1,20 @@
+{
+  "autoencoder": {
+    "training-mse": 0.00037893803196861585,
+    "validation-mse": 0.0026177188096426977
+  },
+  "pca": {
+    "5-components": {
+      "training-mse": 0.0076660148555460165,
+      "validation-mse": 0.004288331220989289
+    },
+    "10-components": {
+      "training-mse": 0.0008569285917869353,
+      "validation-mse": 0.0005368688332354227
+    },
+    "20-components": {
+      "training-mse": 6.055570712390415e-05,
+      "validation-mse": 6.325168993033952e-05
+    }
+  }
+}

@@ -76,6 +76,11 @@ if(APPLE)
           set(Gauss_INCLUDE_DIRS  ${Gauss_INCLUDE_DIRS} ${LLVM_INCLUDE})
           add_definitions(-DGAUSS_OPENMP)
   endif(USE_OPENMP)
+else()
+    find_package(OpenMP REQUIRED)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    add_definitions(-DGAUSS_OPENMP)
 endif(APPLE)
 
 #not sure how to do this more elegantly so for now manual list of cases
@@ -94,8 +99,13 @@ include(${UI_SOURCE_DIR}/UISetup.txt)
 
 #Currently for xcode builds 
 #libraries
-set(Gauss_LIB_DIR_DEBUG ${Gauss_EXT_LIBDIR} ${Gauss_ROOT_DIR}/build/lib/Debug)
-set(Gauss_LIB_DIR_RELEASE ${Gauss_EXT_LIBDIR} ${Gauss_ROOT_DIR}/build/lib/)
+if(APPLE)
+    set(Gauss_LIB_DIR_DEBUG ${Gauss_EXT_LIBDIR} ${Gauss_ROOT_DIR}/build/lib/Debug)
+    set(Gauss_LIB_DIR_RELEASE ${Gauss_EXT_LIBDIR} ${Gauss_ROOT_DIR}/build/lib/Release)
+elseif(UNIX)
+    set(Gauss_LIB_DIR_DEBUG ${Gauss_EXT_LIBDIR} ${Gauss_ROOT_DIR}/build/lib/)
+    set(Gauss_LIB_DIR_RELEASE ${Gauss_EXT_LIBDIR} ${Gauss_ROOT_DIR}/build/lib/)
+endif(APPLE)
 
 set(Gauss_LIBS  libBase.a
                 libCore.a
