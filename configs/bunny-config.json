@@ -1,0 +1,30 @@
+{
+  "mesh": "../meshes/coarsebunny.1.mesh",
+
+  "training_dataset": "../training_data/coarse-bunny/training",
+  "validation_dataset": "../training_data/coarse-bunny/validation",
+
+  "learning_config": {
+    "skip_training": false,
+    "skip_jacobian": false,
+    "autoencoder_config": {
+      "pca_compare_dims": [5, 10, 20, 30],
+
+      "pca_layer_dim": 30,
+      "non_pca_layer_sizes": [100, 100],
+      "ae_encoded_dim": 5,
+      "activation": "elu",
+
+      "batch_size": 100,
+      "training_epochs": 300,
+      "do_fine_tuning": false,
+      "loss_weight": 1.0
+    },
+    "energy_model_config": {
+      "enabled": false,
+      "layer_sizes": [20, 20],
+      "activation": "sigmoid",
+      "loss_weight": 0.5
+    }
+  }
+}

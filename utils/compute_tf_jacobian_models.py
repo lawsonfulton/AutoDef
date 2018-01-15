@@ -10,12 +10,12 @@ def generate_jacobian_for_tf_model(model_input_path, jacobian_output_path):
     from tensorflow.python.framework import graph_util
     from tensorflow.python.framework import graph_io    
 
-    
+    # Backwards
     def body(y, x, i):
         n = tf.shape(y)[0]
         loop_vars = [
             tf.constant(0, tf.int32),
-            tf.TensorArray(tf.float32, size=n),
+            tf.TensorArray(tf.float64, size=n),
         ]
         _, jacobian = tf.while_loop(
             lambda j, _: j < n,
@@ -26,13 +26,14 @@ def generate_jacobian_for_tf_model(model_input_path, jacobian_output_path):
     def tf_jacobian(y, x, n):
         loop_vars = [
             tf.constant(0, tf.int32),
-            tf.TensorArray(tf.float32, size=n),
+            tf.TensorArray(tf.float64, size=n),
         ]
         _, jacobian = tf.while_loop(
             lambda i, _: i < n,
             lambda i, result: (i+1, result.write(i, body(y[i], x, i))),
             loop_vars)
         return jacobian.stack()
+
 
     with gfile.FastGFile(model_input_path, 'rb') as f:
         graph_def = tf.GraphDef()

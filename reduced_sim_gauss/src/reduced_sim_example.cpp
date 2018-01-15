@@ -74,6 +74,7 @@ Eigen::MatrixXd V; // Verts
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
 int n_dof;
+double finite_diff_eps;
 
 // Mouse/Viewer state
 Eigen::RowVector3f last_mouse;
@@ -137,6 +138,10 @@ public:
         return m_impl.decode(z);
     }
 
+    inline MatrixXd jacobian(const VectorXd &z) {
+        return m_impl.jacobian(z);
+    }
+
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {
         // d decode / d z * q
         return m_impl.jacobian_transpose_vector_product(z, q);
@@ -144,10 +149,6 @@ public:
 
     inline double get_energy(const VectorXd &z) {
         return m_impl.get_energy(z);
-    }
-
-    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {
-        return m_impl.get_energy_discrete(z, world, tets);
     }
 
 private:
@@ -164,9 +165,9 @@ public:
 
     inline VectorXd encode(const VectorXd &q) {return q;}
     inline VectorXd decode(const VectorXd &z) {return z;}
+    inline MatrixXd jacobian(const VectorXd &z) {std::cout << "Not implemented!" << std::endl;}
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return q;}
     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
 
 private:
     SparseMatrix<double> m_I;
@@ -181,6 +182,7 @@ public:
 
     inline VectorXd encode(const VectorXd &q) {return m_P * q;}
     inline VectorXd decode(const VectorXd &z) {return m_P.transpose() * z;}
+    inline MatrixXd jacobian(const VectorXd &z) {std::cout << "Not implemented!" << std::endl;}
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return m_P * q;}
     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
     inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
@@ -204,6 +206,8 @@ public:
     inline VectorXd decode(const VectorXd &z) {
         return m_U.transpose() * z;
     }
+
+    inline MatrixXd jacobian(const VectorXd &z) { return m_U.transpose(); }
 
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
         return m_U * q;
@@ -337,7 +341,7 @@ public:
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
         auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
         for(int i =0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = (float)z[i];
+            z_tensor_mapped(0, i) = z[i];
         } // TODO map with proper function
 
         std::vector<tf::Tensor> q_outputs;
@@ -353,13 +357,51 @@ public:
         return res;
     }
 
+    inline MatrixXd jacobian(const VectorXd &z) {
+        MatrixXd jac(n_dof, z.size());
+
+        //Finite differences gradient
+        double t = finite_diff_eps;
+        for(int i = 0; i < z.size(); i++) {
+            VectorXd dz_pos(z);
+            VectorXd dz_neg(z);
+            dz_pos[i] += t;
+            dz_neg[i] -= t;
+            jac.col(i) = (decode(dz_pos) - decode(dz_neg)) / (2.0 * t);
+        }
+
+        return jac;
+
+        // Analytical
+        // tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
+        // auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
+        // for(int i =0; i < z.size(); i++) {
+        //     z_tensor_mapped(0, i) = z[i];
+        // } // TODO map with proper function
+
+        // std::vector<tf::Tensor> jac_outputs;
+        // tf::Status status = m_decoder_jac_session->Run({{"decoder_input:0", z_tensor}},
+        //                            {"TensorArrayStack/TensorArrayGatherV3:0"}, {}, &jac_outputs); // TODO get better names
+
+        // auto jac_tensor_mapped = jac_outputs[0].tensor<tf_dtype_type, 3>();
+        
+        // MatrixXd res(n_dof, m_enc_dim); // TODO generalize
+        // for(int i = 0; i < res.rows(); i++) {
+        //     for(int j = 0; j < res.cols(); j++) {
+        //         res(i,j) = jac_tensor_mapped(0,i,j);
+        //     }
+        // }
+
+        // return res;
+    }
+
     // Using finite differences
     // TODO I should be able to do this as a single pass right? put all the inputs into one tensor
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
         VectorXd res(z.size());
 
         //Finite differences gradient
-        double t = 0.0005;
+        double t = finite_diff_eps;//0.0005;
         for(int i = 0; i < z.size(); i++) {
             VectorXd dz_pos(z);
             VectorXd dz_neg(z);
@@ -399,7 +441,7 @@ public:
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
         auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
         for(int i =0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = (float)z[i];
+            z_tensor_mapped(0, i) = z[i];
         } // TODO map with proper function
 
         std::vector<tf::Tensor> q_outputs;
@@ -415,7 +457,7 @@ public:
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
         auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
         for(int i =0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = (float)z[i];
+            z_tensor_mapped(0, i) = z[i];
         } // TODO map with proper function
 
         std::vector<tf::Tensor> energy_weight_outputs;
@@ -483,6 +525,7 @@ public:
 
         m_use_reduced_energy = integrator_config["use_reduced_energy"];
         m_h = integrator_config["timestep"];
+        finite_diff_eps = integrator_config["finite_diff_eps"];
         // Construct mass matrix and external forces
         AssemblerEigenSparseMatrix<double> M_asm;
         getMassMatrix(M_asm, *m_world);
@@ -498,7 +541,7 @@ public:
         m_F_ext = m_M * g;
         m_interaction_force = VectorXd::Zero(m_F_ext.size());
 
-        if(integrator_config["use_energy_completion"]) {
+        if(integrator_config["use_reduced_energy"]) {
             fs::path pca_components_path("pca_results/energy_pca_components.dmat");
             fs::path sample_tets_path("pca_results/energy_indices.dmat");
 
@@ -512,10 +555,12 @@ public:
             m_energy_basis = U.transpose(); // TODO get rid of this transpose after I save the PCA result correctly
             m_energy_sampled_basis = igl::slice(m_energy_basis, tet_indices_mat, 1);
             m_summed_energy_basis = m_energy_basis.colwise().sum();
-
-            // Prefactor
             m_energy_sampled_basis_qr = m_energy_sampled_basis.fullPivHouseholderQr();
+
+            MatrixXd A = m_energy_sampled_basis.transpose() * m_energy_sampled_basis;
+            m_summed_force_fact = m_energy_sampled_basis * A.ldlt().solve(m_summed_energy_basis); //U_bar(A^-1*u)
         }
+
     }
 
     void set_prev_zs(const VectorXd &cur_z, const VectorXd &prev_z) {
@@ -534,45 +579,43 @@ public:
 
     double current_energy_using_completion() {
         int n_sample_tets = m_energy_sample_tets.rows();
-
         VectorXd sampled_energy(n_sample_tets);
         // #pragma omp parallel for schedule(static,16)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
-            // std::cout << omp_get_num_threads() << std::endl;
-            // std::cout << omp_get_max_threads() << std::endl;
-            sampled_energy[i] = m_tets->getImpl().getElement(i)->getStrainEnergy(m_world->getState());
+            int tet_index = m_energy_sample_tets(i,0);
+            sampled_energy[i] = m_tets->getImpl().getElement(tet_index)->getStrainEnergy(m_world->getState());
         }
 
         // VectorXd alpha = m_energy_sampled_basis.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sampled_energy);
         // VectorXd alpha = (m_energy_sampled_basis.transpose() * m_energy_sampled_basis).ldlt().solve(m_energy_sampled_basis.transpose() * sampled_energy);
         VectorXd alpha = m_energy_sampled_basis_qr.solve(sampled_energy);
-
-        // std::cout << alpha.size() << std::endl;
-        // std::cout << m_energy_sampled_basis.rows() << " " <<  m_energy_sampled_basis.cols() << std::endl;
-        // std::cout << sampled_energy.size() << std::endl;
-        return m_summed_energy_basis.dot(alpha); // TODO is this right?
+        double summed_energy = m_summed_energy_basis.dot(alpha);
+        // std::cout << "alpha[0]: " <<  alpha[0] << ", sampled_energy[0]: " << sampled_energy[0] << ", summed_energy: " << summed_energy << std::endl;
+        return summed_energy; // TODO is this right?
     }
 
-    double objective(const VectorXd &new_z) { // TODO delete when done with finite differnece
-        // -- Compute GPLCObjective objective
-        double energy, reduced_energy;
-        // if(m_use_reduced_energy) {
-            // reduced_energy = m_reduced_space->get_energy(new_z);
+    double operator()(const VectorXd& new_z, VectorXd& grad)
+    {
+        // Update the tets with candidate configuration
         Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+
+        // std::cout << "z: <";
+        // for(int i = 0; i < new_z.size(); i++) {
+        //     std::cout << new_z[i];
+        //     if(i != new_z.size() - 1) {
+        //         std::cout << ", ";
+        //     }
+        // }
+        // std::cout << ">" << std::endl;
+
+
         VectorXd new_q = dec(new_z);
         for(int i=0; i < q.size(); i++) {
             q[i] = new_q[i]; // TODO is this the fastest way to do this?
         }
-        //m_reduced_space->get_energy_discrete(new_z, m_world, m_tets);
-        // }
-        // else {
-            
-            // energy = m_tets->getStrainEnergy(m_world->getState());
-        // }
-
-
-        // std::cout << "Energy: " << energy << ", Reduced Energy: " << reduced_energy << std::endl;
-        // std::cout << m_use_reduced_energy << std::endl;
+        
+        // Compute objective
+        double energy;
         if(m_use_reduced_energy) {
             energy = current_energy_using_completion();;
         }
@@ -580,62 +623,70 @@ public:
             energy = m_tets->getStrainEnergy(m_world->getState());
         }
 
-        VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
-        return 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
-    }
+        VectorXd external_forces_h2 = m_h * m_h * (m_F_ext + m_interaction_force);
 
-    double operator()(const VectorXd& new_z, VectorXd& grad)
-    {
-        // Update the tets with candidate configuration
-        // Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
-        // VectorXd new_q = dec(new_z);
-        // for(int i=0; i < q.size(); i++) {
-        //     q[i] = new_q[i]; // TODO is this the fastest way to do this?
+        // MatrixXd J = m_reduced_space->jacobian(new_z);
+        // static int cur_frame = 0;
+        // std::stringstream jac_filename;
+        // jac_filename << "jacs/" << "jac_" << cur_frame++ << ".dmat";
+        // igl::writeDMAT(jac_filename.str(), J, false); // Don't use ascii
+        // VectorXd z_tilde = new_z - 2.0 * m_cur_z + m_prev_z;
+        // VectorXd J_z_tilde = J * z_tilde;
+        // VectorXd M_J_z_tilde = m_M * J_z_tilde;
+        // double obj_val = 0.5 * J_z_tilde.transpose() * M_J_z_tilde + m_h * m_h * energy - J_z_tilde.transpose() * external_forces_h2;
+
+        VectorXd q_tilde = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
+        VectorXd M_q_tilde = m_M * q_tilde;
+        // std::cout << (q_tilde.transpose() * M_q_tilde) << ", " << (J_z_tilde.transpose() * M_J_z_tilde) << std::endl;
+
+        // std::cout << m_reduced_space->jacobian(new_z) << std::endl;
+        // for(int i = 900; i < 1000; i++) {
+        //     std::cout << q_tilde[i] << ", " << J_z_tilde[i] << std::endl;
         // }
+        // std::cout << std::endl;
+        double obj_val = 0.5 * q_tilde.transpose() * M_q_tilde + m_h * m_h * energy - q_tilde.transpose() * external_forces_h2;
 
-        // -- Compute GPLCObjective objective
-        double obj_val = 0.0;
-        // VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z); // TODO: avoid decodes here by saving the qs aswell
-
-        obj_val = objective(new_z);
-        // double energy;
-        // if(m_use_reduced_energy) {
-        //     energy = m_reduced_space->get_energy(z);
-        // }
-        // else {
-        //     energy = m_tets->getStrainEnergy(m_world->getState());
-        // }
-
-        // obj_val = 0.5 * A.transpose() * m_M * A + m_h * m_h * energy - m_h * m_h * A.transpose() * (m_F_ext + m_interaction_force);
-
+        // Compute gradient
         if(m_use_reduced_energy) {
             // Finite differences gradient
-            double t = 0.0005;
-            for(int i = 0; i < new_z.size(); i++) {
-                VectorXd dq_pos(new_z);
-                VectorXd dq_neg(new_z);
-                dq_pos[i] += t;
-                dq_neg[i] -= t;
-                grad[i] = (objective(dq_pos) - obj_val) / (1.0 * t);
-            }
-        } else {
-            VectorXd new_q = dec(new_z);
-            VectorXd A = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
-            // -- Compute gradient
-            // AssemblerEigenVector<double> internal_force; //maybe?
-            // ASSEMBLEVECINIT(internal_force, new_q.size());
-            // m_tets->getInternalForce(internal_force, m_world->getState());
-            // ASSEMBLEEND(internal_force);
+            // double t = 0.0005;
+            // for(int i = 0; i < new_z.size(); i++) {
+            //     VectorXd dq_pos(new_z);
+            //     VectorXd dq_neg(new_z);
+            //     dq_pos[i] += t;
+            //     dq_neg[i] -= t;
+            //     grad[i] = (objective(dq_pos) - obj_val) / (1.0 * t);
+            // }
+            // std::cout << "grad: " << grad[0] << "," << grad[1] << "," << grad[2] << "," << grad[3] << "," << grad[4] << "," << grad[5] << std::endl;
 
-            AssemblerEigenVector<double> internal_force; //maybe?
+            int n_sample_tets = m_energy_sample_tets.rows();
+            SparseMatrix<double> energy_sample_jac(n_dof, n_sample_tets);
+            energy_sample_jac.reserve(VectorXi::Constant(n_dof, 12)); // Reserve enough room for 4 verts (tet corners) per column
+            // #pragma omp parallel for schedule(static,16)// TODO how to optimize this
+            for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+                int tet_index = m_energy_sample_tets(i,0);
+                VectorXd forces(12);
+                m_tets->getImpl().getElement(tet_index)->getInternalForce(forces, m_world->getState());
+                
+                for(int j = 0; j < 4; j++) {
+                    int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
+                    for(int k = 0; k < 3; k++) {
+                        energy_sample_jac.insert(vert_index + k, i) = forces[j*3 + k];
+                    }
+                }
+            }
+            energy_sample_jac.makeCompressed();
+
+            VectorXd reduced_energy_grad = energy_sample_jac * m_summed_force_fact;
+
+            // grad = J.transpose() * (M_J_z_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2);
+            grad = jtvp(new_z, M_q_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2);
+            // grad = J.transpose() * (M_q_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2); 
+        }
+        else {
+            AssemblerEigenVector<double> internal_force;
             getInternalForceVector(internal_force, *m_tets, *m_world);
-            // AssemblerEigenVector<double> internal_force_2; //maybe?
-            // getForceVector(internal_force_2, *m_world);
-            // VectorXd force = (*internal_force);
-            // VectorXd diff = force - *internal_force_2;
-            // std::cout << diff << std::endl;
-           
-            grad = jtvp(new_z, m_M * A - m_h * m_h * (*internal_force) - m_h * m_h * (m_F_ext + m_interaction_force));
+            grad = jtvp(new_z, M_q_tilde - m_h * m_h * (*internal_force) - external_forces_h2);
         }
 
         // std::cout << "Objective: " << obj_val << std::endl;
@@ -664,6 +715,8 @@ private:
     VectorXd m_summed_energy_basis;
     MatrixXd m_energy_sampled_basis;
     Eigen::FullPivHouseholderQR<MatrixXd> m_energy_sampled_basis_qr;
+
+    MatrixXd m_summed_force_fact;
 };
 
 template <typename ReducedSpaceType>

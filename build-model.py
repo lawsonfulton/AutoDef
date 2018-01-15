@@ -43,7 +43,7 @@ def copy_files_into_out_dir(config_path, config, config_dir, model_root):
 
     # -- Training data TODO: If no training data specified, start generation routine
     training_in = os.path.join(config_dir, config['training_dataset'])
-    validation_in = os.path.join(config_dir, config['validation_dataset'])
+    validation_in = os.path.join(config_dir, config['validation_dataset']) if config['validation_dataset'] else None
 
     training_out = os.path.join(model_root, 'training_data/training')
     validation_out = os.path.join(model_root, 'training_data/validation')
@@ -53,7 +53,8 @@ def copy_files_into_out_dir(config_path, config, config_dir, model_root):
         shutil.rmtree(training_data_out_root)
 
     shutil.copytree(training_in, training_out)
-    shutil.copytree(validation_in, validation_out)
+    if validation_in:
+        shutil.copytree(validation_in, validation_out)
 
     # -- Training config file as a record
     shutil.copy(config_path, os.path.join(model_root, 'model_config.json'))
@@ -121,8 +122,9 @@ def main():
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
             'timestep': 0.05,
+            'finite_diff_eps': 0.0005,
             'lbfgs_config': {
-                'lbfgs_max_iterations': 300,
+                'lbfgs_max_iterations': 150,
                 'lbfgs_epsilon': 1e-3,
             },
             'gravity': -9.8,
@@ -130,7 +132,7 @@ def main():
 
         'visualization_config' : {
             'show_stress': False,
-            'interaction_spring_stiffness': 1e6,
+            'interaction_spring_stiffness': 1e5,
         },
     }
     with open(os.path.join(model_root, 'sim_config.json'), 'w') as f:

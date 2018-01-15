@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
     igl::readMESH(argv[1], V, T, F);
     NeohookeanTets *tets = new NeohookeanTets(V,T);
     for(auto element: tets->getImpl().getElements()) {
-        element->setDensity(1000.0);//1000.0);
+        element->setDensity(100.0);//1000.0);
         element->setParameters(1000000, 0.45);
     }
 
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
     world.addSystem(tets);
-    fixDisplacementMin(world, tets, 1 );
+    fixDisplacementMin(world, tets, 1, 1.0);
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
 
     reset_world(world);

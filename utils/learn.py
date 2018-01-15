@@ -620,7 +620,7 @@ def load_energy(model_root):
     test_displacements = my_utils.load_energy_dmats_to_numpy(validation_data_path)
 
 
-def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_dim, num_tets, do_save):
+def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_dim, num_tets, do_save, scale=1.0):
     n_tets_sampled = num_tets
     energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(samples, pca_dim)
     
@@ -628,12 +628,14 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
         my_utils.save_numpy_mat_to_dmat(basis_output_path, numpy.ascontiguousarray(energy_pca.components_))
 
     decoded_energy = pca_decode(pca_encode(samples))
+    # print(decoded_energy)
     # decoded_energy = numpy.maximum(decoded_energy, 0, decoded_energy)
     decoded_test_energy = pca_decode(pca_encode(samples_test))
     # print(numpy.array(list(zip(numpy.sum(samples_test, axis=1), numpy.sum(decoded_test_energy, axis=1)) ))    )
 
-    print('train mse: ', mean_squared_error(samples, decoded_energy))    
-    print('test mse:', mean_squared_error(samples_test, decoded_test_energy))    
+    # print('train mse: ', mean_squared_error(samples, decoded_energy))    
+    print('train mse: ', mean_squared_error(samples, decoded_energy)*scale)    
+    print('test mse:', mean_squared_error(samples_test, decoded_test_energy)*scale)    
     print('explained var', sum(energy_pca.explained_variance_ratio_))
     
     Es = samples
@@ -656,7 +658,7 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
             # self.state[a], self.state[b] = self.state[b], self.state[a]
 
             #self.state = numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
-            for _ in range(1):
+            for _ in range(3):
                 i = numpy.random.randint(0, n_tets_sampled)
                 while True:
                     new_tet = numpy.random.randint(0, len(Es[0]))
@@ -678,7 +680,7 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
             completed_energies = (U @ sol[0]).T
             # print("solve took", time.time()-start)
             # check_samples = numpy.random.choice(Es.shape[0], 100, replace=False)
-            completion_mse = mean_squared_error(completed_energies, Es)
+            completion_mse = mean_squared_error(completed_energies, Es)*scale
             print(completion_mse)
             return completion_mse
 
@@ -700,7 +702,7 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
     E_bars = Es[:, a]
     sol = numpy.linalg.lstsq(U_bar, E_bars.T)
     completed_energies = (U @ sol[0]).T
-    completion_mse = mean_squared_error(completed_energies, Es)
+    completion_mse = mean_squared_error(completed_energies, Es)*scale
     print('actual mse:', completion_mse)
 
     if do_save:
@@ -711,35 +713,37 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
 # Include it in the build model pipeline
 def main():
     """energy basis"""
-    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-with-forces/'
+    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/bunny-coarse-2/'
     training_data_path = os.path.join(base_path, 'training_data/training')
     validation_data_path = os.path.join(base_path, 'training_data/validation')
     
     # Energies
-    # energies = my_utils.load_energy_dmats_to_numpy(training_data_path)
-    # energies_test = my_utils.load_energy_dmats_to_numpy(validation_data_path)
-    # flatten_data, unflatten_data = my_utils.get_flattners(energies)
+    energies = my_utils.load_energy_dmats_to_numpy(training_data_path)
+    energies_test = my_utils.load_energy_dmats_to_numpy(validation_data_path)
+    flatten_data, unflatten_data = my_utils.get_flattners(energies)
 
-    # energies = flatten_data(energies)
-    # energies_test = flatten_data(energies_test)
+    energies = flatten_data(energies)#/10000
+    # print(energies[100])
+    energies_test = flatten_data(energies_test)
 
-    # basis_path = 'pca_results/energy_pca_components.dmat'
-    # tet_path = 'pca_results/energy_indices.dmat'
-    # basis_opt(basis_path, tet_path, energies, energies_test, 100, 300, True)
+    basis_path = os.path.join(base_path, 'pca_results/energy_pca_components.dmat')
+    tet_path = os.path.join(base_path, 'pca_results/energy_indices.dmat')
+    basis_opt(basis_path, tet_path, energies, energies_test, 150, 350, True, scale=1.0)
 
-    # Forces
-    forces = my_utils.load_dmats(training_data_path, 'internalForces_')
-    forces_test = my_utils.load_dmats(validation_data_path, 'internalForces_')
-    flatten_forces_data, unflatten_data = my_utils.get_flattners(forces)
+    # # Forces
+    # forces = my_utils.load_dmats(training_data_path, 'internalForces_')
+    # forces_test = my_utils.load_dmats(validation_data_path, 'internalForces_')
+    # flatten_forces_data, unflatten_data = my_utils.get_flattners(forces)
 
-    forces = flatten_forces_data(forces)
-    forces_test = flatten_forces_data(forces_test)
+    # forces = flatten_forces_data(forces)
+    # forces_test = flatten_forces_data(forces_test)
 
-    print(len(forces[0]))
-    # return
-    basis_path = 'pca_results/force_pca_components.dmat'
-    tet_path = 'pca_results/force_indices.dmat'
-    basis_opt(basis_path, tet_path, forces, forces_test, 300, 400, True)
+    # # print(numpy.mean(energies ** 2))
+    # # print(numpy.mean(forces ** 2))
+    # # # return
+    # basis_path = 'pca_results/force_pca_components.dmat'
+    # tet_path = 'pca_results/force_indices.dmat'
+    # basis_opt(basis_path, tet_path, forces, forces_test, 100, 300, True, scale=0.001)
 
 
     ##### Brute force
