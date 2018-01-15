@@ -138,6 +138,10 @@ public:
         return m_impl.decode(z);
     }
 
+    inline VectorXd sub_decode(const VectorXd &z) {
+        return m_impl.sub_decode(z);
+    }
+
     inline MatrixXd jacobian(const VectorXd &z) {
         return m_impl.jacobian(z);
     }
@@ -145,6 +149,18 @@ public:
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {
         // d decode / d z * q
         return m_impl.jacobian_transpose_vector_product(z, q);
+    }
+
+    inline MatrixXd outer_jacobian() {
+        return m_impl.outer_jacobian();
+    }
+
+    inline MatrixXd inner_jacobian(const VectorXd &z) { // TODO make this sparse for linear subspace?
+        return m_impl.inner_jacobian(z);
+    }
+
+    inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {
+        return m_impl.compute_reduced_mass_matrix(M);
     }
 
     inline double get_energy(const VectorXd &z) {
@@ -155,41 +171,45 @@ private:
     ReducedSpaceImpl m_impl;
 };
 
-class IdentitySpaceImpl
-{
-public:
-    IdentitySpaceImpl(int n) {
-        m_I.resize(n,n);
-        m_I.setIdentity();
-    }
+// class IdentitySpaceImpl
+// {
+// public:
+//     IdentitySpaceImpl(int n) {
+//         m_I.resize(n,n);
+//         m_I.setIdentity();
+//     }
 
-    inline VectorXd encode(const VectorXd &q) {return q;}
-    inline VectorXd decode(const VectorXd &z) {return z;}
-    inline MatrixXd jacobian(const VectorXd &z) {std::cout << "Not implemented!" << std::endl;}
-    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return q;}
-    inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
+//     inline VectorXd encode(const VectorXd &q) {return q;}
+//     inline VectorXd decode(const VectorXd &z) {return z;}
+//     inline VectorXd sub_decode(const VectorXd &z) {return z;}
+//     inline MatrixXd jacobian(const VectorXd &z) {std::cout << "Not implemented!" << std::endl;}
+//     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return q;}
+//     inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {std::cout << "Not implemented!" << std::endl;}
+//     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
 
-private:
-    SparseMatrix<double> m_I;
-};
+// private:
+//     SparseMatrix<double> m_I;
+// };
 
-class ConstraintSpaceImpl
-{
-public:
-    ConstraintSpaceImpl(const SparseMatrix<double> &P) {
-        m_P = P;
-    }
+// class ConstraintSpaceImpl
+// {
+// public:
+//     ConstraintSpaceImpl(const SparseMatrix<double> &P) {
+//         m_P = P;
+//     }
 
-    inline VectorXd encode(const VectorXd &q) {return m_P * q;}
-    inline VectorXd decode(const VectorXd &z) {return m_P.transpose() * z;}
-    inline MatrixXd jacobian(const VectorXd &z) {std::cout << "Not implemented!" << std::endl;}
-    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return m_P * q;}
-    inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
+//     inline VectorXd encode(const VectorXd &q) {return m_P * q;}
+//     inline VectorXd decode(const VectorXd &z) {return m_P.transpose() * z;}
+//     inline VectorXd sub_decode(const VectorXd &z) {return z;}
+//     inline MatrixXd jacobian(const VectorXd &z) {std::cout << "Not implemented!" << std::endl;}
+//     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return m_P * q;}
+//     inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {std::cout << "Not implemented!" << std::endl;}
+//     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
+//     inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
 
-private:
-    SparseMatrix<double> m_P;
-};
+// private:
+//     SparseMatrix<double> m_P;
+// };
 
 class LinearSpaceImpl
 {
@@ -197,26 +217,45 @@ public:
     LinearSpaceImpl(const MatrixXd &U) : m_U(U) {
         std::cout<<"U rows: " << U.rows() << std::endl;
         std::cout<<"U cols: " << U.cols() << std::endl;
+
+        m_inner_jac = MatrixXd::Identity(U.cols(), U.cols());
     }
 
     inline VectorXd encode(const VectorXd &q) {
-        return m_U * q;
+        return m_U.transpose() * q;
     }
 
     inline VectorXd decode(const VectorXd &z) {
-        return m_U.transpose() * z;
+        return m_U * z;
     }
 
-    inline MatrixXd jacobian(const VectorXd &z) { return m_U.transpose(); }
+    VectorXd sub_decode(const VectorXd &z) {
+        return z;
+    }
+
+    inline MatrixXd jacobian(const VectorXd &z) { return m_U; }
 
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
-        return m_U * q;
+        return m_U.transpose() * q;
+    }
+
+    inline MatrixXd outer_jacobian() {
+        return m_U;
+    }
+
+    inline MatrixXd inner_jacobian(const VectorXd &z) {
+        return m_inner_jac;
+    }
+
+    inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {
+        return m_U.transpose() * M * m_U;
     }
 
     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
     inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
 private:
     MatrixXd m_U;
+    MatrixXd m_inner_jac;
 };
 
 namespace tf = tensorflow;
@@ -228,6 +267,7 @@ class AutoEncoderSpaceImpl
 public:
     AutoEncoderSpaceImpl(fs::path tf_models_root, json integrator_config) {
         m_enc_dim = integrator_config["ae_encoded_dim"];
+        m_sub_q_size = integrator_config["ae_decoded_dim"];
 
         fs::path decoder_path = tf_models_root / "decoder.pb";
         fs::path decoder_jac_path = tf_models_root / "decoder_jac.pb";
@@ -259,6 +299,10 @@ public:
         checkStatus(status);
         status = m_encoder_session->Create(encoder_graph_def);
         checkStatus(status);
+
+        // Last layer
+        fs::path U_path = tf_models_root / "../pca_results/ae_pca_components.dmat";
+        igl::readDMAT(U_path.string(), m_U);
 
         // Currently disabled
         // if(integrator_config["use_reduced_energy"]) {
@@ -318,14 +362,16 @@ public:
     }
 
     inline VectorXd encode(const VectorXd &q) {
-        tf::Tensor q_tensor(tf_dtype, tf::TensorShape({1, n_dof}));
-        auto q_tensor_mapped = q_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < q.size(); i++) {
-            q_tensor_mapped(0, i) = q[i];
+        VectorXd sub_q = m_U.transpose() * q;
+
+        tf::Tensor sub_q_tensor(tf_dtype, tf::TensorShape({1, sub_q.size()}));
+        auto sub_q_tensor_mapped = sub_q_tensor.tensor<tf_dtype_type, 2>();
+        for(int i =0; i < sub_q.size(); i++) {
+            sub_q_tensor_mapped(0, i) = sub_q[i];
         } // TODO map with proper function
 
         std::vector<tf::Tensor> z_outputs;
-        tf::Status status = m_encoder_session->Run({{"encoder_input:0", q_tensor}},
+        tf::Status status = m_encoder_session->Run({{"encoder_input:0", sub_q_tensor}},
                                    {"output_node0:0"}, {}, &z_outputs);
 
         auto z_tensor_mapped = z_outputs[0].tensor<tf_dtype_type, 2>();
@@ -337,40 +383,48 @@ public:
         return res;
     }
 
-    inline VectorXd decode(const VectorXd &z) {
+    VectorXd sub_decode(const VectorXd &z) {
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
         auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < z.size(); i++) {
+        for(int i = 0; i < z.size(); i++) {
             z_tensor_mapped(0, i) = z[i];
         } // TODO map with proper function
 
-        std::vector<tf::Tensor> q_outputs;
+        std::vector<tf::Tensor> sub_q_outputs;
         tf::Status status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
-                                   {"output_node0:0"}, {}, &q_outputs);
+                                   {"output_node0:0"}, {}, &sub_q_outputs);
 
-        auto q_tensor_mapped = q_outputs[0].tensor<tf_dtype_type, 2>();
-        VectorXd res(n_dof);
+        auto sub_q_tensor_mapped = sub_q_outputs[0].tensor<tf_dtype_type, 2>();
+        VectorXd res(m_U.cols());
         for(int i = 0; i < res.size(); i++) {
-            res[i] = q_tensor_mapped(0,i);
+            res[i] = sub_q_tensor_mapped(0,i);
         }
 
         return res;
     }
 
-    inline MatrixXd jacobian(const VectorXd &z) {
-        MatrixXd jac(n_dof, z.size());
-
-        //Finite differences gradient
-        double t = finite_diff_eps;
+    inline VectorXd decode(const VectorXd &z) {
+        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
+        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
         for(int i = 0; i < z.size(); i++) {
-            VectorXd dz_pos(z);
-            VectorXd dz_neg(z);
-            dz_pos[i] += t;
-            dz_neg[i] -= t;
-            jac.col(i) = (decode(dz_pos) - decode(dz_neg)) / (2.0 * t);
+            z_tensor_mapped(0, i) = z[i];
+        } // TODO map with proper function
+
+        std::vector<tf::Tensor> sub_q_outputs;
+        tf::Status status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
+                                   {"output_node0:0"}, {}, &sub_q_outputs);
+
+        auto sub_q_tensor_mapped = sub_q_outputs[0].tensor<tf_dtype_type, 2>();
+        VectorXd res(m_U.cols());
+        for(int i = 0; i < res.size(); i++) {
+            res[i] = sub_q_tensor_mapped(0,i);
         }
 
-        return jac;
+        return m_U * res;
+    }
+
+    inline MatrixXd jacobian(const VectorXd &z) {
+        return m_U * inner_jacobian(z);
 
         // Analytical
         // tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
@@ -395,11 +449,31 @@ public:
         // return res;
     }
 
+    inline MatrixXd outer_jacobian() {
+        return m_U;
+    }
+
+    inline MatrixXd inner_jacobian(const VectorXd &z) {
+        MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
+
+        //Finite differences gradient
+        double t = finite_diff_eps;
+        for(int i = 0; i < z.size(); i++) {
+            VectorXd dz_pos(z);
+            VectorXd dz_neg(z);
+            dz_pos[i] += t;
+            dz_neg[i] -= t;
+            sub_jac.col(i) = (sub_decode(dz_pos) - sub_decode(dz_neg)) / (2.0 * t);
+        }
+
+        return sub_jac;
+    }
+
     // Using finite differences
     // TODO I should be able to do this as a single pass right? put all the inputs into one tensor
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
         VectorXd res(z.size());
-
+        VectorXd sub_q = m_U.transpose() * q;
         //Finite differences gradient
         double t = finite_diff_eps;//0.0005;
         for(int i = 0; i < z.size(); i++) {
@@ -407,35 +481,16 @@ public:
             VectorXd dz_neg(z);
             dz_pos[i] += t;
             dz_neg[i] -= t;
-            res[i] = q.dot((decode(dz_pos) - decode(dz_neg)) / (2.0 * t));
+            // std::cout << sub_q.size() << ", " << decode(dz_pos).size() << std::endl;
+            res[i] = sub_q.dot((sub_decode(dz_pos) - sub_decode(dz_neg)) / (2.0 * t));
         }
 
         return res;
     }
 
-    // Analytical
-    // inline VectorXd jacobian_transpose_vector_product(const VectorXd &z) { // TODO: do this without copy?
-    //     tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
-    //     auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-    //     for(int i =0; i < z.size(); i++) {
-    //         z_tensor_mapped(0, i) = (float)z[i];
-    //     } // TODO map with proper function
-
-    //     std::vector<tf::Tensor> jac_outputs;
-    //     tf::Status status = m_decoder_jac_session->Run({{"decoder_input:0", z_tensor}},
-    //                                {"TensorArrayStack/TensorArrayGatherV3:0"}, {}, &jac_outputs); // TODO get better names
-
-    //     auto jac_tensor_mapped = jac_outputs[0].tensor<tf_dtype_type, m_enc_dim>();
-        
-    //     MatrixXd res(n_dof, m_enc_dim); // TODO generalize
-    //     for(int i = 0; i < res.rows(); i++) {
-    //         for(int j = 0; j < res.cols(); j++) {
-    //             res(i,j) = jac_tensor_mapped(0,i,j);
-    //         }
-    //     }
-
-    //     return res;
-    // }
+    inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {
+        return m_U.transpose() * M * m_U;
+    }
 
     inline double get_energy(const VectorXd &z) {
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
@@ -496,6 +551,9 @@ public:
 
 private:
     int m_enc_dim;
+    int m_sub_q_size;
+
+    MatrixXd m_U;
 
     tf::Session* m_decoder_session;
     tf::Session* m_decoder_jac_session;
@@ -531,6 +589,9 @@ public:
         getMassMatrix(M_asm, *m_world);
 
         m_M = *M_asm;
+        m_M_reduced = m_reduced_space->compute_reduced_mass_matrix(m_M);
+
+
         VectorXd g(m_M.cols());
         for(int i=0; i < g.size(); i += 3) {
             g[i] = 0.0;
@@ -552,7 +613,7 @@ public:
             igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);\
             
             m_energy_sample_tets = tet_indices_mat;
-            m_energy_basis = U.transpose(); // TODO get rid of this transpose after I save the PCA result correctly
+            m_energy_basis = U;
             m_energy_sampled_basis = igl::slice(m_energy_basis, tet_indices_mat, 1);
             m_summed_energy_basis = m_energy_basis.colwise().sum();
             m_energy_sampled_basis_qr = m_energy_sampled_basis.fullPivHouseholderQr();
@@ -574,6 +635,7 @@ public:
 
     // Just short helpers
     inline VectorXd dec(const VectorXd &z) { return m_reduced_space->decode(z); }
+    inline VectorXd sub_dec(const VectorXd &z) { return m_reduced_space->sub_decode(z); }
     inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
     inline VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
 
@@ -635,8 +697,8 @@ public:
         // VectorXd M_J_z_tilde = m_M * J_z_tilde;
         // double obj_val = 0.5 * J_z_tilde.transpose() * M_J_z_tilde + m_h * m_h * energy - J_z_tilde.transpose() * external_forces_h2;
 
-        VectorXd q_tilde = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
-        VectorXd M_q_tilde = m_M * q_tilde;
+        // VectorXd q_tilde = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
+        // VectorXd M_q_tilde = m_M * q_tilde;
         // std::cout << (q_tilde.transpose() * M_q_tilde) << ", " << (J_z_tilde.transpose() * M_J_z_tilde) << std::endl;
 
         // std::cout << m_reduced_space->jacobian(new_z) << std::endl;
@@ -644,9 +706,38 @@ public:
         //     std::cout << q_tilde[i] << ", " << J_z_tilde[i] << std::endl;
         // }
         // std::cout << std::endl;
-        double obj_val = 0.5 * q_tilde.transpose() * M_q_tilde + m_h * m_h * energy - q_tilde.transpose() * external_forces_h2;
+        // double obj_val = 0.5 * q_tilde.transpose() * M_q_tilde + m_h * m_h * energy - q_tilde.transpose() * external_forces_h2;
+
+        //~~~ Reduced matrix form
+
+
+        // Not working..
+        // VectorXd sub_q_tilde = sub_dec(new_z) - 2.0 * sub_dec(m_cur_z) + sub_dec(m_prev_z); // TODO Try not using this and only using the z_tilde
+        // VectorXd z_tilde = new_z - 2.0 * m_cur_z + m_prev_z;
+        // VectorXd M_red_sub_q_tilde = m_M_reduced * sub_q_tilde;
+        // MatrixXd outer_jac = m_reduced_space->outer_jacobian();
+        // MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
+        // double obj_val = 0.5 * sub_q_tilde.transpose() * M_red_sub_q_tilde + m_h * m_h * energy - sub_q_tilde.transpose() * (outer_jac.transpose() * external_forces_h2);
+
+        // Not working
+        // MatrixXd outer_jac = m_reduced_space->outer_jacobian();
+        // MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
+
+        // VectorXd z_tilde = new_z - 2.0 * m_cur_z + m_prev_z;
+        // VectorXd M_red_sub_z_tilde = m_M_reduced * inner_jac * z_tilde;
+        // double obj_val = 0.5 * z_tilde.transpose() * inner_jac.transpose() * M_red_sub_z_tilde + m_h * m_h * energy - (outer_jac * (inner_jac * z_tilde)).transpose() * external_forces_h2;
+
+        MatrixXd outer_jac = m_reduced_space->outer_jacobian();
+        MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
+
+        VectorXd z_tilde = new_z - 2.0 * m_cur_z + m_prev_z;
+        VectorXd M_red_sub_z_tilde = m_M_reduced * inner_jac * z_tilde;
+        double obj_val = 0.5 * z_tilde.transpose() * inner_jac.transpose() * m_M_reduced * inner_jac * z_tilde
+                        + m_h * m_h * energy
+                        - (outer_jac * inner_jac * z_tilde).transpose() * external_forces_h2;
 
         // Compute gradient
+        VectorXd energy_grad;
         if(m_use_reduced_energy) {
             // Finite differences gradient
             // double t = 0.0005;
@@ -677,17 +768,24 @@ public:
             }
             energy_sample_jac.makeCompressed();
 
-            VectorXd reduced_energy_grad = energy_sample_jac * m_summed_force_fact;
-
-            // grad = J.transpose() * (M_J_z_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2);
-            grad = jtvp(new_z, M_q_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2);
-            // grad = J.transpose() * (M_q_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2); 
+            energy_grad = energy_sample_jac * m_summed_force_fact;
         }
         else {
             AssemblerEigenVector<double> internal_force;
             getInternalForceVector(internal_force, *m_tets, *m_world);
-            grad = jtvp(new_z, M_q_tilde - m_h * m_h * (*internal_force) - external_forces_h2);
+            energy_grad = -*internal_force;
+            // grad = jtvp(new_z, M_q_tilde - m_h * m_h * (*internal_force) - external_forces_h2);
         }
+
+        // grad = J.transpose() * (M_J_z_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2);
+        // grad = jtvp(new_z, M_q_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2);
+        // grad = J.transpose() * (M_q_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2); 
+
+        //~~~ Reduced matrix form
+        // grad =  inner_jac.transpose() * (M_red_sub_z_tilde - m_h * m_h * outer_jac.transpose() * (reduced_energy_grad - external_forces_h2));             
+        grad = inner_jac.transpose() * m_M_reduced * inner_jac * z_tilde
+                    + inner_jac.transpose() * outer_jac.transpose() * (m_h * m_h * energy_grad - external_forces_h2);
+
 
         // std::cout << "Objective: " << obj_val << std::endl;
         // std::cout << "grad: " << grad << std::endl;
@@ -701,6 +799,7 @@ private:
     VectorXd m_interaction_force;
 
     SparseMatrix<double> m_M; // mass matrix
+    MatrixXd m_M_reduced; // reduced mass matrix
 
     double m_h;
 
@@ -906,8 +1005,8 @@ VectorXd get_von_mises_stresses(NeohookeanTets *tets, MyWorld &world) {
 
 
 
-typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
-typedef ReducedSpace<ConstraintSpaceImpl> ConstraintSpace;
+// typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
+// typedef ReducedSpace<ConstraintSpaceImpl> ConstraintSpace;
 typedef ReducedSpace<LinearSpaceImpl> LinearSpace;
 typedef ReducedSpace<AutoEncoderSpaceImpl> AutoencoderSpace;
 

@@ -32,7 +32,7 @@ def autoencoder_analysis(
     batch_size=100,
     layers=[32, 16],
     pca_weights=None,
-    pca_object=None,
+    pca_basis=None,
     do_fine_tuning=False,
     model_root=None,
     autoencoder_config=None,
@@ -40,9 +40,8 @@ def autoencoder_analysis(
     """
     Returns and encoder and decoder for going into and out of the reduced latent space.
     If pca_weights is given, then do a weighted mse.
-    If pca_object is given, then the first and final layers will do a pca transformation of the data.
     """
-    assert not((pca_weights is not None) and (pca_object is not None))  # pca_weights incompatible with pca_object
+    assert not((pca_weights is not None) and (pca_basis is not None))  # pca_weights incompatible with pca_object
 
     import keras
     import keras.backend as K
@@ -54,8 +53,8 @@ def autoencoder_analysis(
     flatten_data, unflatten_data = my_utils.get_flattners(data)
 
     # TODO: Do I need to shuffle?
-    train_data = flatten_data(data)
-    test_data = flatten_data(data[:10] if test_data is None else test_data)
+    train_data = data
+    test_data = test_data
 
     if energy_model_config['enabled']:
         energy_train_path = os.path.join(model_root, 'training_data/training/energy.json')
@@ -93,52 +92,18 @@ def autoencoder_analysis(
         #return data * std + mean
         # return data * (s_max - s_min) + s_mi
 
-    # TODO loss in full space. Different results?
-    # Custom layer if we need it
-    if pca_object:
-        class PCALayer(Layer):
-            def __init__(self, pca_object, is_inv, fine_tune=True, **kwargs):
-                self.pca_object = pca_object
-                self.is_inv = is_inv
-                self.fine_tune = fine_tune
-                super(PCALayer, self).__init__(**kwargs)
-
-            def build(self, input_shape):
-                # Create a trainable weight variable for this layer.
-                self.kernel = self.add_weight(name='kernel', 
-                                              shape=None, # Inferred 
-                                              initializer=lambda x: K.variable(self.pca_object.components_) if self.is_inv else K.variable(self.pca_object.components_.T),
-                                              trainable=self.fine_tune)
-                self.mean = self.add_weight(name='mean', 
-                                              shape=None, # Inferred
-                                              initializer=lambda x: K.variable(self.pca_object.mean_),
-                                              trainable=self.fine_tune)
-                super(PCALayer, self).build(input_shape)  # Be sure to call this somewhere!
-
-            def call(self, x):
-                if self.is_inv:
-                    return K.dot(x, self.kernel) + self.mean
-                else:
-                    return K.dot(x - self.mean, self.kernel)
-
-            def compute_output_shape(self, input_shape):
-                if self.is_inv:
-                    return (input_shape[0], len(self.pca_object.mean_))
-                else:
-                    return (input_shape[0], len(self.pca_object.components_))
-
     ## Set up the network
     
     input = Input(shape=(len(train_data[0]),), name="encoder_input")
     output = input
     
-    if pca_object is not None:
+    if pca_basis is not None:
         # output = Lambda(pca_transform_layer)(output)
         # output = PCALayer(pca_object, is_inv=False, fine_tune=do_fine_tuning)(output)
 
-        W = pca_object.components_.T
-        b =  -pca_object.mean_ @ pca_object.components_.T
-        output = Dense(pca_object.n_components_, activation='linear', weights=[W,b], trainable=do_fine_tuning, name="pca_encode_layer")(output)
+        W = pca_basis
+        b = numpy.zeros(pca_basis.shape[1])
+        output = Dense(pca_basis.shape[1], activation='linear', weights=[W,b], trainable=do_fine_tuning, name="pca_encode_layer")(output)
 
     for i, layer_width in enumerate(layers):
         output = Dense(layer_width, activation=activation, name="dense_encode_layer_" + str(i))(output)
@@ -157,13 +122,13 @@ def autoencoder_analysis(
     for i, layer_width in enumerate(reversed(layers)):
         output = Dense(layer_width, activation=activation, name="dense_decode_layer_" + str(i))(output)
     
-    if pca_object is not None:
-        output = Dense(len(pca_object.components_), activation='linear', name="to_pca_decode_layer")(output) ## TODO is this right?? Possibly should just change earlier layer width
+    if pca_basis is not None:
+        output = Dense(pca_basis.shape[1], activation='linear', name="to_pca_decode_layer")(output) ## TODO is this right?? Possibly should just change earlier layer width
         # output = Lambda(pca_inv_transform_layer)(output)
         # output = PCALayer(pca_object, is_inv=True, fine_tune=do_fine_tuning)(output)
 
-        W = pca_object.components_
-        b = pca_object.mean_
+        W = pca_basis.T
+        b = numpy.zeros(len(train_data[0]))
         output = Dense(len(train_data[0]), activation='linear', weights=[W,b], trainable=do_fine_tuning, name="pca_decode_layer")(output)
     else:
         output = Dense(len(train_data[0]), activation='linear', name="decoder_output_layer")(output)#'linear',)(output) # First test seems to indicate no change on output with linear
@@ -176,10 +141,6 @@ def autoencoder_analysis(
 
 
     ## Set the optimization parameters
-    pca_weights = pca_weights / pca_weights.sum() if pca_weights is not None else None
-    def pca_weighted_mse(y_pred, y_true):
-        mse = K.mean(pca_weights * K.square(y_true - y_pred), axis=1)
-        return mse
 
     optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
     if energy_model_config['enabled']:
@@ -197,7 +158,7 @@ def autoencoder_analysis(
     else:
         autoencoder.compile(
             optimizer=optimizer,
-            loss='mean_squared_error' if pca_weights is None else pca_weighted_mse,
+            loss='mean_squared_error'
         )
     
     
@@ -620,26 +581,99 @@ def load_energy(model_root):
     test_displacements = my_utils.load_energy_dmats_to_numpy(validation_data_path)
 
 
+
+
+
+# TODO refactor this..
+# Include it in the build model pipeline
+def main():
+    """energy basis"""
+    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-test'
+    training_data_path = os.path.join(base_path, 'training_data/training')
+    validation_data_path = os.path.join(base_path, 'training_data/validation')
+    
+    # Energies
+    energies = my_utils.load_energy_dmats_to_numpy(training_data_path)
+    energies_test = my_utils.load_energy_dmats_to_numpy(validation_data_path)
+    flatten_data, unflatten_data = my_utils.get_flattners(energies)
+
+    energies = flatten_data(energies)#/10000
+    # print(energies[100])
+    energies_test = flatten_data(energies_test)
+
+    basis_path = os.path.join(base_path, 'pca_results/energy_pca_components.dmat')
+    tet_path = os.path.join(base_path, 'pca_results/energy_indices.dmat')
+    basis_opt(basis_path, tet_path, energies, energies_test, 150, 350, True, scale=1.0)
+
+    ##### Brute force
+    # Es = energies
+    # print(Es.shape)
+    # U = energy_pca.components_.T
+    # print(U.shape)
+    # min_mse = 1e100
+    # best_sample = None
+    # for i in range(500):
+    #     tet_sample = numpy.random.choice(U.shape[0], 200, replace=False)
+
+    #     U_bar = U[tet_sample, :]
+    #     E_bars = Es[:, tet_sample]
+    #     # print('rank ', numpy.linalg.matrix_rank(U_bar.T))
+
+    #     completed_energies = numpy.array(Es)
+    #     start = time.time()
+    #     sol = numpy.linalg.lstsq(U_bar, E_bars.T)
+    #     completed_energies = (U @ sol[0]).T
+    #     # print("solve took", time.time()-start)
+    #     completion_mse = mean_squared_error(completed_energies, Es)
+    #     if completion_mse < min_mse:
+    #         min_mse = completion_mse
+    #         best_sample = tet_sample
+    #     print('completion mse:', completion_mse)
+    #     print('min mse:', min_mse)
+    # print(best_sample)
+
+def pca_no_centering(samples, pca_dim):
+    from scipy import linalg
+    from sklearn.utils.extmath import svd_flip
+
+    print('Doing PCA for', pca_dim, 'components...')
+
+    _, S, components = linalg.svd(samples, full_matrices=False)
+    
+    U = components[:pca_dim].T
+
+    explained_variance_ = (S ** 2) / (len(samples) - 1)
+    total_var = explained_variance_.sum()
+    explained_variance_ratio = (explained_variance_ / total_var)[:pca_dim]
+
+    def encode(samples):
+        return samples @ U
+
+    def decode(samples):
+        return samples @ U.T
+
+    return U, explained_variance_ratio, encode, decode
+
 def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_dim, num_tets, do_save, scale=1.0):
     n_tets_sampled = num_tets
-    energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(samples, pca_dim)
-    
-    if do_save:
-        my_utils.save_numpy_mat_to_dmat(basis_output_path, numpy.ascontiguousarray(energy_pca.components_))
+    # energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(samples, pca_dim)
+    U, explained_variance_ratio, encode, decode = pca_no_centering(samples, pca_dim)
 
-    decoded_energy = pca_decode(pca_encode(samples))
+    if do_save:
+        my_utils.save_numpy_mat_to_dmat(basis_output_path, numpy.ascontiguousarray(U))
+
+    decoded_energy = decode(encode(samples))
     # print(decoded_energy)
     # decoded_energy = numpy.maximum(decoded_energy, 0, decoded_energy)
-    decoded_test_energy = pca_decode(pca_encode(samples_test))
+    decoded_test_energy = decode(encode(samples_test))
     # print(numpy.array(list(zip(numpy.sum(samples_test, axis=1), numpy.sum(decoded_test_energy, axis=1)) ))    )
 
     # print('train mse: ', mean_squared_error(samples, decoded_energy))    
     print('train mse: ', mean_squared_error(samples, decoded_energy)*scale)    
     print('test mse:', mean_squared_error(samples_test, decoded_test_energy)*scale)    
-    print('explained var', sum(energy_pca.explained_variance_ratio_))
+    print('explained var', sum(explained_variance_ratio))
     
     Es = samples
-    U = energy_pca.components_.T
 
     from simanneal import Annealer
     class Problem(Annealer):
@@ -707,72 +741,6 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
 
     if do_save:
         my_utils.save_numpy_mat_to_dmat(index_output_path, numpy.ascontiguousarray(numpy.array(a,dtype=numpy.int32)))
-
-
-# TODO refactor this..
-# Include it in the build model pipeline
-def main():
-    """energy basis"""
-    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/bunny-coarse-2/'
-    training_data_path = os.path.join(base_path, 'training_data/training')
-    validation_data_path = os.path.join(base_path, 'training_data/validation')
-    
-    # Energies
-    energies = my_utils.load_energy_dmats_to_numpy(training_data_path)
-    energies_test = my_utils.load_energy_dmats_to_numpy(validation_data_path)
-    flatten_data, unflatten_data = my_utils.get_flattners(energies)
-
-    energies = flatten_data(energies)#/10000
-    # print(energies[100])
-    energies_test = flatten_data(energies_test)
-
-    basis_path = os.path.join(base_path, 'pca_results/energy_pca_components.dmat')
-    tet_path = os.path.join(base_path, 'pca_results/energy_indices.dmat')
-    basis_opt(basis_path, tet_path, energies, energies_test, 150, 350, True, scale=1.0)
-
-    # # Forces
-    # forces = my_utils.load_dmats(training_data_path, 'internalForces_')
-    # forces_test = my_utils.load_dmats(validation_data_path, 'internalForces_')
-    # flatten_forces_data, unflatten_data = my_utils.get_flattners(forces)
-
-    # forces = flatten_forces_data(forces)
-    # forces_test = flatten_forces_data(forces_test)
-
-    # # print(numpy.mean(energies ** 2))
-    # # print(numpy.mean(forces ** 2))
-    # # # return
-    # basis_path = 'pca_results/force_pca_components.dmat'
-    # tet_path = 'pca_results/force_indices.dmat'
-    # basis_opt(basis_path, tet_path, forces, forces_test, 100, 300, True, scale=0.001)
-
-
-    ##### Brute force
-    # Es = energies
-    # print(Es.shape)
-    # U = energy_pca.components_.T
-    # print(U.shape)
-    # min_mse = 1e100
-    # best_sample = None
-    # for i in range(500):
-    #     tet_sample = numpy.random.choice(U.shape[0], 200, replace=False)
-
-    #     U_bar = U[tet_sample, :]
-    #     E_bars = Es[:, tet_sample]
-    #     # print('rank ', numpy.linalg.matrix_rank(U_bar.T))
-
-    #     completed_energies = numpy.array(Es)
-    #     start = time.time()
-    #     sol = numpy.linalg.lstsq(U_bar, E_bars.T)
-    #     completed_energies = (U @ sol[0]).T
-    #     # print("solve took", time.time()-start)
-    #     completion_mse = mean_squared_error(completed_energies, Es)
-    #     if completion_mse < min_mse:
-    #         min_mse = completion_mse
-    #         best_sample = tet_sample
-    #     print('completion mse:', completion_mse)
-    #     print('min mse:', min_mse)
-    # print(best_sample)
-
     
    
 def main_old():
@@ -948,6 +916,8 @@ def generate_model(
     displacements = my_utils.load_displacement_dmats_to_numpy(training_data_path)
     test_displacements = my_utils.load_displacement_dmats_to_numpy(validation_data_path)
     flatten_data, unflatten_data = my_utils.get_flattners(displacements)
+    displacements = flatten_data(displacements)
+    test_displacements = flatten_data(test_displacements)
 
     # Do the training
     pca_ae_train_dim = autoencoder_config['pca_layer_dim']
@@ -970,7 +940,7 @@ def generate_model(
 
     # Normal low dim pca first
     for pca_dim in pca_compare_dims:
-        pca, pca_encode, pca_decode, explained_var, pca_mse = pca_analysis(displacements, pca_dim)
+        U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim)
         encoded_pca_displacements = pca_encode(displacements)
         decoded_pca_displacements = pca_decode(encoded_pca_displacements)
         encoded_pca_test_displacements = pca_encode(test_displacements)
@@ -980,7 +950,7 @@ def generate_model(
             pca_results_filename = os.path.join(model_root, 'pca_results/pca_components_' + str(pca_dim) + '.dmat')
             print('Saving pca results to', pca_results_filename)
             my_utils.create_dir_if_not_exist(os.path.dirname(pca_results_filename))
-            my_utils.save_numpy_mat_to_dmat(pca_results_filename, numpy.ascontiguousarray(pca.components_))
+            my_utils.save_numpy_mat_to_dmat(pca_results_filename, numpy.ascontiguousarray(U))
 
             training_mse = mean_squared_error(flatten_data(decoded_pca_displacements), flatten_data(displacements))
             validation_mse = mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements))
@@ -1016,27 +986,34 @@ def generate_model(
 
     #     else:
     # High dim pca to train autoencoder
-    high_dim_pca, high_dim_pca_encode, high_dim_pca_decode, explained_var, good_pca_mse = pca_analysis(displacements, pca_ae_train_dim)
+    U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
     encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
     encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
 
+    ae_pca_basis_path = os.path.join(model_root, 'pca_results/ae_pca_components.dmat')
+    print('Saving pca results to', ae_pca_basis_path)
+    my_utils.save_numpy_mat_to_dmat(ae_pca_basis_path, numpy.ascontiguousarray(U_ae))
     ae_encode, ae_decode, hist = autoencoder_analysis(
-                                    displacements,
-                                    test_displacements,
+                                    # displacements,
+                                    # test_displacements,
+                                    encoded_high_dim_pca_displacements,
+                                    encoded_high_dim_pca_test_displacements,
                                     activation=activation,
                                     latent_dim=ae_dim,
                                     epochs=ae_epochs,
                                     batch_size=batch_size,
                                     layers=layers, # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
-                                    pca_object=high_dim_pca,
+                                    # pca_basis=U_ae,
                                     do_fine_tuning=do_fine_tuning,
                                     model_root=model_root,
                                     autoencoder_config=autoencoder_config,
                                     energy_model_config=energy_model_config,
                                 )
 
-    decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
-    decoded_autoencoder_test_displacements = ae_decode(ae_encode(test_displacements))
+    # decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
+    # decoded_autoencoder_test_displacements = ae_decode(ae_encode(test_displacements))
+    decoded_autoencoder_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(displacements))))
+    decoded_autoencoder_test_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(test_displacements))))
     training_results['autoencoder']['training-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
     training_results['autoencoder']['validation-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements))
 

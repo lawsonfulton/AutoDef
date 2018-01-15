@@ -121,6 +121,7 @@ def main():
             'use_reduced_energy': config['learning_config']['energy_model_config']['enabled'],
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
+            'ae_decoded_dim': config['learning_config']['autoencoder_config']['pca_layer_dim'], # Shouldn't be change. Kind of a hack.
             'timestep': 0.05,
             'finite_diff_eps': 0.0005,
             'lbfgs_config': {

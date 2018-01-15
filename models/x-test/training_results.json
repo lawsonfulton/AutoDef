@@ -1,20 +1,20 @@
 {
   "autoencoder": {
-    "training-mse": 0.0006713081436194739,
-    "validation-mse": 0.0019683361593350263
+    "training-mse": 0.0005982229152132942,
+    "validation-mse": 0.0011397149329996162
   },
   "pca": {
     "5-components": {
-      "training-mse": 0.003245506800195388,
-      "validation-mse": 0.0017308542816706445
+      "training-mse": 0.005318159769099986,
+      "validation-mse": 0.004331964046638259
     },
     "10-components": {
-      "training-mse": 0.0003483092227001453,
-      "validation-mse": 0.0002656756306501518
+      "training-mse": 0.0004443749143073802,
+      "validation-mse": 0.0003103391929927442
     },
     "20-components": {
-      "training-mse": 2.554130668433845e-05,
-      "validation-mse": 2.9614588054088922e-05
+      "training-mse": 2.7966674784878733e-05,
+      "validation-mse": 2.620403223811214e-05
     }
   }
 }
