@@ -582,13 +582,14 @@ def load_energy(model_root):
 
 
 
-
+def main():
+    build_energy_model('/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-small', 20, 40)
 
 # TODO refactor this..
 # Include it in the build model pipeline
-def main():
+def build_energy_model(model_root, pca_dim, n_tets):
     """energy basis"""
-    base_path = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-test'
+    base_path = model_root
     training_data_path = os.path.join(base_path, 'training_data/training')
     validation_data_path = os.path.join(base_path, 'training_data/validation')
     
@@ -603,34 +604,10 @@ def main():
 
     basis_path = os.path.join(base_path, 'pca_results/energy_pca_components.dmat')
     tet_path = os.path.join(base_path, 'pca_results/energy_indices.dmat')
-    basis_opt(basis_path, tet_path, energies, energies_test, 150, 350, True, scale=1.0)
-
-    ##### Brute force
-    # Es = energies
-    # print(Es.shape)
-    # U = energy_pca.components_.T
-    # print(U.shape)
-    # min_mse = 1e100
-    # best_sample = None
-    # for i in range(500):
-    #     tet_sample = numpy.random.choice(U.shape[0], 200, replace=False)
-
-    #     U_bar = U[tet_sample, :]
-    #     E_bars = Es[:, tet_sample]
-    #     # print('rank ', numpy.linalg.matrix_rank(U_bar.T))
-
-    #     completed_energies = numpy.array(Es)
-    #     start = time.time()
-    #     sol = numpy.linalg.lstsq(U_bar, E_bars.T)
-    #     completed_energies = (U @ sol[0]).T
-    #     # print("solve took", time.time()-start)
-    #     completion_mse = mean_squared_error(completed_energies, Es)
-    #     if completion_mse < min_mse:
-    #         min_mse = completion_mse
-    #         best_sample = tet_sample
-    #     print('completion mse:', completion_mse)
-    #     print('min mse:', min_mse)
-    # print(best_sample)
+    start = time.time()
+    basis_opt(basis_path, tet_path, energies, energies_test, pca_dim, n_tets, True, scale=1.0, tmax=100.8, n_steps=10000)
+    print("Energy optimization took", time.time() - start)
+    
 
 def pca_no_centering(samples, pca_dim):
     from scipy import linalg
@@ -654,7 +631,7 @@ def pca_no_centering(samples, pca_dim):
 
     return U, explained_variance_ratio, encode, decode
 
-def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_dim, num_tets, do_save, scale=1.0):
+def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_dim, num_tets, do_save, scale=1.0, tmax=60.0, tmin=0.0005, n_steps=10000):
     n_tets_sampled = num_tets
     # energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(samples, pca_dim)
     U, explained_variance_ratio, encode, decode = pca_no_centering(samples, pca_dim)
@@ -675,12 +652,42 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
     
     Es = samples
 
+    UTU = U.transpose() @ U
+    UTE = U.transpose() @ Es.T
+
+    ##### Brute force
+    n_random = 1000
+    print("Doing", n_random, "random iterations...")
+    min_mse = 1e100
+    best_sample = None
+    for i in range(n_random):
+        if(i % 100 == 0):
+            print("Iteration:", i)
+        tet_sample = numpy.random.choice(U.shape[0], num_tets, replace=False)
+
+        U_bar = U[tet_sample, :]
+        E_bars = Es[:, tet_sample]
+        # print('rank ', numpy.linalg.matrix_rank(U_bar.T))
+
+        start = time.time()
+        sol = numpy.linalg.lstsq(U_bar, E_bars.T)
+        alphas = sol[0]
+        # completed_energies = (U @ alphas).T
+        # print('solve took ', time.time() - start)
+        # print("solve took", time.time()-start)
+        start = time.time()
+        # completion_mse = mean_squared_error(completed_energies, Es)
+        completion_mse = 1.0/(Es.shape[0] * Es.shape[1]) * (numpy.trace(alphas.transpose() @ UTU @ alphas) - numpy.trace(alphas.transpose() @ UTE)) 
+        # print('mse took ', time.time() - start)
+        if completion_mse < min_mse:
+            min_mse = completion_mse
+            best_sample = tet_sample
+            print('min mse:', min_mse)
+    a = best_sample
+
+    ## start of anneal (comment out optionally)
     from simanneal import Annealer
     class Problem(Annealer):
-
-        """Test annealer with a travelling salesman problem.
-        """
-
         # pass extra data (the distance matrix) into the constructor
         def __init__(self, state):
             super(Problem, self).__init__(state)  # important!
@@ -692,7 +699,7 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
             # self.state[a], self.state[b] = self.state[b], self.state[a]
 
             #self.state = numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
-            for _ in range(3):
+            for _ in range(1):
                 i = numpy.random.randint(0, n_tets_sampled)
                 while True:
                     new_tet = numpy.random.randint(0, len(Es[0]))
@@ -711,23 +718,25 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
 
             # start = time.time()
             sol = numpy.linalg.lstsq(U_bar, E_bars.T)
-            completed_energies = (U @ sol[0]).T
+            alphas = sol[0]
+            # completed_energies = (U @ sol[0]).T
             # print("solve took", time.time()-start)
             # check_samples = numpy.random.choice(Es.shape[0], 100, replace=False)
-            completion_mse = mean_squared_error(completed_energies, Es)*scale
-            print(completion_mse)
+            # Full
+            # completion_mse = mean_squared_error(completed_energies, Es)*scale
+            completion_mse = 1.0/(Es.shape[0] * Es.shape[1]) * (numpy.trace(alphas.transpose() @ UTU @ alphas) - numpy.trace(alphas.transpose() @ UTE)) 
+            # print(completion_mse)
             return completion_mse
 
-    init_state = numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
+    init_state = a #numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
     prob = Problem(init_state)
     
-    prob.Tmax = 60.0  # Max (starting) temperature
-    prob.Tmin = 0.0005      # Min (ending) temperature
-    prob.steps = 10000   # Number of iterations
-    prob.updates = 100 
-    # auto_schedule = prob.auto(minutes=0.1) 
-    # prob.set_schedule(auto_schedule)
-
+    prob.Tmax = tmax  # Max (starting) temperature
+    prob.Tmin = tmin      # Min (ending) temperature
+    prob.steps = n_steps   # Number of iterations
+    prob.updates = n_steps / 100 
+    auto_schedule = prob.auto(minutes=0.5, steps=10) 
+    prob.set_schedule(auto_schedule)
     a, b = prob.anneal()
     print(a)
     print('anneal mse:', b)
@@ -738,6 +747,7 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
     completed_energies = (U @ sol[0]).T
     completion_mse = mean_squared_error(completed_energies, Es)*scale
     print('actual mse:', completion_mse)
+    ######## End of anneal
 
     if do_save:
         my_utils.save_numpy_mat_to_dmat(index_output_path, numpy.ascontiguousarray(numpy.array(a,dtype=numpy.int32)))
@@ -914,7 +924,10 @@ def generate_model(
 
     # Loading displacements for training data
     displacements = my_utils.load_displacement_dmats_to_numpy(training_data_path)
-    test_displacements = my_utils.load_displacement_dmats_to_numpy(validation_data_path)
+    if os.path.exists(validation_data_path):
+        test_displacements = my_utils.load_displacement_dmats_to_numpy(validation_data_path)
+    else:
+        test_displacements = None
     flatten_data, unflatten_data = my_utils.get_flattners(displacements)
     displacements = flatten_data(displacements)
     test_displacements = flatten_data(test_displacements)

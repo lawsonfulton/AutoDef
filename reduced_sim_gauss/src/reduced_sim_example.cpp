@@ -456,7 +456,7 @@ public:
     inline MatrixXd inner_jacobian(const VectorXd &z) {
         MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
 
-        //Finite differences gradient
+        // Finite differences gradient
         double t = finite_diff_eps;
         for(int i = 0; i < z.size(); i++) {
             VectorXd dz_pos(z);
@@ -588,9 +588,10 @@ public:
         AssemblerEigenSparseMatrix<double> M_asm;
         getMassMatrix(M_asm, *m_world);
 
+        std::cout << "Constructing reduced mass matrix..." << std::endl;
         m_M = *M_asm;
-        m_M_reduced = m_reduced_space->compute_reduced_mass_matrix(m_M);
-
+        m_UTMU = m_reduced_space->compute_reduced_mass_matrix(m_M);
+        std::cout << "Done." << std::endl;
 
         VectorXd g(m_M.cols());
         for(int i=0; i < g.size(); i += 3) {
@@ -603,6 +604,7 @@ public:
         m_interaction_force = VectorXd::Zero(m_F_ext.size());
 
         if(integrator_config["use_reduced_energy"]) {
+            std::cout << "Loading reduced energy basis..." << std::endl;
             fs::path pca_components_path("pca_results/energy_pca_components.dmat");
             fs::path sample_tets_path("pca_results/energy_indices.dmat");
 
@@ -611,15 +613,28 @@ public:
 
             MatrixXi tet_indices_mat;
             igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);\
+            std::cout << "Done." << std::endl;
+
+            std::cout << "Factoring reduced energy basis..." << std::endl;
             
-            m_energy_sample_tets = tet_indices_mat;
+            VectorXi tet_indices = tet_indices_mat.col(0);
+            m_energy_sample_tets.resize(tet_indices.size());
+            VectorXi::Map(&m_energy_sample_tets[0], tet_indices.size()) = tet_indices;
+            std::sort(m_energy_sample_tets.begin(), m_energy_sample_tets.end());
+            for(int i=0; i < m_energy_sample_tets.size(); i++) {
+                tet_indices_mat(i, 0) = m_energy_sample_tets[i];
+            }
+
             m_energy_basis = U;
             m_energy_sampled_basis = igl::slice(m_energy_basis, tet_indices_mat, 1);
             m_summed_energy_basis = m_energy_basis.colwise().sum();
             m_energy_sampled_basis_qr = m_energy_sampled_basis.fullPivHouseholderQr();
+            std::cout << "Done." << std::endl;
 
+            std::cout << "Constructing reduced force factor..." << std::endl;
             MatrixXd A = m_energy_sampled_basis.transpose() * m_energy_sampled_basis;
             m_summed_force_fact = m_energy_sampled_basis * A.ldlt().solve(m_summed_energy_basis); //U_bar(A^-1*u)
+            std::cout << "Done." << std::endl;
         }
 
     }
@@ -639,27 +654,58 @@ public:
     inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
     inline VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
 
-    double current_energy_using_completion() {
-        int n_sample_tets = m_energy_sample_tets.rows();
+    double current_reduced_energy_and_forces(double &energy, VectorXd &forces) {
+        int n_sample_tets = m_energy_sample_tets.size();
+        
         VectorXd sampled_energy(n_sample_tets);
-        // #pragma omp parallel for schedule(static,16)// TODO how to optimize this
+
+        MatrixXd element_forces(n_sample_tets, 12);
+        SparseMatrix<double> neg_energy_sample_jac(n_dof, n_sample_tets);
+        neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, 12)); // Reserve enough room for 4 verts (tet corners) per column
+
+        #pragma omp parallel for num_threads(4) //schedule(static,64)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
-            int tet_index = m_energy_sample_tets(i,0);
+            int tet_index = m_energy_sample_tets[i];
+
+            // Energy
             sampled_energy[i] = m_tets->getImpl().getElement(tet_index)->getStrainEnergy(m_world->getState());
+
+            //Forces
+            VectorXd sampled_force(12);
+            m_tets->getImpl().getElement(tet_index)->getInternalForce(sampled_force, m_world->getState());
+            element_forces.row(i) = sampled_force;
         }
+
+        // Constructing sparse matrix is not thread safe
+        for(int i = 0; i < n_sample_tets; i++) {
+            int tet_index = m_energy_sample_tets[i];
+            for(int j = 0; j < 4; j++) {
+                int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
+                for(int k = 0; k < 3; k++) {
+                    neg_energy_sample_jac.insert(vert_index + k, i) = element_forces(i, j*3 + k);
+                }
+            }
+        }
+        neg_energy_sample_jac.makeCompressed();
 
         // VectorXd alpha = m_energy_sampled_basis.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sampled_energy);
         // VectorXd alpha = (m_energy_sampled_basis.transpose() * m_energy_sampled_basis).ldlt().solve(m_energy_sampled_basis.transpose() * sampled_energy);
         VectorXd alpha = m_energy_sampled_basis_qr.solve(sampled_energy);
-        double summed_energy = m_summed_energy_basis.dot(alpha);
-        // std::cout << "alpha[0]: " <<  alpha[0] << ", sampled_energy[0]: " << sampled_energy[0] << ", summed_energy: " << summed_energy << std::endl;
-        return summed_energy; // TODO is this right?
+        energy = m_summed_energy_basis.dot(alpha);
+
+        forces = neg_energy_sample_jac * m_summed_force_fact;
     }
+
 
     double operator()(const VectorXd& new_z, VectorXd& grad)
     {
-        // Update the tets with candidate configuration
-        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+        // Optimizations
+        // Slowest part by far is get reduced forces %55
+        // Sparse matrix is some of it but not much
+
+        // nn decode is like ~4%
+        // Copy constructor? 8%
+        // FullPivHouseholder solve -> determine if the fuull piv vs other method makes a deff
 
         // std::cout << "z: <";
         // for(int i = 0; i < new_z.size(); i++) {
@@ -669,23 +715,52 @@ public:
         //     }
         // }
         // std::cout << ">" << std::endl;
+        MatrixXd U = m_reduced_space->outer_jacobian(); // U for both linear and ae space
 
-
-        VectorXd new_q = dec(new_z);
+        // Update the tets with candidate configuration
+        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+        VectorXd new_sub_q = sub_dec(new_z);
+        VectorXd new_q = U * new_sub_q;
         for(int i=0; i < q.size(); i++) {
+            // ******************************************
+            // TODO also I really only have to update the tets that I'm sampling, so I can avoid a full decoder here right??
+            // ******************************************
             q[i] = new_q[i]; // TODO is this the fastest way to do this?
         }
         
         // Compute objective
         double energy;
+        VectorXd internal_forces;
         if(m_use_reduced_energy) {
-            energy = current_energy_using_completion();;
+            current_reduced_energy_and_forces(energy, internal_forces);
         }
         else {
             energy = m_tets->getStrainEnergy(m_world->getState());
+            AssemblerEigenVector<double> internal_force_asm;
+            getInternalForceVector(internal_force_asm, *m_tets, *m_world);
+            internal_forces = *internal_force_asm; // TODO can we avoid copy here?
         }
 
-        VectorXd external_forces_h2 = m_h * m_h * (m_F_ext + m_interaction_force);
+        // *****
+        // TODO reduce this term
+        // *****
+        VectorXd h_2_external_forces = m_h * m_h * (m_F_ext + m_interaction_force); // Same with the interaction forces. I can precompute th gravity and quickly reduce interaction
+        VectorXd h_2_UT_external_forces =  U.transpose() * h_2_external_forces;
+        
+        // MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
+
+        VectorXd sub_q_tilde = new_sub_q - 2.0 * sub_dec(m_cur_z) + sub_dec(m_prev_z);
+        VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
+        double obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
+                            + m_h * m_h * energy
+                            - sub_q_tilde.transpose() * h_2_UT_external_forces;
+
+        // Compute gradient
+        // **** TODO
+        // Can I further reduce the force calculations by carrying through U?
+        MatrixXd J = m_reduced_space->inner_jacobian(new_z); // should be identity for linear
+        grad = J.transpose() * (UTMU_sub_q_tilde - m_h * m_h * U.transpose() * internal_forces - h_2_UT_external_forces);
+        return obj_val;
 
         // MatrixXd J = m_reduced_space->jacobian(new_z);
         // static int cur_frame = 0;
@@ -696,9 +771,6 @@ public:
         // VectorXd J_z_tilde = J * z_tilde;
         // VectorXd M_J_z_tilde = m_M * J_z_tilde;
         // double obj_val = 0.5 * J_z_tilde.transpose() * M_J_z_tilde + m_h * m_h * energy - J_z_tilde.transpose() * external_forces_h2;
-
-        // VectorXd q_tilde = new_q - 2.0 * dec(m_cur_z) + dec(m_prev_z);
-        // VectorXd M_q_tilde = m_M * q_tilde;
         // std::cout << (q_tilde.transpose() * M_q_tilde) << ", " << (J_z_tilde.transpose() * M_J_z_tilde) << std::endl;
 
         // std::cout << m_reduced_space->jacobian(new_z) << std::endl;
@@ -706,92 +778,8 @@ public:
         //     std::cout << q_tilde[i] << ", " << J_z_tilde[i] << std::endl;
         // }
         // std::cout << std::endl;
-        // double obj_val = 0.5 * q_tilde.transpose() * M_q_tilde + m_h * m_h * energy - q_tilde.transpose() * external_forces_h2;
-
-        //~~~ Reduced matrix form
-
-
-        // Not working..
-        // VectorXd sub_q_tilde = sub_dec(new_z) - 2.0 * sub_dec(m_cur_z) + sub_dec(m_prev_z); // TODO Try not using this and only using the z_tilde
-        // VectorXd z_tilde = new_z - 2.0 * m_cur_z + m_prev_z;
-        // VectorXd M_red_sub_q_tilde = m_M_reduced * sub_q_tilde;
-        // MatrixXd outer_jac = m_reduced_space->outer_jacobian();
-        // MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
-        // double obj_val = 0.5 * sub_q_tilde.transpose() * M_red_sub_q_tilde + m_h * m_h * energy - sub_q_tilde.transpose() * (outer_jac.transpose() * external_forces_h2);
-
-        // Not working
-        // MatrixXd outer_jac = m_reduced_space->outer_jacobian();
-        // MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
-
-        // VectorXd z_tilde = new_z - 2.0 * m_cur_z + m_prev_z;
-        // VectorXd M_red_sub_z_tilde = m_M_reduced * inner_jac * z_tilde;
-        // double obj_val = 0.5 * z_tilde.transpose() * inner_jac.transpose() * M_red_sub_z_tilde + m_h * m_h * energy - (outer_jac * (inner_jac * z_tilde)).transpose() * external_forces_h2;
-
-        MatrixXd outer_jac = m_reduced_space->outer_jacobian();
-        MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
-
-        VectorXd z_tilde = new_z - 2.0 * m_cur_z + m_prev_z;
-        VectorXd M_red_sub_z_tilde = m_M_reduced * inner_jac * z_tilde;
-        double obj_val = 0.5 * z_tilde.transpose() * inner_jac.transpose() * m_M_reduced * inner_jac * z_tilde
-                        + m_h * m_h * energy
-                        - (outer_jac * inner_jac * z_tilde).transpose() * external_forces_h2;
-
-        // Compute gradient
-        VectorXd energy_grad;
-        if(m_use_reduced_energy) {
-            // Finite differences gradient
-            // double t = 0.0005;
-            // for(int i = 0; i < new_z.size(); i++) {
-            //     VectorXd dq_pos(new_z);
-            //     VectorXd dq_neg(new_z);
-            //     dq_pos[i] += t;
-            //     dq_neg[i] -= t;
-            //     grad[i] = (objective(dq_pos) - obj_val) / (1.0 * t);
-            // }
-            // std::cout << "grad: " << grad[0] << "," << grad[1] << "," << grad[2] << "," << grad[3] << "," << grad[4] << "," << grad[5] << std::endl;
-
-            int n_sample_tets = m_energy_sample_tets.rows();
-            SparseMatrix<double> energy_sample_jac(n_dof, n_sample_tets);
-            energy_sample_jac.reserve(VectorXi::Constant(n_dof, 12)); // Reserve enough room for 4 verts (tet corners) per column
-            // #pragma omp parallel for schedule(static,16)// TODO how to optimize this
-            for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
-                int tet_index = m_energy_sample_tets(i,0);
-                VectorXd forces(12);
-                m_tets->getImpl().getElement(tet_index)->getInternalForce(forces, m_world->getState());
-                
-                for(int j = 0; j < 4; j++) {
-                    int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
-                    for(int k = 0; k < 3; k++) {
-                        energy_sample_jac.insert(vert_index + k, i) = forces[j*3 + k];
-                    }
-                }
-            }
-            energy_sample_jac.makeCompressed();
-
-            energy_grad = energy_sample_jac * m_summed_force_fact;
-        }
-        else {
-            AssemblerEigenVector<double> internal_force;
-            getInternalForceVector(internal_force, *m_tets, *m_world);
-            energy_grad = -*internal_force;
-            // grad = jtvp(new_z, M_q_tilde - m_h * m_h * (*internal_force) - external_forces_h2);
-        }
-
-        // grad = J.transpose() * (M_J_z_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2);
-        // grad = jtvp(new_z, M_q_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2);
-        // grad = J.transpose() * (M_q_tilde - m_h * m_h * reduced_energy_grad - external_forces_h2); 
-
-        //~~~ Reduced matrix form
-        // grad =  inner_jac.transpose() * (M_red_sub_z_tilde - m_h * m_h * outer_jac.transpose() * (reduced_energy_grad - external_forces_h2));             
-        grad = inner_jac.transpose() * m_M_reduced * inner_jac * z_tilde
-                    + inner_jac.transpose() * outer_jac.transpose() * (m_h * m_h * energy_grad - external_forces_h2);
-
-
-        // std::cout << "Objective: " << obj_val << std::endl;
-        // std::cout << "grad: " << grad << std::endl;
-        // std::cout << "z: " << new_z << std::endl;
-        return obj_val;
     }
+
 private:
     VectorXd m_cur_z;
     VectorXd m_prev_z;
@@ -799,7 +787,7 @@ private:
     VectorXd m_interaction_force;
 
     SparseMatrix<double> m_M; // mass matrix
-    MatrixXd m_M_reduced; // reduced mass matrix
+    MatrixXd m_UTMU; // reduced mass matrix
 
     double m_h;
 
@@ -809,7 +797,7 @@ private:
     bool m_use_reduced_energy;
     ReducedSpaceType *m_reduced_space;
 
-    MatrixXi m_energy_sample_tets;
+    std::vector<int> m_energy_sample_tets;
     MatrixXd m_energy_basis;
     VectorXd m_summed_energy_basis;
     MatrixXd m_energy_sampled_basis;
@@ -823,15 +811,40 @@ class GPLCTimeStepper {
 public:
     GPLCTimeStepper(fs::path model_root, json integrator_config, MyWorld *world, NeohookeanTets *tets, ReducedSpaceType *reduced_space) :
         m_world(world), m_tets(tets), m_reduced_space(reduced_space) {
+
+       // LBFGSpp::LBFGSParam<DataType> param;
+       // param.epsilon = 1e-4;
+       // param.max_iterations = 1000;
+       // param.past = 1;
+       // param.m = 5;
+       // param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
+        m_lbfgs_param.m = 5;
+        m_lbfgs_param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
+
         // Set up lbfgs params
         json lbfgs_config = integrator_config["lbfgs_config"];
         m_lbfgs_param.epsilon = lbfgs_config["lbfgs_epsilon"]; //1e-8// TODO replace convergence test with abs difference
-        //m_lbfgs_param.delta = 1e-3;
         m_lbfgs_param.max_iterations = lbfgs_config["lbfgs_max_iterations"];//500;//300;
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
         reset_zs_to_current_world();
         m_gplc_objective = new GPLCObjective<ReducedSpaceType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
+
+        m_h = integrator_config["timestep"];
+        MatrixXd U = reduced_space->outer_jacobian();
+        MatrixXd J = reduced_space->inner_jacobian(m_cur_z);
+
+        AssemblerEigenSparseMatrix<double> M_asm;
+        AssemblerEigenSparseMatrix<double> K_asm;
+        getMassMatrix(M_asm, *m_world);
+        getStiffnessMatrix(K_asm, *m_world);
+
+        std::cout << "Constructing reduced mass and stiffness matrix..." << std::endl;
+        m_UTMU = U.transpose() * (*M_asm) * U;
+        m_UTKU = U.transpose() * (*K_asm) * U;
+        m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
+        m_H_llt = m_H.ldlt();
+        // m_H_llt = MatrixXd::Identity(m_H.rows(), m_H.cols()).llt();
     }
 
     ~GPLCTimeStepper() {
@@ -847,8 +860,18 @@ public:
 
         m_gplc_objective->set_interaction_force(interaction_force);
         m_gplc_objective->set_prev_zs(m_cur_z, m_prev_z);
-        int niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);
+        
 
+        // Conclusion
+        // For the AE model at least, preconditioning with rest hessian is slower
+        // but preconditioning with rest hessian with current J gives fairly small speed increas
+        // TODO: determine if llt or ldlt is faster
+        // int niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);   
+        MatrixXd J = m_reduced_space->inner_jacobian(m_cur_z);
+        m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
+        m_H_llt = m_H_llt.compute(m_H);//m_H.ldlt();
+        int niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_llt);   
+        
         std::cout << niter << " iterations" << std::endl;
         std::cout << "objective val = " << min_val_res << std::endl;
 
@@ -916,6 +939,14 @@ private:
 
     VectorXd m_prev_z;
     VectorXd m_cur_z;
+
+    double m_h;
+
+    MatrixXd m_H;
+    Eigen::LDLT<MatrixXd> m_H_llt;
+    MatrixXd m_H_inv;
+    MatrixXd m_UTKU;
+    MatrixXd m_UTMU;
 
     MyWorld *m_world;
     NeohookeanTets *m_tets;
@@ -1231,6 +1262,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 }
 
 int main(int argc, char **argv) {
+    
     // Load the configuration file
     fs::path model_root(argv[1]);
     fs::path sim_config("sim_config.json");
@@ -1255,8 +1287,7 @@ int main(int argc, char **argv) {
     else if(reduced_space_string == "autoencoder") {
         fs::path tf_models_root(model_root / "tf_models/");
         AutoencoderSpace reduced_space(tf_models_root, integrator_config);
-        run_sim<AutoencoderSpace>(&reduced_space, config, model_root);
-
+        run_sim<AutoencoderSpace>(&reduced_space, config, model_root);  
     }
     else if(reduced_space_string == "full") {
         std::cout << "Not yet implemented." << std::endl;

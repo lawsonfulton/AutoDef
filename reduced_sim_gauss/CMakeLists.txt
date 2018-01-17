@@ -32,7 +32,7 @@ find_package(Boost COMPONENTS filesystem REQUIRED)
 
 #Gauss
 set(LIBIGL_INCLUDE_PATH "/home/lawson/Workspace/libigl/include") # Weird that I have to do this for GAUSS seperately
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp")# -fno-inline")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(Gauss_ROOT_DIR "/home/lawson/Workspace/GAUSS/")
 find_package(Gauss REQUIRED)

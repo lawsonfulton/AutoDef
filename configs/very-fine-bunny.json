@@ -1,8 +1,8 @@
 {
-  "mesh": "../meshes/X.1.mesh",
+  "mesh": "../meshes/veryfinebunny.mesh",
 
-  "training_dataset": "../training_data/x-with-forces/training",
-  "validation_dataset": "../training_data/x-with-forces/validation",
+  "training_dataset": "../training_data/very-fine-bunny/training",
+  "validation_dataset": "",
 
   "learning_config": {
     "skip_training": false,
@@ -21,10 +21,7 @@
       "loss_weight": 1.0
     },
     "energy_model_config": {
-      "enabled": false,
-      "layer_sizes": [20, 20],
-      "activation": "sigmoid",
-      "loss_weight": 0.5
+      "enabled": true,
     }
   }
 }

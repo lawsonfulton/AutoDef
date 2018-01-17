@@ -1,5 +1,5 @@
 {
-  "mesh": "models/x-test/tets.mesh",
+  "mesh": "models/x-test-2/tets.mesh",
   "material_config": {
     "density": 1000.0,
     "youngs_modulus": 1000000.0,
@@ -14,8 +14,8 @@
     "timestep": 0.05,
     "finite_diff_eps": 0.0005,
     "lbfgs_config": {
-      "lbfgs_max_iterations": 35,
-      "lbfgs_epsilon": 0.05
+      "lbfgs_max_iterations": 105,
+      "lbfgs_epsilon": 0.0001
     },
     "gravity": -9.8
   },

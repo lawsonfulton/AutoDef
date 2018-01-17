@@ -10,13 +10,13 @@
     "autoencoder_config": {
       "pca_compare_dims": [5, 10, 20],
 
-      "pca_layer_dim": 20,
-      "non_pca_layer_sizes": [100],
-      "ae_encoded_dim": 4,
+      "pca_layer_dim": 10,
+      "non_pca_layer_sizes": [100, 100],
+      "ae_encoded_dim": 5,
       "activation": "elu",
 
       "batch_size": 500,
-      "training_epochs": 600,
+      "training_epochs": 300,
       "do_fine_tuning": false,
       "loss_weight": 1.0
     },
