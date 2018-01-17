@@ -54,7 +54,7 @@ def autoencoder_analysis(
 
     # TODO: Do I need to shuffle?
     train_data = data
-    test_data = test_data
+    test_data = test_data if test_data else data[:10] 
 
     if energy_model_config['enabled']:
         energy_train_path = os.path.join(model_root, 'training_data/training/energy.json')
@@ -956,8 +956,9 @@ def generate_model(
         U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim)
         encoded_pca_displacements = pca_encode(displacements)
         decoded_pca_displacements = pca_decode(encoded_pca_displacements)
-        encoded_pca_test_displacements = pca_encode(test_displacements)
-        decoded_pca_test_displacements = pca_decode(encoded_pca_test_displacements)
+        if test_displacements:
+            encoded_pca_test_displacements = pca_encode(test_displacements)
+            decoded_pca_test_displacements = pca_decode(encoded_pca_test_displacements)
 
         if save_pca_components:
             pca_results_filename = os.path.join(model_root, 'pca_results/pca_components_' + str(pca_dim) + '.dmat')
@@ -966,10 +967,12 @@ def generate_model(
             my_utils.save_numpy_mat_to_dmat(pca_results_filename, numpy.ascontiguousarray(U))
 
             training_mse = mean_squared_error(flatten_data(decoded_pca_displacements), flatten_data(displacements))
-            validation_mse = mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements))
+            if test_displacements:
+                validation_mse = mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements))
             training_results['pca'][str(pca_dim) + '-components'] = {}
             training_results['pca'][str(pca_dim) + '-components']['training-mse'] = training_mse
-            training_results['pca'][str(pca_dim) + '-components']['validation-mse'] = validation_mse
+            if test_displacements:
+                training_results['pca'][str(pca_dim) + '-components']['validation-mse'] = validation_mse
 
             print(str(pca_dim) + ' training MSE: ', training_mse)
 
@@ -1001,7 +1004,10 @@ def generate_model(
     # High dim pca to train autoencoder
     U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
     encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
-    encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
+    if test_displacements:
+        encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
+    else:
+        encoded_high_dim_pca_test_displacements = None
 
     ae_pca_basis_path = os.path.join(model_root, 'pca_results/ae_pca_components.dmat')
     print('Saving pca results to', ae_pca_basis_path)
@@ -1026,9 +1032,11 @@ def generate_model(
     # decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
     # decoded_autoencoder_test_displacements = ae_decode(ae_encode(test_displacements))
     decoded_autoencoder_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(displacements))))
-    decoded_autoencoder_test_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(test_displacements))))
+    if test_displacements:
+        decoded_autoencoder_test_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(test_displacements))))
     training_results['autoencoder']['training-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
-    training_results['autoencoder']['validation-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements))
+    if test_displacements:
+        training_results['autoencoder']['validation-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements))
 
     # TODO output energy loss as well
     with open(os.path.join(model_root, 'training_results.json'), 'w') as f:
