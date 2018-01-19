@@ -125,6 +125,9 @@ def save_keras_model_as_tf(keras_model, output_path):
     from tensorflow.python.framework import graph_io
     print("pred_node_names", pred_node_names)
     constant_graph = graph_util.convert_variables_to_constants(sess, sess.graph.as_graph_def(), pred_node_names)
+    # print([n.attr for n in constant_graph.node])
+    # print([n.op for n in constant_graph.node])
+    # print([n.input for n in constant_graph.node])
     graph_io.write_graph(constant_graph, output_fld, output_path, as_text=False)
     print('saved the freezed graph (ready for inference) at: ', osp.join(output_fld, output_path))
 

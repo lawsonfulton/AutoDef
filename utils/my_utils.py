@@ -42,15 +42,16 @@ def load_dmats(base_path, dmat_prefix, num_samples=None):
         filenames = [f for f in os.listdir(base_path) if os.path.isfile(os.path.join(base_path, f))]
         fnames_w_prefix = [f for f in filenames if f.startswith(dmat_prefix)]
         numbers_strings = [re.findall('\d+', f) for f in fnames_w_prefix]
-        num_samples = max(int(n_str[0]) + 1 for n_str in numbers_strings if n_str)
+        # num_samples = max(int(n_str[0]) + 1 for n_str in numbers_strings if n_str)
+        sample_indices = [int(n_str[0]) for n_str in numbers_strings if n_str]
 
-    print('Loading', num_samples, 'samples...', end='', flush=True)
+    print('Loading', len(sample_indices), 'samples...', end='', flush=True)
     p = Pool(16)
 
-    samples = numpy.array(p.map(_read_dmat_helper, zip(range(num_samples), itertools.repeat(base_path), itertools.repeat(dmat_prefix))))
+    samples = numpy.array(p.map(_read_dmat_helper, zip(sample_indices, itertools.repeat(base_path), itertools.repeat(dmat_prefix))))
     p.terminate()
     print()
-    print('Done.')
+
     return samples
 
 def load_displacement_dmats_to_numpy(base_path, num_samples=None):

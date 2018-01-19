@@ -38,8 +38,8 @@ typedef World<double,
                         std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
                         std::tuple<ForceSpringFEMParticle<double> *>,
                         std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
-typedef TimeStepperEulerImplicitLinear<double, AssemblerParallel<double, AssemblerEigenSparseMatrix<double>>,
- AssemblerParallel<double, AssemblerEigenVector<double> >> MyTimeStepper;
+typedef TimeStepperEulerImplicitLinear<double, AssemblerEigenSparseMatrix<double>,
+ AssemblerEigenVector<double> > MyTimeStepper;
 
 // Mesh
 Eigen::MatrixXd V; // Verts

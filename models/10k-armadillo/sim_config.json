@@ -1,0 +1,26 @@
+{
+  "mesh": "models/10k-armadillo/tets.mesh",
+  "material_config": {
+    "density": 100.0,
+    "youngs_modulus": 1000000.0,
+    "poissons_ratio": 0.45
+  },
+  "integrator_config": {
+    "reduced_space_type": "linear",
+    "use_reduced_energy": true,
+    "pca_dim": 10,
+    "ae_encoded_dim": 8,
+    "ae_decoded_dim": 30,
+    "timestep": 0.05,
+    "finite_diff_eps": 0.0005,
+    "lbfgs_config": {
+      "lbfgs_max_iterations": 150,
+      "lbfgs_epsilon": 0.001
+    },
+    "gravity": -9.8
+  },
+  "visualization_config": {
+    "show_stress": false,
+    "interaction_spring_stiffness": 100000.0
+  }
+}

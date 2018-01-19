@@ -1,0 +1,1 @@
+{"Poisson":0.45,"YM":1000000.0,"density":100.0,"displacement_axis":1,"displacement_tol":1.0,"solver_Iterations":1,"spring_RestLength":0.1,"spring_Stiffness":150.0,"spring_point_Mass":100000000.0,"timestep":0.05}

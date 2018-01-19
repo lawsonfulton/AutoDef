@@ -49,6 +49,7 @@ using Eigen::VectorXi;
 using Eigen::MatrixXd;
 using Eigen::MatrixXi;
 using Eigen::SparseMatrix;
+using Eigen::SparseVector;
 using namespace LBFGSpp;
 
 using namespace Gauss;
@@ -229,7 +230,7 @@ public:
         return m_U * z;
     }
 
-    VectorXd sub_decode(const VectorXd &z) {
+    inline VectorXd sub_decode(const VectorXd &z) {
         return z;
     }
 
@@ -383,7 +384,7 @@ public:
         return res;
     }
 
-    VectorXd sub_decode(const VectorXd &z) {
+    inline VectorXd sub_decode(const VectorXd &z) {
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
         auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
         for(int i = 0; i < z.size(); i++) {
@@ -404,27 +405,63 @@ public:
     }
 
     inline VectorXd decode(const VectorXd &z) {
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
-        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        for(int i = 0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = z[i];
-        } // TODO map with proper function
-
-        std::vector<tf::Tensor> sub_q_outputs;
-        tf::Status status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
-                                   {"output_node0:0"}, {}, &sub_q_outputs);
-
-        auto sub_q_tensor_mapped = sub_q_outputs[0].tensor<tf_dtype_type, 2>();
-        VectorXd res(m_U.cols());
-        for(int i = 0; i < res.size(); i++) {
-            res[i] = sub_q_tensor_mapped(0,i);
-        }
-
-        return m_U * res;
+        return m_U * sub_decode(z);
     }
 
     inline MatrixXd jacobian(const VectorXd &z) {
         return m_U * inner_jacobian(z);
+    }
+
+    inline MatrixXd outer_jacobian() {
+        return m_U;
+    }
+
+    inline MatrixXd inner_jacobian(const VectorXd &z) {
+        // Finite differences parallel
+
+        // tf::Tensor z_tensor(tf_dtype, tf::TensorShape({z.size() * 2, m_enc_dim})); // TODO generalize
+        // auto dst = z_tensor.flat<double>().data();
+        // double t = finite_diff_eps;
+        // for(int j = 0; j < z.size(); j++) {
+        //     std::cout << j << std::endl;
+        //     VectorXd dz_pos(z);
+        //     VectorXd dz_neg(z);
+        //     dz_pos[j] += t;
+        //     dz_neg[j] -= t;
+        //     // std::copy_n(std::begin(dz_pos.data()), m_enc_dim, dst);
+        //     VectorXd::Map(dst, m_enc_dim) = dz_pos;
+        //     dst += m_enc_dim;
+        //     // std::copy_n(std::begin(dz_neg.data()), m_enc_dim, dst);
+        //     VectorXd::Map(dst, m_enc_dim) = dz_neg;
+        //     dst += m_enc_dim;
+        // }
+
+        // // for(int i = 0; i < z.size()*2; i++) {
+        //     std::cout << z_tensor.tensor<double, 2>() << std::endl;
+        // // }
+
+        // std::vector<tf::Tensor> sub_q_outputs;
+        // tf::Status status = m_decoder_session->Run(
+        //                         {{"decoder_input", z_tensor}},
+        //                         {"output_node0"}, {}, &sub_q_outputs);
+
+        // std::cout << sub_q_outputs.size() << std::endl;
+        // // std::cout << sub_q_outputs[0] << std::endl;
+        // auto sub_q_tensor_mapped = sub_q_outputs[0].tensor<tf_dtype_type, 2>();
+
+        // MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
+        // for(int j = 0; j < z.size(); j++) {
+        //     VectorXd res_pos(m_U.cols());
+        //     VectorXd res_neg(m_U.cols());
+        //     for(int i = 0; i < res_pos.size(); i++) {
+        //         res_pos[i] = sub_q_tensor_mapped(j*2,i); // dz_pos
+        //         res_neg[i] = sub_q_tensor_mapped(j*2 + 1,i); // dz_pos
+        //     }
+        //     sub_jac.col(j) = (res_pos - res_neg) / (2.0 * t);
+        // }
+
+
+        // return sub_jac;
 
         // Analytical
         // tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
@@ -439,24 +476,16 @@ public:
 
         // auto jac_tensor_mapped = jac_outputs[0].tensor<tf_dtype_type, 3>();
         
-        // MatrixXd res(n_dof, m_enc_dim); // TODO generalize
+        // MatrixXd res(m_sub_q_size, m_enc_dim); // TODO generalize
         // for(int i = 0; i < res.rows(); i++) {
         //     for(int j = 0; j < res.cols(); j++) {
         //         res(i,j) = jac_tensor_mapped(0,i,j);
         //     }
         // }
-
         // return res;
-    }
 
-    inline MatrixXd outer_jacobian() {
-        return m_U;
-    }
-
-    inline MatrixXd inner_jacobian(const VectorXd &z) {
+        // Finite differences
         MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
-
-        // Finite differences gradient
         double t = finite_diff_eps;
         for(int i = 0; i < z.size(); i++) {
             VectorXd dz_pos(z);
@@ -590,7 +619,8 @@ public:
 
         std::cout << "Constructing reduced mass matrix..." << std::endl;
         m_M = *M_asm;
-        m_UTMU = m_reduced_space->compute_reduced_mass_matrix(m_M);
+        m_U = m_reduced_space->outer_jacobian();
+        m_UTMU = m_U.transpose() * m_M * m_U;
         std::cout << "Done." << std::endl;
 
         VectorXd g(m_M.cols());
@@ -601,7 +631,8 @@ public:
         }
 
         m_F_ext = m_M * g;
-        m_interaction_force = VectorXd::Zero(m_F_ext.size());
+        m_UT_F_ext = m_U.transpose() * m_F_ext;
+        m_interaction_force = SparseVector<double>(m_F_ext.size());
 
         if(integrator_config["use_reduced_energy"]) {
             std::cout << "Loading reduced energy basis..." << std::endl;
@@ -644,7 +675,7 @@ public:
         m_prev_z = prev_z;
     }
 
-    void set_interaction_force(const VectorXd &interaction_force) {
+    void set_interaction_force(const SparseVector<double> &interaction_force) {
         m_interaction_force = interaction_force;
     }
 
@@ -654,7 +685,7 @@ public:
     inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
     inline VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
 
-    double current_reduced_energy_and_forces(double &energy, VectorXd &forces) {
+    double current_reduced_energy_and_forces(double &energy, VectorXd &UT_forces) {
         int n_sample_tets = m_energy_sample_tets.size();
         
         VectorXd sampled_energy(n_sample_tets);
@@ -693,7 +724,7 @@ public:
         VectorXd alpha = m_energy_sampled_basis_qr.solve(sampled_energy);
         energy = m_summed_energy_basis.dot(alpha);
 
-        forces = neg_energy_sample_jac * m_summed_force_fact;
+        UT_forces = (m_U.transpose() * neg_energy_sample_jac) * m_summed_force_fact;
     }
 
 
@@ -715,12 +746,11 @@ public:
         //     }
         // }
         // std::cout << ">" << std::endl;
-        MatrixXd U = m_reduced_space->outer_jacobian(); // U for both linear and ae space
 
         // Update the tets with candidate configuration
         Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
         VectorXd new_sub_q = sub_dec(new_z);
-        VectorXd new_q = U * new_sub_q;
+        VectorXd new_q = m_U * new_sub_q; // TODO use sparse m_U
         for(int i=0; i < q.size(); i++) {
             // ******************************************
             // TODO also I really only have to update the tets that I'm sampling, so I can avoid a full decoder here right??
@@ -730,22 +760,22 @@ public:
         
         // Compute objective
         double energy;
-        VectorXd internal_forces;
+        VectorXd UT_internal_forces;
         if(m_use_reduced_energy) {
-            current_reduced_energy_and_forces(energy, internal_forces);
+            current_reduced_energy_and_forces(energy, UT_internal_forces);
         }
         else {
             energy = m_tets->getStrainEnergy(m_world->getState());
             AssemblerEigenVector<double> internal_force_asm;
             getInternalForceVector(internal_force_asm, *m_tets, *m_world);
-            internal_forces = *internal_force_asm; // TODO can we avoid copy here?
+            UT_internal_forces = m_U.transpose() * *internal_force_asm; // TODO can we avoid copy here?
         }
 
         // *****
         // TODO reduce this term
         // *****
-        VectorXd h_2_external_forces = m_h * m_h * (m_F_ext + m_interaction_force); // Same with the interaction forces. I can precompute th gravity and quickly reduce interaction
-        VectorXd h_2_UT_external_forces =  U.transpose() * h_2_external_forces;
+        // VectorXd h_2_external_forces = m_h * m_h * (m_F_ext + m_interaction_force); // Same with the interaction forces. I can precompute th gravity and quickly reduce interaction
+        VectorXd h_2_UT_external_forces =  m_h * m_h * (m_U.transpose() * m_interaction_force + m_UT_F_ext);
         
         // MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
 
@@ -759,7 +789,7 @@ public:
         // **** TODO
         // Can I further reduce the force calculations by carrying through U?
         MatrixXd J = m_reduced_space->inner_jacobian(new_z); // should be identity for linear
-        grad = J.transpose() * (UTMU_sub_q_tilde - m_h * m_h * U.transpose() * internal_forces - h_2_UT_external_forces);
+        grad = J.transpose() * (UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
         return obj_val;
 
         // MatrixXd J = m_reduced_space->jacobian(new_z);
@@ -784,10 +814,12 @@ private:
     VectorXd m_cur_z;
     VectorXd m_prev_z;
     VectorXd m_F_ext;
-    VectorXd m_interaction_force;
+    VectorXd m_UT_F_ext;
+    SparseVector<double> m_interaction_force;
 
     SparseMatrix<double> m_M; // mass matrix
     MatrixXd m_UTMU; // reduced mass matrix
+    MatrixXd m_U;
 
     double m_h;
 
@@ -831,7 +863,7 @@ public:
         m_gplc_objective = new GPLCObjective<ReducedSpaceType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
 
         m_h = integrator_config["timestep"];
-        MatrixXd U = reduced_space->outer_jacobian();
+        m_U = reduced_space->outer_jacobian();
         MatrixXd J = reduced_space->inner_jacobian(m_cur_z);
 
         AssemblerEigenSparseMatrix<double> M_asm;
@@ -840,8 +872,8 @@ public:
         getStiffnessMatrix(K_asm, *m_world);
 
         std::cout << "Constructing reduced mass and stiffness matrix..." << std::endl;
-        m_UTMU = U.transpose() * (*M_asm) * U;
-        m_UTKU = U.transpose() * (*K_asm) * U;
+        m_UTMU = m_U.transpose() * (*M_asm) * m_U;
+        m_UTKU = m_U.transpose() * (*K_asm) * m_U;
         m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
         m_H_llt = m_H.ldlt();
         // m_H_llt = MatrixXd::Identity(m_H.rows(), m_H.cols()).llt();
@@ -852,7 +884,7 @@ public:
         delete m_gplc_objective;
     }
 
-    void step(const VectorXd &interaction_force) {
+    void step(const SparseVector<double> &interaction_force) {
         double start_time = igl::get_seconds();
 
         VectorXd z_param = m_cur_z; // Stores both the first guess and the final result
@@ -866,12 +898,12 @@ public:
         // For the AE model at least, preconditioning with rest hessian is slower
         // but preconditioning with rest hessian with current J gives fairly small speed increas
         // TODO: determine if llt or ldlt is faster
-        // int niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);   
-        MatrixXd J = m_reduced_space->inner_jacobian(m_cur_z);
-        m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
-        m_H_llt = m_H_llt.compute(m_H);//m_H.ldlt();
-        int niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_llt);   
-        
+        int niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);   
+        // MatrixXd J = m_reduced_space->inner_jacobian(m_cur_z);
+        // m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
+        // m_H_llt = m_H_llt.compute(m_H);//m_H.ldlt();
+        // int niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_llt);   
+
         std::cout << niter << " iterations" << std::endl;
         std::cout << "objective val = " << min_val_res << std::endl;
 
@@ -947,6 +979,7 @@ private:
     MatrixXd m_H_inv;
     MatrixXd m_UTKU;
     MatrixXd m_UTMU;
+    MatrixXd m_U;
 
     MyWorld *m_world;
     NeohookeanTets *m_tets;
@@ -997,15 +1030,15 @@ SparseMatrix<double> construct_constraints_P(NeohookeanTets *tets) {
     return P;
 }
 
-VectorXd compute_interaction_force(const Vector3d &dragged_pos, int dragged_vert, bool is_dragging, double spring_stiffness, NeohookeanTets *tets, const MyWorld &world) {
-    VectorXd force = VectorXd::Zero(n_dof); // TODO make this a sparse vector?
-
+SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, int dragged_vert, bool is_dragging, double spring_stiffness, NeohookeanTets *tets, const MyWorld &world) {
+    SparseVector<double> force(n_dof);// = VectorXd::Zero(n_dof); // TODO make this a sparse vector?
+    force.reserve(3);
     if(is_dragging) {
         Vector3d fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert], dragged_vert, &tets->getImpl().getV())(world.getState());
         Vector3d local_force = spring_stiffness * (dragged_pos - fem_attached_pos);
 
         for(int i=0; i < 3; i++) {
-            force[dragged_vert * 3 + i] = local_force[i];    
+            force.insert(dragged_vert * 3 + i) = local_force[i];    
         }
     } 
 
@@ -1068,7 +1101,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
     // --- My integrator set up
     double spring_stiffness = visualization_config["interaction_spring_stiffness"];
-    VectorXd interaction_force = VectorXd::Zero(n_dof);
+    SparseVector<double> interaction_force(n_dof);// = VectorXd::Zero(n_dof);
 
 
     GPLCTimeStepper<ReducedSpaceType> gplc_stepper(model_root, integrator_config, &world, tets, reduced_space);

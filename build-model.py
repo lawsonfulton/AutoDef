@@ -106,14 +106,22 @@ def main():
         generate_jacobian_for_tf_model(tf_decoder_path, tf_decoder_jac_path)
         print('Done.')
 
+    energy_model_config = config['learning_config']['energy_model_config']
+    if energy_model_config['enabled']:
+        learn.build_energy_model(model_root, energy_model_config)
+
+    training_params_path = os.path.join(config_dir, config['training_dataset'], 'parameters.json')
+    with open(training_params_path, 'r') as f:
+        training_data_params = json.load(f)
+
     # Output simulation config
-    print('Generating simulation config file...')
+    print('\nGenerating simulation config file...')
     simulation_config = {
         'mesh': os.path.join(model_root, 'tets.mesh'),
         'material_config': {
-            'density': 1000.0, # TODO these numbers should probably match whatever the training data was by default.
-            'youngs_modulus': 1e6,
-            'poissons_ratio': 0.45,
+            'density': training_data_params['density'], # TODO these numbers should probably match whatever the training data was by default.
+            'youngs_modulus': training_data_params['YM'],
+            'poissons_ratio': training_data_params['Poisson'],
         },
 
         'integrator_config': {

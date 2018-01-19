@@ -1,0 +1,31 @@
+{
+  "mesh": "../meshes/30karmadillo.mesh",
+
+  "training_dataset": "../training_data/30k-armadillo/training",
+  "validation_dataset": "",
+
+  "learning_config": {
+    "skip_training": false,
+    "skip_jacobian": false,
+    "autoencoder_config": {
+      "pca_compare_dims": [5, 10, 20, 30],
+
+      "pca_layer_dim": 30,
+      "non_pca_layer_sizes": [200],
+      "ae_encoded_dim": 8,
+      "activation": "elu",
+
+      "batch_size": 500,
+      "training_epochs": 1000,
+      "do_fine_tuning": false,
+      "loss_weight": 1.0
+    },
+    "energy_model_config": {
+      "enabled": true,
+      "pca_dim": 40,
+      "num_sample_tets": 100,
+      "brute_force_iterations": 800,
+      "target_anneal_mins": 15.5
+    }
+  }
+}
