@@ -118,6 +118,7 @@ def main():
     print('\nGenerating simulation config file...')
     simulation_config = {
         'mesh': os.path.join(model_root, 'tets.mesh'),
+        'debug': False,
         'material_config': {
             'density': training_data_params['density'], # TODO these numbers should probably match whatever the training data was by default.
             'youngs_modulus': training_data_params['YM'],

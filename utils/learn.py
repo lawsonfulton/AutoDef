@@ -290,10 +290,14 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
     print('explained var', sum(explained_variance_ratio))
     
     Es = samples
-
+    Es_summed = numpy.sum(Es, axis=1)
     UTU = U.transpose() @ U
     UTE = U.transpose() @ Es.T
-
+    U_sum = numpy.sum(U, axis=0)
+    
+    # sol = numpy.linalg.solve(U_bar.T @ U_bar, U_bar.T)
+    # x = sol[0]
+    # E_stars = (U_sum.T @ x) @ E_bars
     ##### Brute force
     n_random = brute_force_its
     print("\nDoing", n_random, "random iterations...")
@@ -308,16 +312,30 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
         E_bars = Es[:, tet_sample]
         # print('rank ', numpy.linalg.matrix_rank(U_bar.T))
 
-        start = time.time()
-        sol = numpy.linalg.lstsq(U_bar, E_bars.T)
-        alphas = sol[0]
-        # completed_energies = (U @ alphas).T
-        # print('solve took ', time.time() - start)
-        # print("solve took", time.time()-start)
-        start = time.time()
-        # completion_mse = mean_squared_error(completed_energies, Es)
-        completion_mse = 1.0/(Es.shape[0] * Es.shape[1]) * (numpy.trace(alphas.transpose() @ UTU @ alphas) - numpy.trace(alphas.transpose() @ UTE)) 
-        # print('mse took ', time.time() - start)
+        start_solve = time.time()
+        if True:
+            sol = numpy.linalg.lstsq(U_bar, E_bars.T)
+            alphas = sol[0]
+            # completed_energies = (U @ alphas).T
+            # print('solve took ', time.time() - start_solve)
+            # print("solve took", time.time()-start)
+            start = time.time()
+            # completion_mse = mean_squared_error(completed_energies, Es)
+            completion_mse = 1.0/(Es.shape[0] * Es.shape[1]) * (numpy.trace(alphas.transpose() @ UTU @ alphas) - numpy.trace(alphas.transpose() @ UTE)) 
+            # print('mse took ', time.time() - start)
+        else:
+            sol = numpy.linalg.solve(U_bar.T @ U_bar, U_bar.T)
+            
+            E_stars = (U_sum.T @ sol) @ E_bars.T
+            completion_mse = mean_squared_error(E_stars, Es_summed)
+
+            # sol = numpy.linalg.lstsq(U_bar, E_bars.T)
+            # alphas = sol[0]
+            # completed_energies = (U @ alphas).T
+            # completion_mse_old = mean_squared_error(numpy.sum(completed_energies, axis=1), Es_summed)
+
+            # print("diff:", completion_mse - completion_mse_old)
+        # print('total took ', time.time() - start_solve)
         if completion_mse < min_mse:
             min_mse = completion_mse
             best_sample = tet_sample
@@ -356,14 +374,20 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
             E_bars = Es[:, self.state]
 
             # start = time.time()
-            sol = numpy.linalg.lstsq(U_bar, E_bars.T)
-            alphas = sol[0]
-            # completed_energies = (U @ sol[0]).T
-            # print("solve took", time.time()-start)
-            # check_samples = numpy.random.choice(Es.shape[0], 100, replace=False)
-            # Full
-            # completion_mse = mean_squared_error(completed_energies, Es)*scale
-            completion_mse = 1.0/(Es.shape[0] * Es.shape[1]) * (numpy.trace(alphas.transpose() @ UTU @ alphas) - numpy.trace(alphas.transpose() @ UTE)) 
+            if True:
+                sol = numpy.linalg.lstsq(U_bar, E_bars.T)
+                alphas = sol[0]
+                # completed_energies = (U @ sol[0]).T
+                # print("solve took", time.time()-start)
+                # check_samples = numpy.random.choice(Es.shape[0], 100, replace=False)
+                # Full
+                # completion_mse = mean_squared_error(completed_energies, Es)*scale
+                completion_mse = 1.0/(Es.shape[0] * Es.shape[1]) * (numpy.trace(alphas.transpose() @ UTU @ alphas) - numpy.trace(alphas.transpose() @ UTE)) 
+            else:
+                sol = numpy.linalg.solve(U_bar.T @ U_bar, U_bar.T)
+                
+                E_stars = (U_sum.T @ sol) @ E_bars.T
+                completion_mse = mean_squared_error(E_stars, Es_summed)
             # print(completion_mse)
             return completion_mse
 

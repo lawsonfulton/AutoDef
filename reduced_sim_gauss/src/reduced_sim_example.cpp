@@ -18,6 +18,9 @@
 #include <igl/get_seconds.h>
 #include <igl/jet.h>
 #include <igl/slice.h>
+#include <igl/per_corner_normals.h>
+#include <igl/per_vertex_normals.h>
+#include <igl/material_colors.h>
 
 #include <stdlib.h>
 #include <iostream>
@@ -72,6 +75,7 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 
 // Mesh
 Eigen::MatrixXd V; // Verts
+Eigen::MatrixXd N; // Normals
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
 int n_dof;
@@ -80,7 +84,9 @@ double finite_diff_eps;
 // Mouse/Viewer state
 Eigen::RowVector3f last_mouse;
 Eigen::RowVector3d dragged_pos;
+Eigen::RowVector3d mesh_pos;
 bool is_dragging = false;
+bool per_vertex_normals = false;
 int dragged_vert = 0;
 int current_frame = 0;
 
@@ -1079,6 +1085,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     // -- Setting up GAUSS
     MyWorld world;
     igl::readMESH((model_root / "tets.mesh").string(), V, T, F);
+    igl::boundary_facets(T,F);
 
     auto material_config = config["material_config"];
     auto integrator_config = config["integrator_config"];
@@ -1118,18 +1125,37 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
         const Eigen::RowVector3d yellow(1.0,0.9,0.2);
         const Eigen::RowVector3d blue(0.2,0.3,0.8);
         const Eigen::RowVector3d green(0.2,0.6,0.3);
+        // const Eigen::RowVector3d sea_green(70./255.,252./255.,167./255.);
+        const Eigen::RowVector3d sea_green(229./255.,211./255.,91./255.);
 
         if(is_dragging) {
-            Eigen::MatrixXd part_pos(1, 3);
-            part_pos(0,0) = dragged_pos[0]; // TODO why is eigen so confusing.. I just want to make a matrix from vec
-            part_pos(0,1) = dragged_pos[1];
-            part_pos(0,2) = dragged_pos[2];
+            // Eigen::MatrixXd part_pos(1, 3);
+            // part_pos(0,0) = dragged_pos[0]; // TODO why is eigen so confusing.. I just want to make a matrix from vec
+            // part_pos(0,1) = dragged_pos[1];
+            // part_pos(0,2) = dragged_pos[2];
 
-            viewer.data.set_points(part_pos, orange);
+            // viewer.data.set_points(part_pos, orange);
+
+            MatrixXi E(1,2);
+            E(0,0) = 0;
+            E(0,1) = 1;
+            MatrixXd P(2,3);
+            P.row(0) = dragged_pos;
+            P.row(1) = mesh_pos;
+            
+            viewer.data.set_edges(P, E, sea_green);
         } else {
             Eigen::MatrixXd part_pos = MatrixXd::Zero(1,3);
             part_pos(0,0)=100000.0;
-            viewer.data.set_points(part_pos, orange);
+            // viewer.data.set_points(part_pos, sea_green);
+
+            MatrixXi E(1,2);
+            E(0,0) = 0;
+            E(0,1) = 1;
+            MatrixXd P(2,3);
+            P.row(0) = Eigen::RowVector3d(1000.0,1000.0, 1000.0);
+            P.row(1) = Eigen::RowVector3d(1000.0,1000.0, 1000.0);;
+            viewer.data.set_edges(P, E, sea_green);
         }
 
         if(viewer.core.is_animating)
@@ -1148,7 +1174,15 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
             // std::cout<< newV.block(0,0,10,3) << std::endl;
             viewer.data.set_vertices(newV);
-            viewer.data.compute_normals();
+            
+            mesh_pos = newV.row(dragged_vert);
+            // viewer.data.compute_normals();
+            if(per_vertex_normals) {
+                igl::per_vertex_normals(V,F,N);
+            } else {
+                igl::per_corner_normals(V,F,40,N);
+            }
+            viewer.data.set_normals(N);
             current_frame++;
 
             interaction_force = compute_interaction_force(dragged_pos, dragged_vert, is_dragging, spring_stiffness, tets, world);
@@ -1206,6 +1240,18 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
                 gplc_stepper.reset_zs_to_current_world();
                 break;
             }
+            case 's':
+            case 'S':
+            {
+                show_stress = !show_stress;
+                break;
+            }
+            case 'n':
+            case 'N':
+            {
+                per_vertex_normals = !per_vertex_normals;
+                break;
+            }
             default:
             return false;
         }
@@ -1231,6 +1277,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             long c;
             bary.maxCoeff(&c);
             dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.001,0.0,0.0); //Epsilon offset so we don't div by 0
+            mesh_pos = curV.row(F(fid,c));
             dragged_vert = F(fid,c);
             is_dragging = true;
 
@@ -1256,6 +1303,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
     viewer.callback_mouse_move = [&](igl::viewer::Viewer &, int,int)->bool
     {
+        Eigen::MatrixXd curV = getCurrentVertPositions(world, tets);
         if(is_dragging) {
             Eigen::RowVector3f drag_mouse(
                 viewer.current_mouse_x,
@@ -1278,7 +1326,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
                 last_scene);
 
             dragged_pos += ((drag_scene-last_scene)*4.5).cast<double>(); //TODO why do I need to fine tune this
-
+            mesh_pos = curV.row(dragged_vert);
             last_mouse = drag_mouse;
         }
 
@@ -1286,12 +1334,122 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     };
 
     viewer.data.set_mesh(V,F);
-    viewer.core.show_lines = true;
+    igl::per_corner_normals(V,F,40,N);
+    viewer.data.set_normals(N);
+
+    viewer.core.show_lines = false;
     viewer.core.invert_normals = true;
     viewer.core.is_animating = false;
-    viewer.data.face_based = true;
+    viewer.data.face_based = false;
+    viewer.core.line_width = 5;
 
-    viewer.launch();
+    viewer.core.background_color = Eigen::Vector4f(1.0, 1.0, 1.0, 1.0);
+    viewer.core.shininess = 120.0;
+    viewer.data.set_colors(Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]));
+    // viewer.data.uniform_colors(
+    //   Eigen::Vector3d(igl::CYAN_AMBIENT[0], igl::CYAN_AMBIENT[1], igl::CYAN_AMBIENT[2]),
+    //   Eigen::Vector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]),
+    //   Eigen::Vector3d(igl::CYAN_SPECULAR[0], igl::CYAN_SPECULAR[1], igl::CYAN_SPECULAR[2]));
+
+    // viewer.launch();
+
+    viewer.launch_init(true, false);    
+      viewer.opengl.shader_mesh.free();
+
+  {
+    std::string mesh_vertex_shader_string =
+R"(#version 150
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
+in vec3 position;
+in vec3 normal;
+out vec3 position_eye;
+out vec3 normal_eye;
+in vec4 Ka;
+in vec4 Kd;
+in vec4 Ks;
+in vec2 texcoord;
+out vec2 texcoordi;
+out vec4 Kai;
+out vec4 Kdi;
+out vec4 Ksi;
+
+void main()
+{
+  position_eye = vec3 (view * model * vec4 (position, 1.0));
+  normal_eye = vec3 (view * model * vec4 (normal, 0.0));
+  normal_eye = normalize(normal_eye);
+  gl_Position = proj * vec4 (position_eye, 1.0); //proj * view * model * vec4(position, 1.0);
+  Kai = Ka;
+  Kdi = Kd;
+  Ksi = Ks;
+  texcoordi = texcoord;
+})";
+
+    std::string mesh_fragment_shader_string =
+R"(#version 150
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
+uniform vec4 fixed_color;
+in vec3 position_eye;
+in vec3 normal_eye;
+uniform vec3 light_position_world;
+vec3 Ls = vec3 (1, 1, 1);
+vec3 Ld = vec3 (1, 1, 1);
+vec3 La = vec3 (1, 1, 1);
+in vec4 Ksi;
+in vec4 Kdi;
+in vec4 Kai;
+in vec2 texcoordi;
+uniform sampler2D tex;
+uniform float specular_exponent;
+uniform float lighting_factor;
+uniform float texture_factor;
+out vec4 outColor;
+void main()
+{
+vec3 Ia = La * vec3(Kai);    // ambient intensity
+
+vec3 light_position_eye = vec3 (view * vec4 (light_position_world, 1.0));
+vec3 vector_to_light_eye = light_position_eye - position_eye;
+vec3 direction_to_light_eye = normalize (vector_to_light_eye);
+float dot_prod = dot (direction_to_light_eye, normal_eye);
+float clamped_dot_prod = max (dot_prod, 0.0);
+vec3 Id = Ld * vec3(Kdi) * clamped_dot_prod;    // Diffuse intensity
+
+vec3 reflection_eye = reflect (-direction_to_light_eye, normal_eye);
+vec3 surface_to_viewer_eye = normalize (-position_eye);
+float dot_prod_specular = dot (reflection_eye, surface_to_viewer_eye);
+dot_prod_specular = float(abs(dot_prod)==dot_prod) * max (dot_prod_specular, 0.0);
+float specular_factor = pow (dot_prod_specular, specular_exponent);
+vec3 Kfi = 0.5*vec3(Ksi);
+vec3 Lf = Ls;
+float fresnel_exponent = 2*specular_exponent;
+float fresnel_factor = 0;
+{
+  float NE = max( 0., dot( normal_eye, surface_to_viewer_eye));
+  fresnel_factor = pow (max(sqrt(1. - NE*NE),0.0), fresnel_exponent);
+}
+vec3 Is = Ls * vec3(Ksi) * specular_factor;    // specular intensity
+vec3 If = Lf * vec3(Kfi) * fresnel_factor;     // fresnel intensity
+vec4 color = vec4(lighting_factor * (If + Is + Id) + Ia + 
+  (1.0-lighting_factor) * vec3(Kdi),(Kai.a+Ksi.a+Kdi.a)/3);
+outColor = mix(vec4(1,1,1,1), texture(tex, texcoordi), texture_factor) * color;
+if (fixed_color != vec4(0.0)) outColor = fixed_color;
+})";
+
+  viewer.opengl.shader_mesh.init(
+      mesh_vertex_shader_string,
+      mesh_fragment_shader_string, 
+      "outColor");
+  }
+
+
+  viewer.launch_rendering(true);
+  viewer.launch_shut();
+
 }
 
 int main(int argc, char **argv) {
