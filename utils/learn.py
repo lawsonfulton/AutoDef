@@ -234,6 +234,8 @@ def main():
 # Include it in the build model pipeline
 def build_energy_model(model_root, energy_model_config):
     """energy basis"""
+
+    # TODO SAVE ENERGY MODEL
     base_path = model_root
     training_data_path = os.path.join(base_path, 'training_data/training')
     validation_data_path = os.path.join(base_path, 'training_data/validation')
@@ -289,8 +291,11 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
         print('test mse:', mean_squared_error(samples_test, decoded_test_energy))    
     print('explained var', sum(explained_variance_ratio))
     
-    Es = samples
+    Es = samples #* 10e4
+    # print(Es)
+    # print(U)
     Es_summed = numpy.sum(Es, axis=1)
+
     UTU = U.transpose() @ U
     UTE = U.transpose() @ Es.T
     U_sum = numpy.sum(U, axis=0)
@@ -327,7 +332,7 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
             sol = numpy.linalg.solve(U_bar.T @ U_bar, U_bar.T)
             
             E_stars = (U_sum.T @ sol) @ E_bars.T
-            completion_mse = mean_squared_error(E_stars, Es_summed)
+            completion_mse = mean_squared_error(E_stars, Es_summed) # Measuring summed energy loss seems to be worse
 
             # sol = numpy.linalg.lstsq(U_bar, E_bars.T)
             # alphas = sol[0]
@@ -429,6 +434,8 @@ def generate_model(
     ):
     autoencoder_config = learning_config['autoencoder_config']
     energy_model_config = learning_config['energy_model_config']
+    save_objs = learning_config['save_objs']
+    train_in_full_space = True
 
     training_data_path = os.path.join(model_root, 'training_data/training')
     validation_data_path = os.path.join(model_root, 'training_data/validation')
@@ -469,6 +476,7 @@ def generate_model(
     # Normal low dim pca first
     for pca_dim in pca_compare_dims:
         U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim)
+
         encoded_pca_displacements = pca_encode(displacements)
         decoded_pca_displacements = pca_decode(encoded_pca_displacements)
         if test_displacements is not None:
@@ -497,6 +505,9 @@ def generate_model(
 
     # High dim pca to train autoencoder
     U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
+    if train_in_full_space:
+        high_dim_pca_encode = lambda x: x
+        high_dim_pca_decode = lambda x: x
     encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
     if test_displacements is not None:
         encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
@@ -536,6 +547,19 @@ def generate_model(
     # TODO output energy loss as well
     with open(os.path.join(model_root, 'training_results.json'), 'w') as f:
         json.dump(training_results, f, indent=2)
+
+    if save_objs:
+        print("Saving objs of decoded training data...")
+        obj_dir = os.path.join(model_root, 'decoded_training_objs/')
+        if not os.path.exists(obj_dir):
+            os.makedirs(obj_dir)
+
+        for i, dec_displ in enumerate(decoded_autoencoder_displacements):
+            decoded_verts = base_verts + dec_displ.reshape((len(base_verts), 3))
+            decoded_verts_eig = p2e(decoded_verts)
+
+            obj_path = os.path.join(obj_dir, "decoded_" + str(i) + ".obj")
+            igl.writeOBJ(obj_path, decoded_verts_eig, face_indices_eig)
     
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@
 
 #include <igl/writeDMAT.h>
 #include <igl/readDMAT.h>
+#include <igl/writeOBJ.h>
 #include <igl/viewer/Viewer.h>
 #include <igl/readMESH.h>
 #include <igl/unproject_onto_mesh.h>
@@ -22,7 +23,9 @@
 #include <igl/per_vertex_normals.h>
 #include <igl/material_colors.h>
 
+#include <time.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <algorithm>
@@ -91,26 +94,31 @@ int dragged_vert = 0;
 int current_frame = 0;
 
 // Parameters
-bool saving_training_data = false;
-std::string output_dir = "output_data/";
+bool LOGGING_ENABLED = false;
+int log_save_freq = 20;
+json sim_log;
+json timestep_info; // Kind of hack but this gets reset at the beginning of each timestep so that we have a global structure to log to
+fs::path log_dir;
+fs::path obj_dir;
+std::ofstream log_ofstream;
 
 
-void save_displacements_DMAT(const std::string path, MyWorld &world, NeohookeanTets *tets) { // TODO: Add mouse position data to ouput
-    auto q = mapDOFEigen(tets->getQ(), world);
-    Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
-    Eigen::MatrixXd displacements = dV.transpose();
+// void save_displacements_DMAT(const std::string path, MyWorld &world, NeohookeanTets *tets) { // TODO: Add mouse position data to ouput
+//     auto q = mapDOFEigen(tets->getQ(), world);
+//     Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
+//     Eigen::MatrixXd displacements = dV.transpose();
 
-    igl::writeDMAT(path, displacements, false); // Don't use ascii
-}
+//     igl::writeDMAT(path, displacements, false); // Don't use ascii
+// }
 
-void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
-    std::stringstream verts_filename, faces_filename;
-    verts_filename << output_dir << "base_verts.dmat";
-    faces_filename << output_dir << "base_faces.dmat";
+// void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
+//     std::stringstream verts_filename, faces_filename;
+//     verts_filename << output_dir << "base_verts.dmat";
+//     faces_filename << output_dir << "base_faces.dmat";
     
-    igl::writeDMAT(verts_filename.str(), V, false); // Don't use ascii
-    igl::writeDMAT(faces_filename.str(), F, false); // Don't use ascii
-}
+//     igl::writeDMAT(verts_filename.str(), V, false); // Don't use ascii
+//     igl::writeDMAT(faces_filename.str(), F, false); // Don't use ascii
+// }
 
 // Todo put this in utilities
 Eigen::MatrixXd getCurrentVertPositions(MyWorld &world, NeohookeanTets *tets) {
@@ -754,8 +762,14 @@ public:
         // std::cout << ">" << std::endl;
 
         // Update the tets with candidate configuration
-        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+        double obj_start_time = igl::get_seconds();
         VectorXd new_sub_q = sub_dec(new_z);
+        VectorXd cur_sub_q = sub_dec(m_cur_z);
+        VectorXd prev_sub_q = sub_dec(m_prev_z);
+        MatrixXd J = m_reduced_space->inner_jacobian(new_z); // should be identity for linear
+        double tf_time = igl::get_seconds() - obj_start_time;
+
+        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
         VectorXd new_q = m_U * new_sub_q; // TODO use sparse m_U
         for(int i=0; i < q.size(); i++) {
             // ******************************************
@@ -767,6 +781,7 @@ public:
         // Compute objective
         double energy;
         VectorXd UT_internal_forces;
+        double energy_forces_start_time = igl::get_seconds();
         if(m_use_reduced_energy) {
             current_reduced_energy_and_forces(energy, UT_internal_forces);
         }
@@ -776,6 +791,7 @@ public:
             getInternalForceVector(internal_force_asm, *m_tets, *m_world);
             UT_internal_forces = m_U.transpose() * *internal_force_asm; // TODO can we avoid copy here?
         }
+        double energy_forces_time = igl::get_seconds() - energy_forces_start_time;
 
         // *****
         // TODO reduce this term
@@ -785,7 +801,7 @@ public:
         
         // MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
 
-        VectorXd sub_q_tilde = new_sub_q - 2.0 * sub_dec(m_cur_z) + sub_dec(m_prev_z);
+        VectorXd sub_q_tilde = new_sub_q - 2.0 * cur_sub_q + prev_sub_q;
         VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
         double obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
                             + m_h * m_h * energy
@@ -794,8 +810,18 @@ public:
         // Compute gradient
         // **** TODO
         // Can I further reduce the force calculations by carrying through U?
-        MatrixXd J = m_reduced_space->inner_jacobian(new_z); // should be identity for linear
         grad = J.transpose() * (UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+        double obj_time = igl::get_seconds() - obj_start_time;
+
+        if(LOGGING_ENABLED) {
+            timestep_info["iteration_info"]["lbfgs_obj_vals"].push_back(obj_val);
+            timestep_info["iteration_info"]["energy_forces_time_s"].push_back(energy_forces_time);
+            timestep_info["iteration_info"]["tot_obj_time_s"].push_back(obj_time);
+            timestep_info["iteration_info"]["tf_time_s"].push_back(tf_time);
+        }
+
+
+
         return obj_val;
 
         // MatrixXd J = m_reduced_space->jacobian(new_z);
@@ -850,6 +876,7 @@ public:
     GPLCTimeStepper(fs::path model_root, json integrator_config, MyWorld *world, NeohookeanTets *tets, ReducedSpaceType *reduced_space) :
         m_world(world), m_tets(tets), m_reduced_space(reduced_space) {
 
+        m_use_preconditioner = integrator_config["use_preconditioner"];
        // LBFGSpp::LBFGSParam<DataType> param;
        // param.epsilon = 1e-4;
        // param.max_iterations = 1000;
@@ -891,6 +918,9 @@ public:
     }
 
     void step(const SparseVector<double> &interaction_force) {
+        if(LOGGING_ENABLED) {
+            timestep_info = json(); // Clear timestep info for this frame.
+        }
         double start_time = igl::get_seconds();
 
         VectorXd z_param = m_cur_z; // Stores both the first guess and the final result
@@ -904,11 +934,20 @@ public:
         // For the AE model at least, preconditioning with rest hessian is slower
         // but preconditioning with rest hessian with current J gives fairly small speed increas
         // TODO: determine if llt or ldlt is faster
-        int niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);   
-        // MatrixXd J = m_reduced_space->inner_jacobian(m_cur_z);
-        // m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
-        // m_H_llt = m_H_llt.compute(m_H);//m_H.ldlt();
-        // int niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_llt);   
+        int niter;
+        double precondition_compute_time = 0.0;
+        if(m_use_preconditioner) {
+            double precondition_start_time = igl::get_seconds();
+            MatrixXd J = m_reduced_space->inner_jacobian(m_cur_z);
+            m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
+            m_H_llt = m_H_llt.compute(m_H);//m_H.ldlt();
+            precondition_compute_time = igl::get_seconds() - precondition_start_time;
+            
+            niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_llt);   
+        } else {
+            niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);   
+        }
+        double update_time = igl::get_seconds() - start_time;
 
         std::cout << niter << " iterations" << std::endl;
         std::cout << "objective val = " << min_val_res << std::endl;
@@ -918,11 +957,24 @@ public:
 
         update_world_with_current_configuration();
 
-        double update_time = igl::get_seconds() - start_time;
         m_total_time += update_time;
-        m_current_frame++;
         std::cout << "Timestep took: " << update_time << "s" << std::endl;
-        std::cout << "Avg timestep: " << m_total_time / (double)m_current_frame << "s" << std::endl;
+        std::cout << "Avg timestep: " << m_total_time / (double)current_frame << "s" << std::endl;
+
+        if(LOGGING_ENABLED) {
+            timestep_info["current_frame"] = current_frame; // since at end of timestep
+            timestep_info["tot_step_time_s"] = update_time;
+            timestep_info["precondition_time"] = precondition_compute_time;
+            timestep_info["lbfgs_iterations"] = niter;
+
+            sim_log["timesteps"].push_back(timestep_info);
+            if(current_frame % log_save_freq == 0) {
+                log_ofstream.seekp(0);
+                log_ofstream << std::setw(2) << sim_log;
+            }
+        }
+
+
         return;
     }
 
@@ -971,6 +1023,8 @@ public:
     // }
 
 private:
+    bool m_use_preconditioner;
+
     LBFGSParam<double> m_lbfgs_param;
     LBFGSSolver<double> *m_solver;
     GPLCObjective<ReducedSpaceType> *m_gplc_objective;
@@ -992,7 +1046,6 @@ private:
 
     ReducedSpaceType *m_reduced_space;
 
-    int m_current_frame = 0;
     double m_total_time = 0.0;
 };
 
@@ -1160,12 +1213,6 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
         if(viewer.core.is_animating)
         {   
-            // Save Current configuration
-            std::stringstream filename;
-            filename << output_dir << "displacements_" << current_frame << ".dmat";
-            if(saving_training_data) {
-                save_displacements_DMAT(filename.str(), world, tets);
-            }
 
             // stepper.step(world);
             auto q = mapDOFEigen(tets->getQ(), world);
@@ -1183,11 +1230,16 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
                 igl::per_corner_normals(V,F,40,N);
             }
             viewer.data.set_normals(N);
-            current_frame++;
+            
 
             interaction_force = compute_interaction_force(dragged_pos, dragged_vert, is_dragging, spring_stiffness, tets, world);
             gplc_stepper.step(interaction_force);
-            // test_gradient(world, tets);
+
+            if(LOGGING_ENABLED) {
+                fs::path obj_filename(std::to_string(current_frame) + ".obj");
+                igl::writeOBJ((obj_dir /obj_filename).string(), newV, F);
+            }
+            current_frame++;
         }
 
         if(show_stress) {
@@ -1216,7 +1268,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             std::cout << vm_per_face.maxCoeff() << " " <<  vm_per_face.minCoeff() << std::endl;
             MatrixXd C;
             //VectorXd((vm_per_face.array() -  vm_per_face.minCoeff()) / vm_per_face.maxCoeff())
-            igl::jet(vm_per_face / 60.0, false, C);
+            igl::jet(vm_per_vert / 60.0, false, C);
             viewer.data.set_colors(C);
         }
 
@@ -1452,6 +1504,18 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
 }
 
+const std::string currentDateTime() {
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+    // for more information about date/time format
+    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+
+    return buf;
+}
+
 int main(int argc, char **argv) {
     
     // Load the configuration file
@@ -1464,6 +1528,31 @@ int main(int argc, char **argv) {
 
     auto integrator_config = config["integrator_config"];
     std::string reduced_space_string = integrator_config["reduced_space_type"];
+
+    LOGGING_ENABLED = config["logging_enabled"];
+    if(LOGGING_ENABLED) {
+        sim_log["sim_config"] = config;
+        sim_log["timesteps"] = {};
+        fs::path sim_log_path("simulation_logs/");
+        log_dir = model_root / fs::path("./simulation_logs/" + currentDateTime() + "/");
+        obj_dir = log_dir / fs::path("objs/");
+        if(!boost::filesystem::exists(model_root / sim_log_path)){
+            boost::filesystem::create_directory(model_root / sim_log_path);
+        }
+
+        if(!boost::filesystem::exists(log_dir)){
+            boost::filesystem::create_directory(log_dir);
+        }
+
+        if(!boost::filesystem::exists(obj_dir)){
+            boost::filesystem::create_directory(obj_dir);
+        }
+
+        // boost::filesystem::create_directories(log_dir);
+        fs::path log_file("sim_stats.json");
+
+        log_ofstream = std::ofstream((log_dir / log_file).string());
+    }
 
     if(reduced_space_string == "linear") {
         std::string pca_dim(std::to_string((int)integrator_config["pca_dim"]));

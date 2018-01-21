@@ -1,8 +1,8 @@
 {
-  "mesh": "models/30k-armadillo-waist/tets.mesh",
-  "logging_enabled": true,
+  "mesh": "models/46k-dragon/tets.mesh",
+  "logging_enabled": false,
   "material_config": {
-    "density": 100.0,
+    "density": 1000.0,
     "youngs_modulus": 1000000.0,
     "poissons_ratio": 0.45
   },
@@ -11,13 +11,13 @@
     "use_reduced_energy": true,
     "use_preconditioner": true,
     "pca_dim": 20,
-    "ae_encoded_dim": 20,
-    "ae_decoded_dim": 35,
+    "ae_encoded_dim": 25,
+    "ae_decoded_dim": 50,
     "timestep": 0.05,
-    "finite_diff_eps": 0.00005,
+    "finite_diff_eps": 0.0005,
     "lbfgs_config": {
       "lbfgs_max_iterations": 150,
-      "lbfgs_epsilon": 0.01
+      "lbfgs_epsilon": 0.001
     },
     "gravity": -9.8
   },

@@ -67,13 +67,13 @@ void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, Neoho
     displacements_filename << output_dir << "displacements_" << current_frame << ".dmat";
     igl::writeDMAT(displacements_filename.str(), displacements, false); // Don't use ascii
 
-    AssemblerEigenVector<double> internal_force; //maybe?
-    getInternalForceVector(internal_force, *tets, world);
+    // AssemblerEigenVector<double> internal_force; //maybe?
+    // getInternalForceVector(internal_force, *tets, world);
 
-    std::stringstream force_filename;
-    force_filename<<output_dir<<"internalForces_"<<current_frame<<".dmat";
-    std::cout << (*internal_force).size() << " " << q.size() << std::endl;
-    igl::writeDMAT(force_filename.str(), *internal_force, false);
+    // std::stringstream force_filename;
+    // force_filename<<output_dir<<"internalForces_"<<current_frame<<".dmat";
+    // std::cout << (*internal_force).size() << " " << q.size() << std::endl;
+    // igl::writeDMAT(force_filename.str(), *internal_force, false);
 
 
     std::stringstream energy_filename;
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
     world.addSystem(tets);
-    fixDisplacementMin(world, tets, 1, 1.0);
+    fixDisplacementMin(world, tets, 0);
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
 
     reset_world(world);

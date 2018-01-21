@@ -1,18 +1,18 @@
 {
-  "mesh": "models/x-test-one-layer/tets.mesh",
-  "logging_enabled": true,
+  "mesh": "models/27k-dragon/tets.mesh",
+  "logging_enabled": false,
   "material_config": {
     "density": 1000.0,
     "youngs_modulus": 1000000.0,
     "poissons_ratio": 0.45
   },
   "integrator_config": {
-    "reduced_space_type": "autoencoder",
+    "reduced_space_type": "linear",
     "use_reduced_energy": true,
-    "use_preconditioner": true,
-    "pca_dim": 5,
-    "ae_encoded_dim": 5,
-    "ae_decoded_dim": 20,
+    "use_preconditioner": false,
+    "pca_dim": 30,
+    "ae_encoded_dim": 15,
+    "ae_decoded_dim": 30,
     "timestep": 0.05,
     "finite_diff_eps": 0.0005,
     "lbfgs_config": {
@@ -23,6 +23,6 @@
   },
   "visualization_config": {
     "show_stress": false,
-    "interaction_spring_stiffness": 100000.0
+    "interaction_spring_stiffness": 1000.0
   }
 }

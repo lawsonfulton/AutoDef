@@ -118,7 +118,7 @@ def main():
     print('\nGenerating simulation config file...')
     simulation_config = {
         'mesh': os.path.join(model_root, 'tets.mesh'),
-        'debug': False,
+        'logging_enabled': False,
         'material_config': {
             'density': training_data_params['density'], # TODO these numbers should probably match whatever the training data was by default.
             'youngs_modulus': training_data_params['YM'],
@@ -128,6 +128,7 @@ def main():
         'integrator_config': {
             'reduced_space_type': 'autoencoder', # Options are one of ['autoencoder, linear, full']
             'use_reduced_energy': config['learning_config']['energy_model_config']['enabled'],
+            'use_preconditioner': True,
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
             'ae_decoded_dim': config['learning_config']['autoencoder_config']['pca_layer_dim'], # Shouldn't be change. Kind of a hack.
