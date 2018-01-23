@@ -1,0 +1,29 @@
+{
+  "mesh": "models/31k-dragon-10dof-best/tets.mesh",
+  "logging_enabled": false,
+  "material_config": {
+    "density": 1000.0,
+    "youngs_modulus": 1000000.0,
+    "poissons_ratio": 0.45
+  },
+  "integrator_config": {
+    "reduced_space_type": "autoencoder",
+    "use_reduced_energy": true,
+    "use_preconditioner": true,
+    "pca_dim": 10,
+    "ae_encoded_dim": 10,
+    "ae_decoded_dim": 40,
+    "timestep": 0.01,
+    "finite_diff_eps": 5e-05,
+    "lbfgs_config": {
+      "lbfgs_max_iterations": 150,
+      "lbfgs_epsilon": 0.0001,
+      "lbfgs_m": 8
+    },
+    "gravity": -9.8
+  },
+  "visualization_config": {
+    "show_stress": false,
+    "interaction_spring_stiffness": 10000.0
+  }
+}

@@ -22,6 +22,7 @@
 #include <igl/per_corner_normals.h>
 #include <igl/per_vertex_normals.h>
 #include <igl/material_colors.h>
+#include <igl/snap_points.h>
 
 #include <time.h>
 #include <stdlib.h>
@@ -31,6 +32,8 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
+#include <stdexcept>
+
 
 #include <boost/filesystem.hpp>
 
@@ -95,8 +98,10 @@ int current_frame = 0;
 
 // Parameters
 bool LOGGING_ENABLED = false;
-int log_save_freq = 20;
+bool PLAYBACK_SIM = false;
+int log_save_freq = 5;
 json sim_log;
+json sim_playback_json;
 json timestep_info; // Kind of hack but this gets reset at the beginning of each timestep so that we have a global structure to log to
 fs::path log_dir;
 fs::path obj_dir;
@@ -657,11 +662,12 @@ public:
             igl::readDMAT((model_root / pca_components_path).string(), U);
 
             MatrixXi tet_indices_mat;
-            igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);\
+            igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);
             std::cout << "Done." << std::endl;
 
             std::cout << "Factoring reduced energy basis..." << std::endl;
-            
+            std::cout << "n tets: " <<  tet_indices_mat.rows() << std::endl;
+            std::cout << "n pca: " <<  U.cols() << std::endl;
             VectorXi tet_indices = tet_indices_mat.col(0);
             m_energy_sample_tets.resize(tet_indices.size());
             VectorXi::Map(&m_energy_sample_tets[0], tet_indices.size()) = tet_indices;
@@ -704,9 +710,10 @@ public:
         
         VectorXd sampled_energy(n_sample_tets);
 
-        MatrixXd element_forces(n_sample_tets, 12);
+        int n_force_per_element = T.cols() * 3;
+        MatrixXd element_forces(n_sample_tets, n_force_per_element);
         SparseMatrix<double> neg_energy_sample_jac(n_dof, n_sample_tets);
-        neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, 12)); // Reserve enough room for 4 verts (tet corners) per column
+        neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, n_force_per_element)); // Reserve enough room for 4 verts (tet corners) per column
 
         #pragma omp parallel for num_threads(4) //schedule(static,64)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
@@ -716,7 +723,7 @@ public:
             sampled_energy[i] = m_tets->getImpl().getElement(tet_index)->getStrainEnergy(m_world->getState());
 
             //Forces
-            VectorXd sampled_force(12);
+            VectorXd sampled_force(n_force_per_element);
             m_tets->getImpl().getElement(tet_index)->getInternalForce(sampled_force, m_world->getState());
             element_forces.row(i) = sampled_force;
         }
@@ -744,25 +751,9 @@ public:
 
     double operator()(const VectorXd& new_z, VectorXd& grad)
     {
-        // Optimizations
-        // Slowest part by far is get reduced forces %55
-        // Sparse matrix is some of it but not much
-
-        // nn decode is like ~4%
-        // Copy constructor? 8%
-        // FullPivHouseholder solve -> determine if the fuull piv vs other method makes a deff
-
-        // std::cout << "z: <";
-        // for(int i = 0; i < new_z.size(); i++) {
-        //     std::cout << new_z[i];
-        //     if(i != new_z.size() - 1) {
-        //         std::cout << ", ";
-        //     }
-        // }
-        // std::cout << ">" << std::endl;
-
         // Update the tets with candidate configuration
         double obj_start_time = igl::get_seconds();
+
         VectorXd new_sub_q = sub_dec(new_z);
         VectorXd cur_sub_q = sub_dec(m_cur_z);
         VectorXd prev_sub_q = sub_dec(m_prev_z);
@@ -793,13 +784,7 @@ public:
         }
         double energy_forces_time = igl::get_seconds() - energy_forces_start_time;
 
-        // *****
-        // TODO reduce this term
-        // *****
-        // VectorXd h_2_external_forces = m_h * m_h * (m_F_ext + m_interaction_force); // Same with the interaction forces. I can precompute th gravity and quickly reduce interaction
         VectorXd h_2_UT_external_forces =  m_h * m_h * (m_U.transpose() * m_interaction_force + m_UT_F_ext);
-        
-        // MatrixXd inner_jac = m_reduced_space->inner_jacobian(new_z);
 
         VectorXd sub_q_tilde = new_sub_q - 2.0 * cur_sub_q + prev_sub_q;
         VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
@@ -820,26 +805,7 @@ public:
             timestep_info["iteration_info"]["tf_time_s"].push_back(tf_time);
         }
 
-
-
         return obj_val;
-
-        // MatrixXd J = m_reduced_space->jacobian(new_z);
-        // static int cur_frame = 0;
-        // std::stringstream jac_filename;
-        // jac_filename << "jacs/" << "jac_" << cur_frame++ << ".dmat";
-        // igl::writeDMAT(jac_filename.str(), J, false); // Don't use ascii
-        // VectorXd z_tilde = new_z - 2.0 * m_cur_z + m_prev_z;
-        // VectorXd J_z_tilde = J * z_tilde;
-        // VectorXd M_J_z_tilde = m_M * J_z_tilde;
-        // double obj_val = 0.5 * J_z_tilde.transpose() * M_J_z_tilde + m_h * m_h * energy - J_z_tilde.transpose() * external_forces_h2;
-        // std::cout << (q_tilde.transpose() * M_q_tilde) << ", " << (J_z_tilde.transpose() * M_J_z_tilde) << std::endl;
-
-        // std::cout << m_reduced_space->jacobian(new_z) << std::endl;
-        // for(int i = 900; i < 1000; i++) {
-        //     std::cout << q_tilde[i] << ", " << J_z_tilde[i] << std::endl;
-        // }
-        // std::cout << std::endl;
     }
 
 private:
@@ -883,11 +849,11 @@ public:
        // param.past = 1;
        // param.m = 5;
        // param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
-        m_lbfgs_param.m = 5;
         m_lbfgs_param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
 
         // Set up lbfgs params
         json lbfgs_config = integrator_config["lbfgs_config"];
+        m_lbfgs_param.m = lbfgs_config["lbfgs_m"];
         m_lbfgs_param.epsilon = lbfgs_config["lbfgs_epsilon"]; //1e-8// TODO replace convergence test with abs difference
         m_lbfgs_param.max_iterations = lbfgs_config["lbfgs_max_iterations"];//500;//300;
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
@@ -942,7 +908,7 @@ public:
             m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
             m_H_llt = m_H_llt.compute(m_H);//m_H.ldlt();
             precondition_compute_time = igl::get_seconds() - precondition_start_time;
-            
+
             niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_llt);   
         } else {
             niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);   
@@ -966,6 +932,9 @@ public:
             timestep_info["tot_step_time_s"] = update_time;
             timestep_info["precondition_time"] = precondition_compute_time;
             timestep_info["lbfgs_iterations"] = niter;
+            
+            timestep_info["mouse_info"]["dragged_pos"] = {dragged_pos[0], dragged_pos[1], dragged_pos[2]};
+            timestep_info["mouse_info"]["is_dragging"] = is_dragging;
 
             sim_log["timesteps"].push_back(timestep_info);
             if(current_frame % log_save_freq == 0) {
@@ -993,34 +962,6 @@ public:
         m_cur_z = m_reduced_space->encode(gauss_map_q);
         update_world_with_current_configuration();
     }
-
-    // void test_gradient() {
-    //     auto q_map = mapDOFEigen(m_tets->getQ(), *m_world);
-    //     VectorXd q(m_reduced_space->encode(q_map));
-
-    //     GPLCObjective<ReducedSpaceType> fun(q, q, 0.001, m_world, m_tets);
-        
-    //     VectorXd fun_grad(q.size());
-    //     double fun_val = fun(q, fun_grad);
-
-    //     VectorXd finite_diff_grad(q.size());
-    //     VectorXd empty(q.size());
-    //     double t = 0.000001;
-    //     for(int i = 0; i < q.size(); i++) {
-    //         VectorXd dq_pos(q);
-    //         VectorXd dq_neg(q);
-    //         dq_pos[i] += t;
-    //         dq_neg[i] -= t;
-
-    //         finite_diff_grad[i] = (fun(dq_pos, empty) - fun(dq_neg, empty)) / (2.0 * t);
-    //     }
-
-    //     VectorXd diff = fun_grad - finite_diff_grad;
-    //     std::cout << "q size: " << q.size() << std::endl;
-    //     std::cout << "Function val: " << fun_val << std::endl;
-    //     std::cout << "Gradient diff: " << diff.norm() << std::endl;
-    //     assert(diff.norm() < 1e-4);
-    // }
 
 private:
     bool m_use_preconditioner;
@@ -1126,6 +1067,11 @@ VectorXd get_von_mises_stresses(NeohookeanTets *tets, MyWorld &world) {
     return vm_stresses;
 }
 
+std::string int_to_padded_str(int i) {
+    std::stringstream frame_str;
+    frame_str << std::setfill('0') << std::setw(5) << i;
+    return frame_str.str();
+}
 
 
 // typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
@@ -1139,6 +1085,19 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     MyWorld world;
     igl::readMESH((model_root / "tets.mesh").string(), V, T, F);
     igl::boundary_facets(T,F);
+
+    MatrixXi T_sampled;
+    MatrixXi F_sampled;
+    if(LOGGING_ENABLED) {
+        if(config["integrator_config"]["use_reduced_energy"]) {
+            fs::path sample_tets_path("pca_results/energy_indices.dmat");
+            MatrixXi tet_indices_mat;
+            igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);
+
+            T_sampled = igl::slice(T, tet_indices_mat, 1);
+            igl::boundary_facets(T_sampled, F_sampled);
+        }
+    }
 
     auto material_config = config["material_config"];
     auto integrator_config = config["integrator_config"];
@@ -1213,31 +1172,53 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
         if(viewer.core.is_animating)
         {   
-
-            // stepper.step(world);
             auto q = mapDOFEigen(tets->getQ(), world);
-            // std::cout << "Potential = " << tets->getStrainEnergy(world.getState()) << std::endl;
-
             Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
-            // std::cout<< newV.block(0,0,10,3) << std::endl;
+
             viewer.data.set_vertices(newV);
-            
             mesh_pos = newV.row(dragged_vert);
-            // viewer.data.compute_normals();
+
             if(per_vertex_normals) {
                 igl::per_vertex_normals(V,F,N);
             } else {
                 igl::per_corner_normals(V,F,40,N);
             }
             viewer.data.set_normals(N);
-            
 
+            // Play back mouse interaction from previous sim
+            if(PLAYBACK_SIM) {
+                json current_mouse_info = sim_playback_json["timesteps"][current_frame]["mouse_info"];
+                dragged_pos = Eigen::RowVector3d(current_mouse_info["dragged_pos"][0], current_mouse_info["dragged_pos"][1], current_mouse_info["dragged_pos"][2]);
+
+                bool was_dragging = is_dragging;
+                is_dragging = current_mouse_info["is_dragging"];
+
+                if(is_dragging && !was_dragging) { // Got a click
+                    // Get closest point on mesh
+                    MatrixXd C(1,3);
+                    C.row(0) = dragged_pos;
+                    MatrixXi I;
+                    igl::snap_points(C, newV, I);
+
+                    dragged_vert = I(0,0);
+                }
+
+                mesh_pos = newV.row(dragged_vert);
+            }
+            
+            // Do the physics update
             interaction_force = compute_interaction_force(dragged_pos, dragged_vert, is_dragging, spring_stiffness, tets, world);
             gplc_stepper.step(interaction_force);
 
             if(LOGGING_ENABLED) {
-                fs::path obj_filename(std::to_string(current_frame) + ".obj");
+
+                fs::path obj_filename(int_to_padded_str(current_frame) + "_surface_faces.obj");
                 igl::writeOBJ((obj_dir /obj_filename).string(), newV, F);
+
+                if(config["integrator_config"]["use_reduced_energy"]) {
+                    fs::path tet_obj_filename(int_to_padded_str(current_frame) + "_sample_tets.obj");
+                    igl::writeOBJ((obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
+                }
             }
             current_frame++;
         }
@@ -1312,36 +1293,38 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
     viewer.callback_mouse_down = [&](igl::viewer::Viewer&, int, int)->bool
     {   
-        Eigen::MatrixXd curV = getCurrentVertPositions(world, tets); 
-        last_mouse = Eigen::RowVector3f(viewer.current_mouse_x,viewer.core.viewport(3)-viewer.current_mouse_y,0);
-        
-        // Find closest point on mesh to mouse position
-        int fid;
-        Eigen::Vector3f bary;
-        if(igl::unproject_onto_mesh(
-            last_mouse.head(2),
-            viewer.core.view * viewer.core.model,
-            viewer.core.proj, 
-            viewer.core.viewport, 
-            curV, F, 
-            fid, bary))
-        {
-            long c;
-            bary.maxCoeff(&c);
-            dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.001,0.0,0.0); //Epsilon offset so we don't div by 0
-            mesh_pos = curV.row(F(fid,c));
-            dragged_vert = F(fid,c);
-            is_dragging = true;
+        if(!PLAYBACK_SIM) {
+            Eigen::MatrixXd curV = getCurrentVertPositions(world, tets); 
+            last_mouse = Eigen::RowVector3f(viewer.current_mouse_x,viewer.core.viewport(3)-viewer.current_mouse_y,0);
+            
+            // Find closest point on mesh to mouse position
+            int fid;
+            Eigen::Vector3f bary;
+            if(igl::unproject_onto_mesh(
+                last_mouse.head(2),
+                viewer.core.view * viewer.core.model,
+                viewer.core.proj, 
+                viewer.core.viewport, 
+                curV, F, 
+                fid, bary))
+            {
+                long c;
+                bary.maxCoeff(&c);
+                dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.001,0.0,0.0); //Epsilon offset so we don't div by 0
+                mesh_pos = curV.row(F(fid,c));
+                dragged_vert = F(fid,c);
+                is_dragging = true;
 
 
-            // forceSpring->getImpl().setStiffness(spring_stiffness);
-            // auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
-            // pinned_q = dragged_pos;//(dragged_pos).cast<double>(); // necessary?
+                // forceSpring->getImpl().setStiffness(spring_stiffness);
+                // auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
+                // pinned_q = dragged_pos;//(dragged_pos).cast<double>(); // necessary?
 
-            // fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl().getV());
-            // forceSpring->getImpl().setPosition0(fem_attached_pos);
+                // fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl().getV());
+                // forceSpring->getImpl().setPosition0(fem_attached_pos);
 
-            return true;
+                return true;
+            }
         }
         
         return false; // TODO false vs true??
@@ -1349,39 +1332,42 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
     viewer.callback_mouse_up = [&](igl::viewer::Viewer&, int, int)->bool
     {
-        is_dragging = false;
+        if(!PLAYBACK_SIM) {
+            is_dragging = false;
+        }
         return false;
     };
 
     viewer.callback_mouse_move = [&](igl::viewer::Viewer &, int,int)->bool
     {
-        Eigen::MatrixXd curV = getCurrentVertPositions(world, tets);
-        if(is_dragging) {
-            Eigen::RowVector3f drag_mouse(
-                viewer.current_mouse_x,
-                viewer.core.viewport(3) - viewer.current_mouse_y,
-                last_mouse(2));
+        if(!PLAYBACK_SIM) {
+            Eigen::MatrixXd curV = getCurrentVertPositions(world, tets);
+            if(is_dragging) {
+                Eigen::RowVector3f drag_mouse(
+                    viewer.current_mouse_x,
+                    viewer.core.viewport(3) - viewer.current_mouse_y,
+                    last_mouse(2));
 
-            Eigen::RowVector3f drag_scene,last_scene;
+                Eigen::RowVector3f drag_scene,last_scene;
 
-            igl::unproject(
-                drag_mouse,
-                viewer.core.view*viewer.core.model,
-                viewer.core.proj,
-                viewer.core.viewport,
-                drag_scene);
-            igl::unproject(
-                last_mouse,
-                viewer.core.view*viewer.core.model,
-                viewer.core.proj,
-                viewer.core.viewport,
-                last_scene);
+                igl::unproject(
+                    drag_mouse,
+                    viewer.core.view*viewer.core.model,
+                    viewer.core.proj,
+                    viewer.core.viewport,
+                    drag_scene);
+                igl::unproject(
+                    last_mouse,
+                    viewer.core.view*viewer.core.model,
+                    viewer.core.proj,
+                    viewer.core.viewport,
+                    last_scene);
 
-            dragged_pos += ((drag_scene-last_scene)*4.5).cast<double>(); //TODO why do I need to fine tune this
-            mesh_pos = curV.row(dragged_vert);
-            last_mouse = drag_mouse;
+                dragged_pos += ((drag_scene-last_scene)*4.5).cast<double>(); //TODO why do I need to fine tune this
+                mesh_pos = curV.row(dragged_vert);
+                last_mouse = drag_mouse;
+            }
         }
-
         return false;
     };
 
@@ -1519,8 +1505,21 @@ const std::string currentDateTime() {
 int main(int argc, char **argv) {
     
     // Load the configuration file
+    if(argc < 2) {
+        std::cout << "Expected model root." << std::endl;
+    }
+
     fs::path model_root(argv[1]);
     fs::path sim_config("sim_config.json");
+
+    if(argc == 3) {
+        fs::path sim_recording_path(argv[2]);
+        std::ifstream recording_fin(sim_recording_path.string());
+
+        recording_fin >> sim_playback_json;
+        PLAYBACK_SIM = true;
+    }
+
 
     std::ifstream fin((model_root / sim_config).string());
     json config;

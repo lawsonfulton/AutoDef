@@ -132,18 +132,19 @@ def main():
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
             'ae_decoded_dim': config['learning_config']['autoencoder_config']['pca_layer_dim'], # Shouldn't be change. Kind of a hack.
-            'timestep': 0.05,
-            'finite_diff_eps': 0.0005,
+            'timestep': 0.01,
+            'finite_diff_eps': 0.00005,
             'lbfgs_config': {
                 'lbfgs_max_iterations': 150,
-                'lbfgs_epsilon': 1e-3,
+                'lbfgs_epsilon': 1e-4,
+                'lbfgs_m': 8,
             },
             'gravity': -9.8,
         },
 
         'visualization_config' : {
             'show_stress': False,
-            'interaction_spring_stiffness': 1e5,
+            'interaction_spring_stiffness': 1e4,
         },
     }
     with open(os.path.join(model_root, 'sim_config.json'), 'w') as f:

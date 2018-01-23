@@ -36,6 +36,7 @@ def autoencoder_analysis(
     do_fine_tuning=False,
     model_root=None,
     autoencoder_config=None,
+    callback=None,
     ): # TODO should probably just pass in both configs here 
     """
     Returns and encoder and decoder for going into and out of the reduced latent space.
@@ -120,7 +121,7 @@ def autoencoder_analysis(
     optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
     autoencoder.compile(
         optimizer=optimizer,
-        loss='mean_squared_error'
+        loss='mean_squared_error',
     )
 
     hist = History()
@@ -132,10 +133,11 @@ def autoencoder_analysis(
         batch_size=batch_size,
         shuffle=True,
         validation_data=(test_data, test_data),
-        callbacks=[hist]
+        callbacks=[hist, callback]
         )
 
-    print("Total training time: ", time.time() - model_start_time)
+    training_time = time.time() - model_start_time
+    print("Total training time: ", training_time)
     
     autoencoder,encoder, decoder = my_utils.decompose_ae(autoencoder, do_energy=False)
 
@@ -155,10 +157,6 @@ def autoencoder_analysis(
             keras_model_file = os.path.join(keras_models_dir, name + ".hdf5")
             keras_model.save(keras_model_file)  # Save the keras model
 
-        history_path = os.path.join(keras_models_dir, "training_history.json")
-        with open(history_path, 'w') as f:
-            json.dump(hist.history, f, indent=2)
-
         print ("Finished saving model.")
 
     def encode(decoded_data):
@@ -166,7 +164,7 @@ def autoencoder_analysis(
     def decode(encoded_data):
         return unflatten_data(denormalize(decoder.predict(encoded_data)))
 
-    return encode, decode, hist
+    return encode, decode, training_time
 
 def pca_analysis(data, n_components, plot_explained_variance=False):
     """ Returns and encoder and decoder for projecting into and out of the PCA reduced space """
@@ -252,10 +250,14 @@ def build_energy_model(model_root, energy_model_config):
     # print(energies[100])
     energies_test = flatten_data(energies_test)
 
+    if not os.path.exists(os.path.join(base_path, 'pca_results/')):
+        os.makedirs(os.path.join(base_path, 'pca_results/'))
     basis_path = os.path.join(base_path, 'pca_results/energy_pca_components.dmat')
     tet_path = os.path.join(base_path, 'pca_results/energy_indices.dmat')
     start = time.time()
     basis_opt(
+        energy_model_config,
+        model_root,
         basis_path,
         tet_path,
         energies,
@@ -269,7 +271,8 @@ def build_energy_model(model_root, energy_model_config):
     print("Energy optimization took", time.time() - start)
 
 
-def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_dim, num_tets, do_save, target_mins=0.5, brute_force_its=100):#scale=1.0, tmax=60.0, tmin=0.0005, n_steps=10000):
+def basis_opt(energy_model_config, model_root, basis_output_path, index_output_path, samples, samples_test, pca_dim, num_tets, do_save, target_mins=0.5, brute_force_its=100):#scale=1.0, tmax=60.0, tmin=0.0005, n_steps=10000):
+    start = time.time()
     n_tets_sampled = num_tets
     # energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(samples, pca_dim)
     U, explained_variance_ratio, encode, decode = pca_no_centering(samples, pca_dim)
@@ -300,6 +303,8 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
     UTE = U.transpose() @ Es.T
     U_sum = numpy.sum(U, axis=0)
     
+    training_log = {'best_energy': []}
+
     # sol = numpy.linalg.solve(U_bar.T @ U_bar, U_bar.T)
     # x = sol[0]
     # E_stars = (U_sum.T @ x) @ E_bars
@@ -345,20 +350,20 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
             min_mse = completion_mse
             best_sample = tet_sample
             print('min mse (minus constant):', min_mse)
+
+        training_log['best_energy'].append(min_mse)
     a = best_sample
 
     ## start of anneal (comment out optionally)
     from simanneal import Annealer
     class Problem(Annealer):
         # pass extra data (the distance matrix) into the constructor
-        def __init__(self, state):
+        def __init__(self, state, min_mse):
             super(Problem, self).__init__(state)  # important!
+            self.min_mse = min_mse
 
         def move(self):
-            """Swaps two cities in the route."""
-            # a = random.randint(0, len(self.state) - 1)
-            # b = random.randint(0, len(self.state) - 1)
-            # self.state[a], self.state[b] = self.state[b], self.state[a]
+            # TODO perhaps a better state transition would be to swap in neighboring tets
 
             #self.state = numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
             for _ in range(1):
@@ -393,19 +398,23 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
                 
                 E_stars = (U_sum.T @ sol) @ E_bars.T
                 completion_mse = mean_squared_error(E_stars, Es_summed)
-            # print(completion_mse)
-            return completion_mse
+            
+            if completion_mse < self.min_mse:
+                self.min_mse = completion_mse
+            training_log['best_energy'].append(self.min_mse) 
+
+            return completion_mse * 1000000.0
 
     init_state = a #numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
-    prob = Problem(init_state)
+    prob = Problem(init_state, min_mse)
     
-    # prob.Tmax = tmax  # Max (starting) temperature
-    # prob.Tmin = tmin      # Min (ending) temperature
-    # prob.steps = n_steps   # Number of iterations
-    # prob.updates = n_steps / 100 
+    prob.Tmax = 1 #tmax  # Max (starting) temperature
+    prob.Tmin = 0.00001#tmin      # Min (ending) temperature
+    prob.steps = 10000 #n_steps   # Number of iterations
+    prob.updates = prob.steps / 100 
     print("\nDetermining annealing schedule...")
-    auto_schedule = prob.auto(minutes=target_mins, steps=20) 
-    prob.set_schedule(auto_schedule)
+    # auto_schedule = prob.auto(minutes=target_mins, steps=20) 
+    # prob.set_schedule(auto_schedule)
 
     print("\nRunning simulated annealing...")
     a, b = prob.anneal()
@@ -423,8 +432,16 @@ def basis_opt(basis_output_path, index_output_path, samples, samples_test, pca_d
     print()
     ######## End of anneal
 
+    training_log["final_tets"] = a.tolist()
+    training_log["final_mse"] = completion_mse
+    training_log["pca_mse"] = pca_train_mse
+    training_log["config"] = energy_model_config
+    training_log["total_time"] = time.time() - start
+
     if do_save:
         my_utils.save_numpy_mat_to_dmat(index_output_path, numpy.ascontiguousarray(numpy.array(a,dtype=numpy.int32)))
+        with open(os.path.join(model_root, 'energy_training_history.json'), 'w') as f:
+            json.dump(training_log, f, indent=2)
 
 
 
@@ -435,7 +452,8 @@ def generate_model(
     autoencoder_config = learning_config['autoencoder_config']
     energy_model_config = learning_config['energy_model_config']
     save_objs = learning_config['save_objs']
-    train_in_full_space = True
+    train_in_full_space = False
+    record_full_mse_each_epoch = False
 
     training_data_path = os.path.join(model_root, 'training_data/training')
     validation_data_path = os.path.join(model_root, 'training_data/validation')
@@ -463,8 +481,6 @@ def generate_model(
     layers = autoencoder_config['non_pca_layer_sizes']
     do_fine_tuning = autoencoder_config['do_fine_tuning']
     activation = autoencoder_config['activation']
-    train_autoencoder = True
-    train_in_pca_space = False
     save_pca_components = True
     save_autoencoder = True
 
@@ -504,7 +520,10 @@ def generate_model(
 
 
     # High dim pca to train autoencoder
+    pca_start_time = time.time()
     U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
+    pca_train_time = time.time() - pca_start_time
+
     if train_in_full_space:
         high_dim_pca_encode = lambda x: x
         high_dim_pca_decode = lambda x: x
@@ -514,10 +533,39 @@ def generate_model(
     else:
         encoded_high_dim_pca_test_displacements = None
 
+    from keras.callbacks import Callback 
+    class MyHistoryCallback(Callback):
+        """Callback that records events into a `History` object.
+        This callback is automatically applied to
+        every Keras model. The `History` object
+        gets returned by the `fit` method of models.
+        """
+
+        def on_train_begin(self, logs=None):
+            self.epoch = []
+            self.history = {}
+
+        def on_epoch_end(self, epoch, logs=None):
+            if record_full_mse_each_epoch:
+                mse = mean_squared_error(high_dim_pca_decode(self.model.predict(encoded_high_dim_pca_displacements)), displacements)
+                val_mse = mean_squared_error(high_dim_pca_decode(self.model.predict(encoded_high_dim_pca_test_displacements)), test_displacements)
+                self.history.setdefault('mse', []).append(mse)
+                self.history.setdefault('val_mse', []).append(val_mse)
+                print()
+                print("Mean squared error: ", mse)
+                print("Val Mean squared error: ", val_mse)
+
+            logs = logs or {}
+            self.epoch.append(epoch)
+            for k, v in logs.items():
+                self.history.setdefault(k, []).append(v)
+
+    my_hist_callback = MyHistoryCallback()
+
     ae_pca_basis_path = os.path.join(model_root, 'pca_results/ae_pca_components.dmat')
     print('Saving pca results to', ae_pca_basis_path)
     my_utils.save_numpy_mat_to_dmat(ae_pca_basis_path, numpy.ascontiguousarray(U_ae))
-    ae_encode, ae_decode, hist = autoencoder_analysis(
+    ae_encode, ae_decode, ae_train_time = autoencoder_analysis(
                                     # displacements, # Uncomment to train in full space
                                     # test_displacements, 
                                     encoded_high_dim_pca_displacements,
@@ -531,6 +579,7 @@ def generate_model(
                                     do_fine_tuning=do_fine_tuning,
                                     model_root=model_root,
                                     autoencoder_config=autoencoder_config,
+                                    callback=my_hist_callback,
                                 )
 
     # decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
@@ -544,9 +593,15 @@ def generate_model(
         training_results['autoencoder']['validation-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements))
 
     print('Finale ae training MSE:', ae_training_mse)
+    training_results['autoencoder']['ae_training_time_s'] = ae_train_time
+    training_results['autoencoder']['pca_training_time_s'] = pca_train_time
     # TODO output energy loss as well
     with open(os.path.join(model_root, 'training_results.json'), 'w') as f:
         json.dump(training_results, f, indent=2)
+
+    history_path = os.path.join(model_root, "training_history.json")
+    with open(history_path, 'w') as f:
+        json.dump(my_hist_callback.history, f, indent=2)
 
     if save_objs:
         print("Saving objs of decoded training data...")

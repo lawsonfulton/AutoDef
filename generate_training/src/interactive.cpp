@@ -11,6 +11,7 @@
 #include <TimeStepperEulerImplicit.h>
 #include <AssemblerParallel.h>
 
+#include <igl/get_seconds.h>
 #include <igl/writeDMAT.h>
 #include <igl/viewer/Viewer.h>
 #include <igl/readMESH.h>
@@ -38,7 +39,7 @@ typedef World<double,
                         std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
                         std::tuple<ForceSpringFEMParticle<double> *>,
                         std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
-typedef TimeStepperEulerImplicitLinear<double, AssemblerEigenSparseMatrix<double>,
+typedef TimeStepperEulerImplicit<double, AssemblerEigenSparseMatrix<double>,
  AssemblerEigenVector<double> > MyTimeStepper;
 
 // Mesh
@@ -88,7 +89,7 @@ void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, Neoho
 
     std::cout << "Saved " << displacements_filename.str() << std::endl;
     std::cout << "Saved " << energy_filename.str() << std::endl;
-    std::cout << "Saved " << force_filename.str() << std::endl;
+    // std::cout << "Saved " << force_filename.str() << std::endl;
 }
 
 void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
@@ -144,12 +145,12 @@ int main(int argc, char **argv) {
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
     world.addSystem(tets);
-    fixDisplacementMin(world, tets, 0);
+    fixDisplacementMin(world, tets, 1);
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
 
     reset_world(world);
 
-    MyTimeStepper stepper(0.05);
+    MyTimeStepper stepper(0.05, 10);
     stepper.step(world);
 
     if(saving_training_data) {
@@ -158,7 +159,7 @@ int main(int argc, char **argv) {
 
     /** libigl display stuff **/
     igl::viewer::Viewer viewer;
-
+    double tot_time = 0.0;
     viewer.callback_pre_draw = [&](igl::viewer::Viewer & viewer)
     {
         // predefined colors
@@ -192,7 +193,11 @@ int main(int argc, char **argv) {
             if(saving_training_data) {
                 save_displacements_DMAT_and_energy(current_frame, world, tets, mouse_json);
             }
+            double start = igl::get_seconds();
             stepper.step(world);
+            tot_time += igl::get_seconds() - start;
+
+
 
             Eigen::MatrixXd newV = getCurrentVertPositions(world, tets);
             // std::cout<< newV.block(0,0,10,3) << std::endl;
@@ -200,6 +205,7 @@ int main(int argc, char **argv) {
             viewer.data.compute_normals();
 
             current_frame++;
+            std::cout << "Average timestep: " << (tot_time / current_frame) << std::endl;
         }
         return false;
     };

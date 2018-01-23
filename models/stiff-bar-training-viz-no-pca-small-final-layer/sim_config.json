@@ -10,9 +10,9 @@
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": false,
     "use_preconditioner": true,
-    "pca_dim": 3,
-    "ae_encoded_dim": 3,
-    "ae_decoded_dim": 10,
+    "pca_dim": 4,
+    "ae_encoded_dim": 4,
+    "ae_decoded_dim": 20,
     "timestep": 0.05,
     "finite_diff_eps": 0.0005,
     "lbfgs_config": {
