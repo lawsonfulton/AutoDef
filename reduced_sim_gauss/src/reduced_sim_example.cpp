@@ -1379,7 +1379,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     viewer.core.invert_normals = true;
     viewer.core.is_animating = false;
     viewer.data.face_based = false;
-    viewer.core.line_width = 5;
+    viewer.core.line_width = 2;
 
     viewer.core.background_color = Eigen::Vector4f(1.0, 1.0, 1.0, 1.0);
     viewer.core.shininess = 120.0;

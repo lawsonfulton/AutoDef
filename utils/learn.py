@@ -403,7 +403,7 @@ def basis_opt(energy_model_config, model_root, basis_output_path, index_output_p
                 self.min_mse = completion_mse
             training_log['best_energy'].append(self.min_mse) 
 
-            return completion_mse * 1000000.0
+            return completion_mse #* 1000000.0
 
     init_state = a #numpy.random.choice(U.shape[0], n_tets_sampled, replace=False)
     prob = Problem(init_state, min_mse)
