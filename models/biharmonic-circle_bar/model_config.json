@@ -1,0 +1,32 @@
+{
+  "mesh": "../meshes/Coarse_beam.mesh",
+
+  "training_dataset": "../training_data/biharmonic_bar_circle/training",
+  "validation_dataset": "",
+
+  "learning_config": {
+    "save_objs": false,
+    "skip_training": false,
+    "skip_jacobian": false,
+    "autoencoder_config": {
+      "pca_compare_dims": [6, 10, 20],
+
+      "pca_layer_dim": 20,
+      "non_pca_layer_sizes": [200, 200],
+      "ae_encoded_dim": 2,
+      "activation": "elu",
+
+      "batch_size": 1000,
+      "training_epochs": 1000,
+      "do_fine_tuning": false,
+      "loss_weight": 1.0
+    },
+    "energy_model_config": {
+      "enabled": false,
+      "pca_dim": 60,
+      "num_sample_tets": 150,
+      "brute_force_iterations": 100,
+      "target_anneal_mins": 5
+    }
+  }
+}

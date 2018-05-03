@@ -7,8 +7,10 @@
     "poissons_ratio": 0.45
   },
   "integrator_config": {
-    "reduced_space_type": "linear",
+    "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
+    "reduced_energy_method": "pcr",
+    "use_analytic_jac": true,
     "use_preconditioner": true,
     "pca_dim": 20,
     "ae_encoded_dim": 20,

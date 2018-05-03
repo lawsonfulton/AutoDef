@@ -1,0 +1,33 @@
+{
+  "mesh": "./models/arap-circle_bar/tets.mesh",
+  "logging_enabled": false,
+  "material_config": {
+    "density": 1000.0,
+    "youngs_modulus": 1000000.0,
+    "poissons_ratio": 0.45
+  },
+  "integrator_config": {
+    "reduced_space_type": "autoencoder",
+    "use_reduced_energy": false,
+    "reduced_energy_method": "pcr",
+    "use_analytic_jac": true,
+    "use_preconditioner": true,
+    "pca_dim": 6,
+    "ae_encoded_dim": 2,
+    "ae_decoded_dim": 20,
+    "timestep": 0.1,
+    "finite_diff_eps": 5e-05,
+    "lbfgs_config": {
+      "lbfgs_max_iterations": 15,
+      "lbfgs_epsilon": 0.0001,
+      "lbfgs_m": 8
+    },
+    "gravity": -9.8
+  },
+  "visualization_config": {
+    "show_stress": false,
+    "show_energy": false,
+    "interaction_spring_stiffness": 100000.0,
+    "full_space_constrained_axis": 1
+  }
+}

@@ -4,6 +4,194 @@
 		"selected_items":
 		[
 			[
+				"full",
+				"full_space_Vs"
+			],
+			[
+				"ae",
+				"ae_pcr_V"
+			],
+			[
+				"ful",
+				"full_space_Vs"
+			],
+			[
+				"fu",
+				"full_space_Vs"
+			],
+			[
+				"aer_",
+				"ae_pcr_Vs"
+			],
+			[
+				"file",
+				"filenames"
+			],
+			[
+				"full_s",
+				"full_space_path"
+			],
+			[
+				"m_H",
+				"m_H_llt"
+			],
+			[
+				"Matrix",
+				"MatrixXd"
+			],
+			[
+				"au",
+				"auto"
+			],
+			[
+				"red",
+				"reduced_space"
+			],
+			[
+				"comp",
+				"compute_reduced_mass_matrix"
+			],
+			[
+				"out",
+				"outer_jacobian"
+			],
+			[
+				"aut",
+				"auto"
+			],
+			[
+				"Red",
+				"ReducedSpaceType"
+			],
+			[
+				"sub",
+				"sub_q"
+			],
+			[
+				"Vec",
+				"VectorXd"
+			],
+			[
+				"prev",
+				"prev_z"
+			],
+			[
+				"cur",
+				"cur_z"
+			],
+			[
+				"m_cur",
+				"m_cur_sub_q"
+			],
+			[
+				"cu",
+				"cur_z"
+			],
+			[
+				"Spar",
+				"SparseMatrix"
+			],
+			[
+				"ty",
+				"typename"
+			],
+			[
+				"constr",
+				"construct_constraints_P"
+			],
+			[
+				"energy_model_d",
+				"energy_model_dir"
+			],
+			[
+				"energy",
+				"energy_method"
+			],
+			[
+				"energ",
+				"energy_method"
+			],
+			[
+				"new",
+				"new_U"
+			],
+			[
+				"dis",
+				"displacement"
+			],
+			[
+				"for",
+				"forv\tVector For Loop"
+			],
+			[
+				"mesh",
+				"mesh_path"
+			],
+			[
+				"tra",
+				"training_data_root"
+			],
+			[
+				"ar",
+				"argv"
+			],
+			[
+				"Spa",
+				"SparseMatrix"
+			],
+			[
+				"make",
+				"makeCompressed"
+			],
+			[
+				"spar",
+				"sparse_sampled_force"
+			],
+			[
+				"sap",
+				"sparse_sampled_force"
+			],
+			[
+				"res",
+				"reserve"
+			],
+			[
+				"samn",
+				"sampled_energy"
+			],
+			[
+				"sam",
+				"sampled_force"
+			],
+			[
+				"row",
+				"rows"
+			],
+			[
+				"m_s",
+				"m_sub_q_size"
+			],
+			[
+				"Matr",
+				"MatrixXd"
+			],
+			[
+				"samp",
+				"sampled_energy"
+			],
+			[
+				"sub_q",
+				"sub_q_tensor"
+			],
+			[
+				"n",
+				"name"
+			],
+			[
+				"grad",
+				"grad_ys"
+			],
+			[
 				"tet",
 				"tet_indices"
 			],
@@ -28,16 +216,8 @@
 				"frame_str"
 			],
 			[
-				"cu",
-				"current_frame"
-			],
-			[
 				"drag",
 				"dragged_vert"
-			],
-			[
-				"row",
-				"row"
 			],
 			[
 				"mATRI",
@@ -84,10 +264,6 @@
 				"m_use_reduced_energy"
 			],
 			[
-				"Matrix",
-				"MatrixXi"
-			],
-			[
 				"no",
 				"no_pca_mse"
 			],
@@ -110,10 +286,6 @@
 			[
 				"ae_tra",
 				"ae_train_time"
-			],
-			[
-				"au",
-				"autoencoder"
 			],
 			[
 				"tringi",
@@ -172,18 +344,6 @@
 				"precondition_start_time"
 			],
 			[
-				"prev",
-				"prev_sub_q"
-			],
-			[
-				"energ",
-				"energy_start_time"
-			],
-			[
-				"new",
-				"newV"
-			],
-			[
 				"sim_lo",
 				"sim_log_path"
 			],
@@ -222,10 +382,6 @@
 			[
 				"inte",
 				"integrator_config"
-			],
-			[
-				"mesh",
-				"mesh_pos"
 			],
 			[
 				"drage",
@@ -268,10 +424,6 @@
 				"m_UT_F_ext"
 			],
 			[
-				"Spar",
-				"SparseVector"
-			],
-			[
 				"subq",
 				"sub_q_outputs"
 			],
@@ -296,10 +448,6 @@
 				"explained_var"
 			],
 			[
-				"sam",
-				"samples_test"
-			],
-			[
 				"ener",
 				"energy_model_config"
 			],
@@ -322,10 +470,6 @@
 			[
 				"m_cu",
 				"m_cur_z"
-			],
-			[
-				"out",
-				"outer_jacobian"
 			],
 			[
 				"re",
@@ -370,319 +514,25 @@
 			[
 				"inner",
 				"inner_jac"
-			],
-			[
-				"sub",
-				"sub_jac"
-			],
-			[
-				"matr",
-				"MatrixXd"
-			],
-			[
-				"sub_q",
-				"sub_q_tilde"
-			],
-			[
-				"con",
-				"const"
-			],
-			[
-				"dz_",
-				"dz_pos"
-			],
-			[
-				"de",
-				"decode"
-			],
-			[
-				"read",
-				"readDMAT"
-			],
-			[
-				"tf_",
-				"tf_models_root"
-			],
-			[
-				"encoded_hi",
-				"encoded_high_dim_pca_test_displacements"
-			],
-			[
-				"tran",
-				"transpose"
-			],
-			[
-				"pca_d",
-				"pca_dim"
-			],
-			[
-				"compo",
-				"components"
-			],
-			[
-				"svd",
-				"svd_flip"
-			],
-			[
-				"valid",
-				"validation_in"
-			],
-			[
-				"finit",
-				"finite_diff_eps"
-			],
-			[
-				"jac",
-				"jacobian"
-			],
-			[
-				"M",
-				"M_J_z"
-			],
-			[
-				"z",
-				"z_tilde"
-			],
-			[
-				"ex",
-				"external_forces"
-			],
-			[
-				"M_",
-				"M_q_tilde"
-			],
-			[
-				"q",
-				"q_tilde"
-			],
-			[
-				"force",
-				"forces"
-			],
-			[
-				"Vector",
-				"VectorXd"
-			],
-			[
-				"m_for",
-				"m_summed_force_fact"
-			],
-			[
-				"redc",
-				"reduced_energy_grad"
-			],
-			[
-				"m_si",
-				"m_summed_force_basis"
-			],
-			[
-				"summ",
-				"summed_energy"
-			],
-			[
-				"base_",
-				"base_path"
-			],
-			[
-				"mous",
-				"mouse_state"
-			],
-			[
-				"is",
-				"is_dragging"
-			],
-			[
-				"mou",
-				"mouse_state"
-			],
-			[
-				"mosu",
-				"mouse_state"
-			],
-			[
-				"mt",
-				"m_total_time"
-			],
-			[
-				"m_cur",
-				"m_current_frame"
-			],
-			[
-				"up",
-				"update_time"
-			],
-			[
-				"int",
-				"internal_force_2"
 			]
 		]
 	},
 	"buffers":
 	[
 		{
-			"file": "generate_training/src/interactive.cpp",
-			"settings":
-			{
-				"buffer_size": 11532,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "meshes/Fine_beam.mesh",
-			"settings":
-			{
-				"buffer_size": 207684,
-				"line_ending": "Unix"
-			}
-		},
-		{
 			"file": "reduced_sim_gauss/src/reduced_sim_example.cpp",
 			"settings":
 			{
-				"buffer_size": 58406,
+				"buffer_size": 68096,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"contents": "",
-			"file": "models/31k-dragon-10dof-smaller-layers/sim_config.json",
-			"file_size": 659,
-			"file_write_time": 131611206501727951,
+			"file": "generate_training/src/interactive.cpp",
 			"settings":
 			{
-				"buffer_size": 0,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/30k-armadillo-waist/sim_config.json",
-			"settings":
-			{
-				"buffer_size": 684,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "build-model.py",
-			"settings":
-			{
-				"buffer_size": 6016,
-				"encoding": "UTF-8",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/fd_interpolate.cpp",
-			"settings":
-			{
-				"buffer_size": 403,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/fd_partial_derivative.cpp",
-			"settings":
-			{
-				"buffer_size": 368,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/poisson_surface_reconstruction.cpp",
-			"settings":
-			{
-				"buffer_size": 2297,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/31k-dragon-10dof/training_results.json",
-			"settings":
-			{
-				"buffer_size": 644,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/31k-dragon-10dof/energy_training_history.json",
-			"settings":
-			{
-				"buffer_size": 148564,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/31k-dragon-10dof-best/energy_training_history.json",
-			"settings":
-			{
-				"buffer_size": 296132,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/30k-armadillo-waist/simulation_logs/2018-01-22.22:55:12/sim_stats.json",
-			"settings":
-			{
-				"buffer_size": 483634,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "utils/my_utils.py",
-			"settings":
-			{
-				"buffer_size": 6393,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/31k-dragon-10dof-best/tets.mesh",
-			"settings":
-			{
-				"buffer_size": 3759517,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/46k-dragon/training_results.json",
-			"settings":
-			{
-				"buffer_size": 552,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/46k-dragon/model_config.json",
-			"settings":
-			{
-				"buffer_size": 710,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/x-final/training_results.json",
-			"settings":
-			{
-				"buffer_size": 759,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/x-final/sim_config.json",
-			"settings":
-			{
-				"buffer_size": 668,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "figure data/rough_vs_smooth/plot.py",
-			"settings":
-			{
-				"buffer_size": 790,
+				"buffer_size": 11513,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -784,6 +634,43 @@
 	],
 	"file_history":
 	[
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/simple_pull/compare_error.py",
+		"/home/lawson/Workspace/research-experiments/deformation/learn_mesh.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/simple_pull/iglhelpers.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/regenerate_forces/src/interactive.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/compute_tf_jacobian_models.py",
+		"/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/fd_interpolate.cpp",
+		"/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/fd_partial_derivative.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof-best/energy_training_history.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/sim_config.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/rough_vs_smooth/plot.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/my_utils.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/training_results.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof-best/tets.mesh",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/46k-dragon/model_config.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/46k-dragon/training_results.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/30k-armadillo-waist/simulation_logs/2018-01-22.22:55:12/sim_stats.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof/energy_training_history.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof/training_results.json",
+		"/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/poisson_surface_reconstruction.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/regenerate_forces/CMakeLists.txt",
+		"/home/lawson/Workspace/research-experiments/fem-sim/reduced_sim_gauss/CMakeLists.txt",
+		"/home/lawson/Workspace/cubacode/cmake/FindLIBIGL.cmake",
+		"/home/lawson/Workspace/research-experiments/fem-sim/build-model.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/iglhelpers.py",
+		"/home/lawson/Downloads/sinkhorn_operator.ipynb",
+		"/home/lawson/Workspace/LBFGSpp/include/LBFGS.h",
+		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/src/interactive.cpp",
+		"/home/lawson/Workspace/cubacode/CMakeLists.txt",
+		"/home/lawson/Workspace/cubacode/main.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/Fine_beam.mesh",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-with-forces/sim_config.json",
+		"/home/lawson/Workspace/scf-site/www/2017.html",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/my_keras_to_tensorflow.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/30k-armadillo-waist/sim_config.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof-smaller-layers/sim_config.json",
+		"/home/lawson/Workspace/tensorflow_cc/README.md",
+		"/home/lawson/Workspace/scf-site/www/index.html",
 		"/home/lawson/Workspace/research-experiments/fem-sim/utils/learn.py",
 		"/home/lawson/recordings/renders/dragon_original/0.obj",
 		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/stiff-bar/training/parameters.json",
@@ -817,9 +704,7 @@
 		"/home/lawson/Workspace/GAUSS/src/Base/include/ConstraintFixedPoint.h",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.13:56:14/sim_stats.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.13:55:42/sim_stats.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/reduced_sim_gauss/CMakeLists.txt",
 		"/home/lawson/Workspace/research-experiments/.gitignore",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/my_keras_to_tensorflow.py",
 		"/home/lawson/Workspace/research-experiments/fem-sim/utils/convert_keras_models_to_tf.py",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.14:34:26/sim_stats.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.14:43:42/sim_stats.json",
@@ -829,22 +714,17 @@
 		"/home/lawson/Workspace/GAUSS/build/CMakeCache.txt",
 		"/home/lawson/Workspace/my_gauss_build_instructions.txt",
 		"/home/lawson/Workspace/GAUSS/config.cmake",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/my_utils.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/build-model.py",
 		"/home/lawson/Workspace/AutodefPaper/.gitignore",
-		"/home/lawson/Workspace/LBFGSpp/include/LBFGS.h",
 		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/CMakeLists.txt",
 		"/home/lawson/Workspace/GAUSS/src/Examples/CMakeLists.txt",
 		"/home/lawson/Workspace/GAUSS/cmake/FindPardiso.cmake",
 		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/coarse-armadillo/training/displacements_109.dmat",
 		"/home/lawson/Downloads/interactive.cpp",
 		"/opt/anaconda3/lib/python3.6/site-packages/simanneal/anneal.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/compute_tf_jacobian_models.py",
 		"/home/lawson/Downloads/PCAIntegration.m",
 		"/home/lawson/.keras/keras.json",
 		"/opt/anaconda3/lib/python3.6/site-packages/tensorflow_forward_ad/fwgrad.py",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/iglhelpers.py",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-with-forces-smaller/training_results.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-with-forces-smaller/model_config.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/sim_config.json",
@@ -859,7 +739,6 @@
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy/sim_config.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/keras_models/training_history.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/sim_config.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/src/interactive.cpp",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy/training_data/training/energy-modified.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/build/energy.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/model_config.json",
@@ -882,36 +761,7 @@
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/relu-baseline-test/keras_models/training_history.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/__init__.py",
 		"/home/lawson/Workspace/research-experiments/fem-sim/convert_keras_models_to_tf.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/my_utils.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/learn.py",
-		"/home/lawson/Workspace/research-experiments/box-auto-enc/animation_model.py",
-		"/home/lawson/Workspace/research-experiments/box-auto-enc/anim.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/visualize_model_quality.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/scripts/my_utils.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/__init__.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/scripts/__init__.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/compute_tf_jacobian_models.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/relu-baseline/model_info.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/relu-baseline/training_data/simulation_parameters.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/fixed_material_model/params.txt",
-		"/home/lawson/Workspace/research-experiments/fem-sim/reduced_sim_gauss/configs/test.json\\",
-		"/home/lawson/Workspace/json/README.md",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/baseline_relu_ae_encoded.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/baseline_relu_pca_encoded.json",
-		"/home/lawson/Workspace/csc2521-fabrication/Project/final paper/submit/executable/README",
-		"/home/lawson/Workspace/libigl/include/igl/colormap.cpp",
-		"/home/lawson/Workspace/csc2521-fabrication/Project/final paper/submit/code/executable/bin/README",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/baseline_history.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/fixed_material_model/test_jac.pb",
-		"/home/lawson/Workspace/GAUSS/src/Collisions/include/CollisionDetector.h",
-		"/home/lawson/Workspace/GAUSS/src/Base/include/UtilitiesBase.h",
-		"/home/lawson/Workspace/GAUSS/src/Base/include/World.h",
-		"/home/lawson/Workspace/research-experiments/fem-sim/my_keras_to_tensorflow.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/throwaway_test.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/fixed_material_model/test",
-		"/opt/anaconda3/lib/python3.6/site-packages/tensorflow_forward_ad/__init__.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/fixed_material_model/model_decoder.pb",
-		"/home/lawson/Workspace/research-experiments/fem-sim/events.out.tfevents.1513725683.ares"
+		"/home/lawson/Workspace/research-experiments/fem-sim/my_utils.py"
 	],
 	"find":
 	{
@@ -931,134 +781,134 @@
 		"case_sensitive": false,
 		"find_history":
 		[
-			"line",
-			"m_energy_sample_tets",
-			"12",
-			"force_fi",
-			"precond",
-			"pca_results",
-			"basis_opt",
-			"index_output_path",
-			"    \n",
-			"sstrea",
-			"int_to_padded_str",
-			"dragged_pos",
-			"snap_points",
-			"I",
-			"dragged_vert",
-			"PLAYBACK_SIM",
-			"LOGGING_ENABLED",
-			"sim_recording",
-			"sim_log",
-			"LOGGING_ENABLED",
-			"del_root / sample_tets_path).str",
-			"obj_filename",
-			"::slice",
-			"model_root / sample_tets_pa",
-			"slice",
-			"True",
-			"plot",
-			"no",
-			"hist",
-			"training_time",
-			"autoencoder_analysis",
-			"training_r",
-			"callback",
-			"hist",
-			"mse",
-			"train_autoencoder",
-			"train_in_pca_space",
-			"MyCallback",
-			"Callback",
-			"displacements",
-			"encoded_high_dim_pca_displacements",
-			"metric",
-			"autoencoder_analysis",
-			"callback",
-			"autoencoder_analysis",
-			"train_in_full_space",
-			"enumerate",
-			"displacements",
-			"directory",
-			"timestep_info",
-			"energy_time",
-			"energy_start_time",
-			"timestep_info",
-			"LOGGING_ENABLED",
-			"log_dir",
-			"current_frame",
-			";\n",
-			"step",
-			"t",
-			"step",
-			"current_frame",
-			";\n",
-			"current_frame",
-			"m_current_frame",
-			"sim_log",
-			"save_base_configurations_DMAT",
-			"save_displacements_DMAT",
-			"'",
-			"log_save_freq",
-			"sim_log",
-			"LOGGING_ENABLED",
-			"sim_log",
-			"log_ofstream",
-			"saving_training_data",
-			"stress",
-			"niter",
-			"orange",
-			"point",
-			"1000",
-			"mesh_pos",
-			"dragged_pos",
-			"mesh_pos",
-			"dragged_pos",
-			"CYAN",
-			"GOLD",
-			"CYAN_DIFFUSE",
-			"CYAN",
-			"GOLD",
-			"per_corner_normals",
-			"compute_norm",
-			"show_stress",
-			"is_dragging",
-			"normal",
-			"F",
-			"start",
-			"new_q",
-			"UT_forces",
-			"reduced_internal_forces",
-			"internal_forces",
-			"m_interaction_force",
-			"set_interaction_force",
-			"compute_interaction_force",
-			"U",
-			"MatrixXd m_U;",
-			"m_U",
-			"compute_interaction_force",
-			"interaction_force",
-			"VectorXd",
-			"set_interaction_force",
-			"m_interaction_force",
-			"SparseMatrix",
-			"m_interaction_force",
+			"poisso",
+			"pcr",
+			"eig",
+			"igl",
+			"surface",
+			"ae",
+			"ae_pcr_",
+			"ae",
+			"surface_obj_dir",
+			"obj_dir",
+			"m_drt",
+			"m_H_llt",
 			"m_UTMU",
-			"m_F_ext",
-			"compute_reduced_mass_matrix",
-			"m_decoder_session",
-			"convert_keras_models_to_tf",
-			"dz",
-			"inner_jacobian",
-			"activation",
-			"CMAKE_BUILD_TYPE",
-			"USE_OPENMP",
-			"PARDISO_DIR",
-			"openmp",
-			"DIRECTORY",
-			"GAUSS_LINK_DIR",
-			"PARDISO_DIR",
-			"LAPACK_DIR"
+			"reduced mass",
+			"decltype",
+			"MatrixXd",
+			"reduced mas",
+			"m_M",
+			"result_of",
+			"()",
+			"::type",
+			"result_of",
+			"()",
+			"decltype",
+			"ReducedSpaceType",
+			"auto",
+			"decltype",
+			"ReducedSpaceType",
+			"MatrixType",
+			"AutoEncoderSpaceImpl",
+			"AutoencoderSpace",
+			"ReducedSpaceType",
+			"MatrixXd",
+			"m_UTMU",
+			"UT_internal_forces",
+			"tf_time",
+			"m_cur_z",
+			"m_cur_sub_q",
+			"VectorXd",
+			"prev_sub_q",
+			"cur_sub_q",
+			"set_prev_zs",
+			"m_use_preconditioner",
+			"LinearSpaceImpl",
+			"SparseConstraintSpace",
+			"LinearSpaceImpl",
+			"SparseConstraintSpace",
+			"SparseMatrix",
+			"r",
+			"MatrixXd",
+			"LinearSpaceImpl",
+			"LinearSpace",
+			"readMESH",
+			"m",
+			"M",
+			"construct_constraints_P",
+			"dim",
+			"MatrixXd",
+			"LinearSpaceImpl",
+			"LinearSpace",
+			"tets->getImpl().getV()",
+			"tets",
+			"e",
+			"writeDMAT",
+			"Map",
+			"n:",
+			"Eigen",
+			"this_iteration_output_dir",
+			"slice",
+			"add_sys",
+			"Gauss_LIBS",
+			"getNumTotalPoints",
+			",",
+			",  ",
+			", ",
+			",  ",
+			"GenerateTrainingData",
+			"displacement_num",
+			"displacement_paths",
+			"cand_path",
+			"directory_iterator",
+			"test",
+			"substr",
+			"config",
+			"sim_params",
+			"boos",
+			"m_neg_energy_sample_jac",
+			"neg_energy_sample_jac",
+			"vert_index",
+			"T",
+			"current_reduced_energy_and_forces",
+			"fwd_gradients",
+			"fd_jac",
+			"vjp",
+			"zs",
+			"z.size()",
+			"sub_jac",
+			"use_analytic_vjp",
+			"m_use_analytic_vjp",
+			"m_decoder_jvp_session",
+			"decoder_jvp_graph_def",
+			"vjp",
+			"sub_q",
+			"generate_jacobian_for_tf_model",
+			"generate_vjp",
+			"generate_jacobian_for_tf_model",
+			"vjp",
+			"vjp_output_path",
+			"vjp",
+			"jacobian_transpose_vector_product",
+			"jtvp",
+			"m_summed_force_fact",
+			"m_energy_sampled_basis_qr",
+			"m_summed_force_fact",
+			"A",
+			"m_summed_energy_basis",
+			"current_reduced_energy_and_forces",
+			"J",
+			"z",
+			"z_tensor",
+			"jacobians",
+			"jacobian_output_path",
+			"output_node",
+			"jac",
+			"decoder_jac",
+			"m_decoder_jac_session",
+			"regist",
+			"line"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1077,82 +927,24 @@
 	"groups":
 	[
 		{
-			"selected": 5,
+			"selected": 1,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "generate_training/src/interactive.cpp",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 11532,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								3636,
-								3636
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 1728.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 9,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
-					"file": "meshes/Fine_beam.mesh",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 207684,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								144197,
-								144197
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Text/Plain text.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 92505.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 10,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
 					"file": "reduced_sim_gauss/src/reduced_sim_example.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 58406,
+						"buffer_size": 68096,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								52784,
-								52784
+								51051,
+								51051
 							]
 						],
 						"settings":
@@ -1162,514 +954,40 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 24076.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 8,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"file": "models/31k-dragon-10dof-smaller-layers/sim_config.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 0,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 11,
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "models/30k-armadillo-waist/sim_config.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 684,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								660,
-								660
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 12,
-					"type": "text"
-				},
-				{
-					"buffer": 5,
-					"file": "build-model.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 6016,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								5606,
-								5606
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 1620.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				},
-				{
-					"buffer": 6,
-					"file": "/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/fd_interpolate.cpp",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 403,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 3,
-					"type": "text"
-				},
-				{
-					"buffer": 7,
-					"file": "/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/fd_partial_derivative.cpp",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 368,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 8,
-					"file": "/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/poisson_surface_reconstruction.cpp",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 2297,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 22834.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 9,
-					"file": "models/31k-dragon-10dof/training_results.json",
+					"buffer": 1,
+					"file": "generate_training/src/interactive.cpp",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 644,
+						"buffer_size": 11513,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								5479,
+								5479
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 16,
-					"type": "text"
-				},
-				{
-					"buffer": 10,
-					"file": "models/31k-dragon-10dof/energy_training_history.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 148564,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								148564,
-								148564
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"syntax": "Packages/C++/C++.sublime-syntax",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 101613.0,
+						"translation.y": 1910.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 15,
-					"type": "text"
-				},
-				{
-					"buffer": 11,
-					"file": "models/31k-dragon-10dof-best/energy_training_history.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 296132,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								295277,
-								295277
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 195915.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 14,
-					"type": "text"
-				},
-				{
-					"buffer": 12,
-					"file": "models/30k-armadillo-waist/simulation_logs/2018-01-22.22:55:12/sim_stats.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 483634,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								2434,
-								2434
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 1350.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 13,
-					"type": "text"
-				},
-				{
-					"buffer": 13,
-					"file": "utils/my_utils.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 6393,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1982,
-								1982
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 7,
-					"type": "text"
-				},
-				{
-					"buffer": 14,
-					"file": "models/31k-dragon-10dof-best/tets.mesh",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 3759517,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								56,
-								56
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Text/Plain text.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 6,
-					"type": "text"
-				},
-				{
-					"buffer": 15,
-					"file": "models/46k-dragon/training_results.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 552,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 5,
-					"type": "text"
-				},
-				{
-					"buffer": 16,
-					"file": "models/46k-dragon/model_config.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 710,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								102,
-								102
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 17,
-					"file": "models/x-final/training_results.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 759,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								759,
-								759
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 17,
-					"type": "text"
-				},
-				{
-					"buffer": 18,
-					"file": "models/x-final/sim_config.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 668,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								647,
-								647
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 18,
-					"type": "text"
-				},
-				{
-					"buffer": 19,
-					"file": "figure data/rough_vs_smooth/plot.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 790,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								369,
-								369
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 19,
+					"stack_index": 0,
 					"type": "text"
 				}
 			]
@@ -1677,7 +995,7 @@
 	],
 	"incremental_find":
 	{
-		"height": 33.0
+		"height": 26.0
 	},
 	"input":
 	{
@@ -1718,7 +1036,7 @@
 	"project": "autodef.sublime-project",
 	"replace":
 	{
-		"height": 62.0
+		"height": 48.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -1727,6 +1045,18 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"bui",
+				"build-model.py"
+			],
+			[
+				"redu",
+				"reduced_sim_gauss/src/reduced_sim_example.cpp"
+			],
+			[
+				"jaco",
+				"utils/compute_tf_jacobian_models.py"
+			],
 			[
 				"lea",
 				"utils/learn.py"
@@ -1742,10 +1072,6 @@
 			[
 				"",
 				"generate_training/CMakeLists.txt"
-			],
-			[
-				"bui",
-				"build-model.py"
 			],
 			[
 				"lean",

@@ -9,6 +9,7 @@
   "integrator_config": {
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
+    "reduced_energy_method": "pcr",
     "use_analytic_jac": true,
     "use_preconditioner": true,
     "pca_dim": 40,
@@ -25,6 +26,7 @@
   },
   "visualization_config": {
     "show_stress": false,
+    "show_energy": false,
     "interaction_spring_stiffness": 10000.0
   }
 }

@@ -1,14 +1,16 @@
 {
   "mesh": "models/10k-bar-large/tets.mesh",
-  "logging_enabled": false,
+  "logging_enabled": true,
   "material_config": {
     "density": 1000.0,
     "youngs_modulus": 1000000.0,
-    "poissons_ratio": 0.45
+    "poissons_ratio": 0.49
   },
   "integrator_config": {
-    "reduced_space_type": "linear",
-    "use_reduced_energy": true,
+    "reduced_space_type": "full",
+    "use_reduced_energy": false,
+    "reduced_energy_method": "pred_weights_l1",
+    "use_analytic_jac": true,
     "use_preconditioner": true,
     "pca_dim": 2,
     "ae_encoded_dim": 2,
@@ -16,14 +18,15 @@
     "timestep": 0.01,
     "finite_diff_eps": 5e-05,
     "lbfgs_config": {
-      "lbfgs_max_iterations": 150,
-      "lbfgs_epsilon": 0.0001,
+      "lbfgs_max_iterations": 20,
+      "lbfgs_epsilon": 0.001,
       "lbfgs_m": 8
     },
-    "gravity": -9.8
+    "gravity": 0
   },
   "visualization_config": {
     "show_stress": false,
-    "interaction_spring_stiffness": 10000.0
+    "interaction_spring_stiffness": 1000.0,
+    "full_space_constrained_axis": 1
   }
 }

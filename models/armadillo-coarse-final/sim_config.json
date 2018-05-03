@@ -9,6 +9,7 @@
   "integrator_config": {
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
+    "use_analytic_jac": false,
     "use_preconditioner": true,
     "pca_dim": 20,
     "ae_encoded_dim": 20,

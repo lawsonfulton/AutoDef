@@ -39,7 +39,7 @@ typedef World<double,
                         std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
                         std::tuple<ForceSpringFEMParticle<double> *>,
                         std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
-typedef TimeStepperEulerImplicit<double, AssemblerEigenSparseMatrix<double>,
+typedef TimeStepperEulerImplicitLinear<double, AssemblerEigenSparseMatrix<double>,
  AssemblerEigenVector<double> > MyTimeStepper;
 
 // Mesh
@@ -68,13 +68,12 @@ void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, Neoho
     displacements_filename << output_dir << "displacements_" << current_frame << ".dmat";
     igl::writeDMAT(displacements_filename.str(), displacements, false); // Don't use ascii
 
-    // AssemblerEigenVector<double> internal_force; //maybe?
-    // getInternalForceVector(internal_force, *tets, world);
-
-    // std::stringstream force_filename;
-    // force_filename<<output_dir<<"internalForces_"<<current_frame<<".dmat";
-    // std::cout << (*internal_force).size() << " " << q.size() << std::endl;
-    // igl::writeDMAT(force_filename.str(), *internal_force, false);
+    AssemblerEigenVector<double> internal_force; //maybe?
+    getInternalForceVector(internal_force, *tets, world);
+    std::stringstream force_filename;
+    force_filename<<output_dir<<"internalForces_"<<current_frame<<".dmat";
+    std::cout << (*internal_force).size() << " " << q.size() << std::endl;
+    igl::writeDMAT(force_filename.str(), *internal_force, false);
 
 
     std::stringstream energy_filename;
@@ -145,12 +144,13 @@ int main(int argc, char **argv) {
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
     world.addSystem(tets);
-    fixDisplacementMin(world, tets, 0);
+
+    fixDisplacementMin(world, tets, argc > 2 ? std::stoi(argv[2]) : 0, 0.1);
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
 
     reset_world(world);
 
-    MyTimeStepper stepper(0.05, 2);
+    MyTimeStepper stepper(0.05);//, 10);
     stepper.step(world);
 
     if(saving_training_data) {

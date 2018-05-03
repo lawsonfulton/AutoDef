@@ -23,6 +23,7 @@
 #include <igl/per_vertex_normals.h>
 #include <igl/material_colors.h>
 #include <igl/snap_points.h>
+#include <igl/centroid.h>
 
 #include <time.h>
 #include <stdlib.h>
@@ -33,7 +34,8 @@
 #include <string>
 #include <sstream>
 #include <stdexcept>
-
+#include <type_traits>
+#include <utility>
 
 #include <boost/filesystem.hpp>
 
@@ -48,6 +50,8 @@
 #include <tensorflow/core/public/session.h>
 
 #include <omp.h>
+
+#include<Eigen/SparseCholesky>
 
 using json = nlohmann::json;
 namespace fs = boost::filesystem;
@@ -104,26 +108,73 @@ json sim_log;
 json sim_playback_json;
 json timestep_info; // Kind of hack but this gets reset at the beginning of each timestep so that we have a global structure to log to
 fs::path log_dir;
-fs::path obj_dir;
+fs::path surface_obj_dir;
+fs::path pointer_obj_dir;
+fs::path tet_obj_dir;
 std::ofstream log_ofstream;
 
+enum EnergyMethod {FULL, PCR, AN08, PRED_WEIGHTS_L1, PRED_DIRECT};
 
-// void save_displacements_DMAT(const std::string path, MyWorld &world, NeohookeanTets *tets) { // TODO: Add mouse position data to ouput
-//     auto q = mapDOFEigen(tets->getQ(), world);
-//     Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
-//     Eigen::MatrixXd displacements = dV.transpose();
 
-//     igl::writeDMAT(path, displacements, false); // Don't use ascii
-// }
+EnergyMethod energy_method_from_integrator_config(const json &integrator_config) {
+    try {
+        if(!integrator_config.at("use_reduced_energy")) {
+            return FULL;
+        }
 
-// void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
-//     std::stringstream verts_filename, faces_filename;
-//     verts_filename << output_dir << "base_verts.dmat";
-//     faces_filename << output_dir << "base_faces.dmat";
-    
-//     igl::writeDMAT(verts_filename.str(), V, false); // Don't use ascii
-//     igl::writeDMAT(faces_filename.str(), F, false); // Don't use ascii
-// }
+        std::string energy_method = integrator_config.at("reduced_energy_method");    
+
+        if(energy_method == "full") return FULL;
+        if(energy_method == "pcr") return PCR;
+        if(energy_method == "an08") return AN08;
+        if(energy_method == "pred_weights_l1") return PRED_WEIGHTS_L1;
+        if(energy_method == "pred_energy_direct") return PRED_DIRECT;
+    } 
+    catch (nlohmann::detail::out_of_range& e){} // Didn't exist
+    std::cout << "Unkown energy method." << std::endl;
+    exit(1);
+}
+
+std::vector<unsigned int> get_min_verts(int axis, bool get_max = false, double tol = 0.01) {
+    int dim = axis; // x
+    double min_x_val = get_max ?  V.col(dim).maxCoeff() : V.col(dim).minCoeff();
+    std::vector<unsigned int> min_verts;
+
+    for(unsigned int ii=0; ii<V.rows(); ++ii) {
+        if(fabs(V(ii, dim) - min_x_val) < tol) {
+            min_verts.push_back(ii);
+        }
+    }
+
+    return min_verts;
+}
+
+SparseMatrix<double> construct_constraints_P(const MatrixXd &V, std::vector<unsigned int> &verts) {
+    // Construct constraint projection matrix
+    std::cout << "Constructing constraints..." << std::endl;
+    std::sort(verts.begin(), verts.end());
+    int q_size = V.rows() * 3; // n dof
+    int n = q_size;
+    int m = n - verts.size()*3;
+    SparseMatrix<double> P(m, n);
+    P.reserve(VectorXi::Constant(n, 1)); // Reserve enough space for 1 non-zero per column
+    int min_vert_i = 0;
+    int cur_col = 0;
+    for(int i = 0; i < m; i+=3){
+        while(verts[min_vert_i] * 3 == cur_col) { // Note * is for vert index -> flattened index
+            cur_col += 3;
+            min_vert_i++;
+        }
+        P.insert(i, cur_col) = 1.0;
+        P.insert(i+1, cur_col+1) = 1.0;
+        P.insert(i+2, cur_col+2) = 1.0;
+        cur_col += 3;
+    }
+    P.makeCompressed();
+    std::cout << "Done." << std::endl;
+    // -- Done constructing P
+    return P;
+}
 
 // Todo put this in utilities
 Eigen::MatrixXd getCurrentVertPositions(MyWorld &world, NeohookeanTets *tets) {
@@ -161,8 +212,8 @@ public:
     inline VectorXd sub_decode(const VectorXd &z) {
         return m_impl.sub_decode(z);
     }
-
-    inline MatrixXd jacobian(const VectorXd &z) {
+    // Must be a better way than this crazy decltyp
+    inline decltype(auto) jacobian(const VectorXd &z) {
         return m_impl.jacobian(z);
     }
 
@@ -175,15 +226,15 @@ public:
         return m_impl.jacobian_vector_product(z, z_v);
     }
 
-    inline MatrixXd outer_jacobian() {
+    inline decltype(auto) outer_jacobian() {
         return m_impl.outer_jacobian();
     }
 
-    inline MatrixXd inner_jacobian(const VectorXd &z) { // TODO make this sparse for linear subspace?
+    inline decltype(auto) inner_jacobian(const VectorXd &z) { // TODO make this sparse for linear subspace?
         return m_impl.inner_jacobian(z);
     }
 
-    inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {
+    inline decltype(auto) compute_reduced_mass_matrix(const SparseMatrix<double> &M) {
         return m_impl.compute_reduced_mass_matrix(M);
     }
 
@@ -191,58 +242,28 @@ public:
         return m_impl.get_energy(z);
     }
 
+    inline VectorXd get_energy_gradient(const VectorXd &z) {
+        return m_impl.get_energy_gradient(z);
+    }
+
+    inline void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {
+        return m_impl.get_cubature_indices_and_weights(z, indices, weights);
+    }
+
 private:
     ReducedSpaceImpl m_impl;
 };
 
-// class IdentitySpaceImpl
-// {
-// public:
-//     IdentitySpaceImpl(int n) {
-//         m_I.resize(n,n);
-//         m_I.setIdentity();
-//     }
-
-//     inline VectorXd encode(const VectorXd &q) {return q;}
-//     inline VectorXd decode(const VectorXd &z) {return z;}
-//     inline VectorXd sub_decode(const VectorXd &z) {return z;}
-//     inline MatrixXd jacobian(const VectorXd &z) {std::cout << "Not implemented!" << std::endl;}
-//     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return q;}
-//     inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {std::cout << "Not implemented!" << std::endl;}
-//     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-
-// private:
-//     SparseMatrix<double> m_I;
-// };
-
-// class ConstraintSpaceImpl
-// {
-// public:
-//     ConstraintSpaceImpl(const SparseMatrix<double> &P) {
-//         m_P = P;
-//     }
-
-//     inline VectorXd encode(const VectorXd &q) {return m_P * q;}
-//     inline VectorXd decode(const VectorXd &z) {return m_P.transpose() * z;}
-//     inline VectorXd sub_decode(const VectorXd &z) {return z;}
-//     inline MatrixXd jacobian(const VectorXd &z) {std::cout << "Not implemented!" << std::endl;}
-//     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {return m_P * q;}
-//     inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {std::cout << "Not implemented!" << std::endl;}
-//     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-//     inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
-
-// private:
-//     SparseMatrix<double> m_P;
-// };
-
+template <typename MatrixType>
 class LinearSpaceImpl
 {
 public:
-    LinearSpaceImpl(const MatrixXd &U) : m_U(U) {
+    LinearSpaceImpl(const MatrixType &U) : m_U(U) {
         std::cout<<"U rows: " << U.rows() << std::endl;
         std::cout<<"U cols: " << U.cols() << std::endl;
 
-        m_inner_jac = MatrixXd::Identity(U.cols(), U.cols());
+        m_inner_jac.resize(U.cols(), U.cols());
+        m_inner_jac.setIdentity();
     }
 
     inline VectorXd encode(const VectorXd &q) {
@@ -257,7 +278,7 @@ public:
         return z;
     }
 
-    inline MatrixXd jacobian(const VectorXd &z) { return m_U; }
+    inline MatrixType jacobian(const VectorXd &z) { return m_U; }
 
     inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
         return q;
@@ -267,23 +288,24 @@ public:
         return z_v;
     }
 
-    inline MatrixXd outer_jacobian() {
+    inline MatrixType outer_jacobian() {
         return m_U;
     }
 
-    inline MatrixXd inner_jacobian(const VectorXd &z) {
+    inline MatrixType inner_jacobian(const VectorXd &z) {
         return m_inner_jac;
     }
 
-    inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {
+    inline MatrixType compute_reduced_mass_matrix(const MatrixType &M) {
         return m_U.transpose() * M * m_U;
     }
 
     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {std::cout << "Reduced energy not implemented!" << std::endl;}
+    inline VectorXd get_energy_gradient(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
+    inline void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {std::cout << "Reduced energy not implemented!" << std::endl;}
 private:
-    MatrixXd m_U;
-    MatrixXd m_inner_jac;
+    MatrixType m_U;
+    MatrixType m_inner_jac;
 };
 
 namespace tf = tensorflow;
@@ -321,23 +343,25 @@ public:
         status = m_decoder_jac_session->Create(decoder_jac_graph_def);
         checkStatus(status);
 
-        // Decoder vjp
-        status = tf::NewSession(tf::SessionOptions(), &m_decoder_vjp_session);
-        checkStatus(status);
-        tf::GraphDef decoder_vjp_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), decoder_vjp_path.string(), &decoder_vjp_graph_def);
-        checkStatus(status);
-        status = m_decoder_vjp_session->Create(decoder_vjp_graph_def);
-        checkStatus(status);
+        if(integrator_config["use_analytic_jac"]) {
+            // Decoder vjp
+            status = tf::NewSession(tf::SessionOptions(), &m_decoder_vjp_session);
+            checkStatus(status);
+            tf::GraphDef decoder_vjp_graph_def;
+            status = ReadBinaryProto(tf::Env::Default(), decoder_vjp_path.string(), &decoder_vjp_graph_def);
+            checkStatus(status);
+            status = m_decoder_vjp_session->Create(decoder_vjp_graph_def);
+            checkStatus(status);
 
-        // Decoder jvp
-        status = tf::NewSession(tf::SessionOptions(), &m_decoder_jvp_session);
-        checkStatus(status);
-        tf::GraphDef decoder_jvp_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), decoder_jvp_path.string(), &decoder_jvp_graph_def);
-        checkStatus(status);
-        status = m_decoder_jvp_session->Create(decoder_jvp_graph_def);
-        checkStatus(status);
+            // // Decoder jvp -- not working
+            // status = tf::NewSession(tf::SessionOptions(), &m_decoder_jvp_session);
+            // checkStatus(status);
+            // tf::GraphDef decoder_jvp_graph_def;
+            // status = ReadBinaryProto(tf::Env::Default(), decoder_jvp_path.string(), &decoder_jvp_graph_def);
+            // checkStatus(status);
+            // status = m_decoder_jvp_session->Create(decoder_jvp_graph_def);
+            // checkStatus(status);
+        }
 
         // Encoder
         status = tf::NewSession(tf::SessionOptions(), &m_encoder_session);
@@ -356,28 +380,40 @@ public:
         // if(integrator_config["use_reduced_energy"]) {
         //     fs::path energy_model_path = tf_models_root / "energy_model.pb";
 
-        //     status = tf::NewSession(tf::SessionOptions(), &m_energy_model_session);
+        //     status = tf::NewSession(tf::SessionOptions(), &m_direct_energy_model_session);
         //     checkStatus(status);
         //     tf::GraphDef energy_model_graph_def;
         //     status = ReadBinaryProto(tf::Env::Default(), energy_model_path.string(), &energy_model_graph_def);
         //     checkStatus(status);
-        //     status = m_energy_model_session->Create(energy_model_graph_def);
+        //     status = m_direct_energy_model_session->Create(energy_model_graph_def);
         //     checkStatus(status);
         // }
 
+        EnergyMethod energy_method = energy_method_from_integrator_config(integrator_config);
 
-        // if(integrator_config["use_discrete_reduced_energy"]) {
-        //     fs::path discrete_energy_model_path = tf_models_root / "discrete_energy_model.pb";
+        if(energy_method == PRED_WEIGHTS_L1) {
+            fs::path discrete_energy_model_path = tf_models_root / "l1_discrete_energy_model.pb";
 
-        //     status = tf::NewSession(tf::SessionOptions(), &m_discrete_energy_model_session);
-        //     checkStatus(status);
-        //     tf::GraphDef discrete_energy_model_graph_def;
-        //     status = ReadBinaryProto(tf::Env::Default(), discrete_energy_model_path.string(), &discrete_energy_model_graph_def);
-        //     checkStatus(status);
-        //     status = m_discrete_energy_model_session->Create(discrete_energy_model_graph_def);
-        //     checkStatus(status);
-        // }
-        // -- Testing
+            status = tf::NewSession(tf::SessionOptions(), &m_discrete_energy_model_session);
+            checkStatus(status);
+            tf::GraphDef discrete_energy_model_graph_def;
+            status = ReadBinaryProto(tf::Env::Default(), discrete_energy_model_path.string(), &discrete_energy_model_graph_def);
+            checkStatus(status);
+            status = m_discrete_energy_model_session->Create(discrete_energy_model_graph_def);
+            checkStatus(status);
+        }
+        else if (energy_method == PRED_DIRECT) {
+            fs::path energy_model_path = tf_models_root / "direct_energy_model.pb";
+
+            status = tf::NewSession(tf::SessionOptions(), &m_direct_energy_model_session);
+            checkStatus(status);
+            tf::GraphDef energy_model_graph_def;
+            status = ReadBinaryProto(tf::Env::Default(), energy_model_path.string(), &energy_model_graph_def);
+            checkStatus(status);
+            status = m_direct_energy_model_session->Create(energy_model_graph_def);
+            checkStatus(status);
+        }
+        
 
         // tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3}));
         // auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
@@ -417,6 +453,8 @@ public:
         for(int i =0; i < sub_q.size(); i++) {
             sub_q_tensor_mapped(0, i) = sub_q[i];
         } // TODO map with proper function
+        // auto dst = sub_q_tensor.flat<double>().data(); // Experimental, probably not worth it
+        // VectorXd::Map(dst, sub_q.size()) = sub_q;
 
         std::vector<tf::Tensor> z_outputs;
         tf::Status status = m_encoder_session->Run({{"encoder_input:0", sub_q_tensor}},
@@ -437,6 +475,8 @@ public:
         for(int i = 0; i < z.size(); i++) {
             z_tensor_mapped(0, i) = z[i];
         } // TODO map with proper function
+        // auto dst = z_tensor.flat<double>().data(); // Experimental, probably not worth it
+        // VectorXd::Map(dst, z.size()) = z;
 
         std::vector<tf::Tensor> sub_q_outputs;
         tf::Status status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
@@ -643,16 +683,31 @@ public:
         } // TODO map with proper function
 
         std::vector<tf::Tensor> q_outputs;
-        tf::Status status = m_energy_model_session->Run({{"energy_model_input:0", z_tensor}},
+        tf::Status status = m_direct_energy_model_session->Run({{"energy_model_input:0", z_tensor}},
                                    {"output_node0:0"}, {}, &q_outputs);
 
         auto energy_tensor_mapped = q_outputs[0].tensor<tf_dtype_type, 2>();
 
-        return energy_tensor_mapped(0,0) * 1000.0; // TODO keep track of this normalizaiton factor
+        return energy_tensor_mapped(0,0); // TODO keep track of this normalizaiton factor
     }
 
-    inline double get_energy_discrete(const VectorXd &z, MyWorld *world, NeohookeanTets *tets) {
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
+    // TODO!!
+    inline VectorXd get_energy_gradient(const VectorXd &z) {
+        VectorXd energy_grad(z.size()); 
+        double t = finite_diff_eps;
+        for(int i = 0; i < z.size(); i++) {
+            VectorXd dz_pos(z);
+            VectorXd dz_neg(z);
+            dz_pos[i] += t;
+            dz_neg[i] -= t;
+            energy_grad[i] = (get_energy(dz_pos) - get_energy(dz_neg)) / (2.0 * t);
+        }
+        return energy_grad;
+    }
+
+    inline void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {
+        double start_time = igl::get_seconds();
+        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim}));
         auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
         for(int i =0; i < z.size(); i++) {
             z_tensor_mapped(0, i) = z[i];
@@ -663,26 +718,34 @@ public:
                                    {"output_node0:0"}, {}, &energy_weight_outputs);
 
         auto energy_weight_tensor_mapped = energy_weight_outputs[0].tensor<tf_dtype_type, 2>();
+        double predict_time = igl::get_seconds() - start_time;
 
-
-        int n_tets = tets->getImpl().getNumElements();
         double eps = 0.01;
-        double scale = 1000.0; // TODO link this to training data
-        double summed_energy = 0.0;
         int n_tets_used = 0;
-        for(int i = 0; i < n_tets; i++) {
+
+        std::vector<int> indices_vec;
+        indices_vec.reserve(100);
+        for(int i = 0; i < T.rows(); i++) {
             double energy_weight_i = energy_weight_tensor_mapped(0, i);
-            // std::cout << energy_weight_i << ", ";
             if(energy_weight_i > eps) {
-                auto element = tets->getImpl().getElement(i);
-                summed_energy = energy_weight_i * element->getStrainEnergy(world->getState()); //TODO is the scale right? Is getting the state slow?
+                indices_vec.push_back(i);
                 n_tets_used++;
             }
         }
-        // std::cout << std::endl;
-        // std::cout << "n_tets_used: " << n_tets_used << std::endl;
 
-        return summed_energy;
+        indices.resize(n_tets_used);
+        weights.resize(n_tets_used);
+
+        for(int i = 0; i < n_tets_used; i++) {
+            int idx = indices_vec[i];
+            indices[i] = idx;
+            weights[i] = energy_weight_tensor_mapped(0, idx);
+        }
+
+        double copy_time = igl::get_seconds() - start_time - predict_time;
+
+        // std::cout << "Predict took: " << predict_time << std::endl;
+        // std::cout << "Scan&Copy took " << copy_time << std::endl << std::endl;
     }
 
     void checkStatus(const tf::Status& status) {
@@ -703,7 +766,7 @@ private:
     tf::Session* m_decoder_vjp_session;
     tf::Session* m_decoder_jvp_session;
     tf::Session* m_encoder_session;
-    tf::Session* m_energy_model_session;
+    tf::Session* m_direct_energy_model_session;
     tf::Session* m_discrete_energy_model_session;
 };
 
@@ -725,17 +788,17 @@ public:
             m_tets(tets),
             m_reduced_space(reduced_space)
     {
+        m_cur_sub_q = sub_dec(cur_z);
+        m_prev_sub_q = sub_dec(prev_z);
 
-        m_use_reduced_energy = integrator_config["use_reduced_energy"];
         m_use_analytic_jac = integrator_config["use_analytic_jac"];
         m_h = integrator_config["timestep"];
         finite_diff_eps = integrator_config["finite_diff_eps"];
         // Construct mass matrix and external forces
-        AssemblerEigenSparseMatrix<double> M_asm;
-        getMassMatrix(M_asm, *m_world);
+        getMassMatrix(m_M_asm, *m_world);
 
         std::cout << "Constructing reduced mass matrix..." << std::endl;
-        m_M = *M_asm;
+        m_M = *m_M_asm;
         m_U = m_reduced_space->outer_jacobian();
         m_UTMU = m_U.transpose() * m_M * m_U;
         std::cout << "Done." << std::endl;
@@ -751,8 +814,9 @@ public:
         m_UT_F_ext = m_U.transpose() * m_F_ext;
         m_interaction_force = SparseVector<double>(m_F_ext.size());
 
-        if(integrator_config["use_reduced_energy"]) {
-            std::cout << "Loading reduced energy basis..." << std::endl;
+        m_energy_method = energy_method_from_integrator_config(integrator_config);
+
+        if(m_energy_method == PCR){
             fs::path pca_components_path("pca_results/energy_pca_components.dmat");
             fs::path sample_tets_path("pca_results/energy_indices.dmat");
 
@@ -773,29 +837,56 @@ public:
             for(int i=0; i < m_energy_sample_tets.size(); i++) {
                 tet_indices_mat(i, 0) = m_energy_sample_tets[i];
             }
+            m_cubature_indices = tet_indices_mat.col(0); // TODO fix these duplicate structures
 
             m_energy_basis = U;
             m_energy_sampled_basis = igl::slice(m_energy_basis, tet_indices_mat, 1);
             m_summed_energy_basis = m_energy_basis.colwise().sum();
             MatrixXd S_barT_S_bar = m_energy_sampled_basis.transpose() * m_energy_sampled_basis;
             // m_energy_sampled_basis_qr = m_energy_sampled_basis.fullPivHouseholderQr();
-            std::cout << "Done." << std::endl;
-
-            std::cout << "Constructing reduced force factor..." << std::endl;
             
             m_cubature_weights = m_energy_sampled_basis * S_barT_S_bar.ldlt().solve(m_summed_energy_basis); //U_bar(A^-1*u)
-            std::cout << "Done." << std::endl;
+
+            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_energy_sample_tets.size());
+            m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
+            std::cout << "Done. Will sample from " << m_energy_sample_tets.size() << " tets." << std::endl;
+        }
+        else if(m_energy_method == AN08) {
+            fs::path energy_model_dir = model_root / "energy_model/an08/";
+            fs::path indices_path = energy_model_dir / "indices.dmat";
+            fs::path weights_path = energy_model_dir / "weights.dmat";
+
+            Eigen::VectorXi Is;
+            Eigen::VectorXd Ws;
+            igl::readDMAT(indices_path.string(), Is); //TODO do I need to sort this?
+            igl::readDMAT(weights_path.string(), Ws); 
+
+            m_cubature_weights = Ws;
+            m_cubature_indices = Is; // TODO remove duplicate structures!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            m_energy_sample_tets.resize(Is.size());
+            VectorXi::Map(&m_energy_sample_tets[0], Is.size()) = Is;
+
+            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_energy_sample_tets.size());
+            m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
+            std::cout << "Done. Will sample from " << m_energy_sample_tets.size() << " tets." << std::endl;
         }
 
     }
 
-    void set_prev_zs(const VectorXd &cur_z, const VectorXd &prev_z) {
+    void update_zs(const VectorXd &cur_z) {
+        m_prev_z = cur_z;
+        m_prev_sub_q = m_cur_sub_q;
         m_cur_z = cur_z;
-        m_prev_z = prev_z;
+        m_cur_sub_q = sub_dec(m_cur_z);
     }
 
     void set_interaction_force(const SparseVector<double> &interaction_force) {
         m_interaction_force = interaction_force;
+    }
+
+    void set_cubature_indices_and_weights(const VectorXi &indices, const VectorXd &weights) {
+        m_cubature_weights = weights;
+        m_cubature_indices = indices;
     }
 
     // Just short helpers
@@ -811,8 +902,7 @@ public:
 
         int n_force_per_element = T.cols() * 3;
         MatrixXd element_forces(n_sample_tets, n_force_per_element);
-        SparseMatrix<double> neg_energy_sample_jac(n_dof, n_sample_tets);
-        neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, n_force_per_element)); // Reserve enough room for 4 verts (tet corners) per column
+        
 
         #pragma omp parallel for num_threads(4) //schedule(static,64)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
@@ -828,16 +918,17 @@ public:
         }
 
         // Constructing sparse matrix is not thread safe
+        m_neg_energy_sample_jac.setZero(); // Doesn't clear reserved memory
         for(int i = 0; i < n_sample_tets; i++) {
             int tet_index = m_energy_sample_tets[i];
             for(int j = 0; j < 4; j++) {
                 int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
                 for(int k = 0; k < 3; k++) {
-                    neg_energy_sample_jac.insert(vert_index + k, i) = element_forces(i, j*3 + k);
+                    m_neg_energy_sample_jac.insert(vert_index + k, i) = element_forces(i, j*3 + k);
                 }
             }
         }
-        neg_energy_sample_jac.makeCompressed();
+        m_neg_energy_sample_jac.makeCompressed();
 
         // VectorXd alpha = m_energy_sampled_basis.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sampled_energy);
         // VectorXd alpha = (m_energy_sampled_basis.transpose() * m_energy_sampled_basis).ldlt().solve(m_energy_sampled_basis.transpose() * sampled_energy);
@@ -845,7 +936,53 @@ public:
         // energy = m_summed_energy_basis.dot(alpha);
         energy = m_cubature_weights.dot(sampled_energy);
 
-        UT_forces = (m_U.transpose() * neg_energy_sample_jac) * m_cubature_weights;
+        UT_forces = (m_U.transpose() * m_neg_energy_sample_jac) * m_cubature_weights;
+    }
+
+    double current_reduced_energy_and_forces_using_pred_weights_l1(const VectorXd &z, double &energy, VectorXd &UT_forces, double &prediction_time_s) {
+        // double get_weights_start = igl::get_seconds();
+        // VectorXd weights;
+        // VectorXi indices;
+        // m_reduced_space->get_cubature_indices_and_weights(z, indices, weights);
+        // prediction_time_s = igl::get_seconds() - get_weights_start;
+        // TODO do I need to do this every step of optimization?
+
+
+        int n_sample_tets = m_cubature_indices.size();
+        
+        int n_force_per_element = T.cols() * 3;
+        MatrixXd element_forces(n_sample_tets, n_force_per_element);
+        
+        VectorXd energy_samp(n_sample_tets);
+
+        #pragma omp parallel for num_threads(4) //schedule(static,64)// TODO how to optimize this
+        for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+            int tet_index = m_cubature_indices[i];
+            energy_samp[i] = m_tets->getImpl().getElement(tet_index)->getStrainEnergy(m_world->getState());
+
+            //Forces
+            VectorXd sampled_force(n_force_per_element);
+            m_tets->getImpl().getElement(tet_index)->getInternalForce(sampled_force, m_world->getState());
+            element_forces.row(i) = sampled_force;
+        }
+
+        // Constructing sparse matrix is not thread safe
+        m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
+        m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column       
+
+        for(int i = 0; i < n_sample_tets; i++) {
+            int tet_index = m_cubature_indices[i];
+            for(int j = 0; j < 4; j++) {
+                int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
+                for(int k = 0; k < 3; k++) {
+                    m_neg_energy_sample_jac.insert(vert_index + k, i) = element_forces(i, j*3 + k);
+                }
+            }
+        }
+        m_neg_energy_sample_jac.makeCompressed();
+
+        energy = energy_samp.transpose() * m_cubature_weights;
+        UT_forces = (m_U.transpose() * m_neg_energy_sample_jac) * m_cubature_weights;
     }
 
 
@@ -853,15 +990,10 @@ public:
     {
         // Update the tets with candidate configuration
         double obj_start_time = igl::get_seconds();
-
         VectorXd new_sub_q = sub_dec(new_z);
-        VectorXd cur_sub_q = sub_dec(m_cur_z);
-        VectorXd prev_sub_q = sub_dec(m_prev_z);
-
-        
-
         double tf_time = igl::get_seconds() - obj_start_time;
 
+        double decode_start_time = igl::get_seconds();
         Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
         VectorXd new_q = m_U * new_sub_q; // TODO use sparse m_U
         for(int i=0; i < q.size(); i++) {
@@ -870,25 +1002,46 @@ public:
             // ******************************************
             q[i] = new_q[i]; // TODO is this the fastest way to do this?
         }
+
+        // TWISTING
+        // auto max_verts = get_min_verts(1, true);
+        // Eigen::AngleAxis<double> rot(0.05 * current_frame, Eigen::Vector3d(0.0,1.0,0.0));
+        // for(int i = 0; i < max_verts.size(); i++) {
+        //     int vi = max_verts[i];
+        //     Eigen::Vector3d v = V.row(vi);
+        //     Eigen::Vector3d new_q = rot * v - v + Eigen::Vector3d(0.0,1.0,0.0) * current_frame / 300.0;
+        //     for(int j = 0; j < 3; j++) {
+        //         q[vi * 3 + j] = new_q[j];
+        //     }
+        // }
+
+        double decode_time = igl::get_seconds() - decode_start_time;
         
         // Compute objective
         double energy;
         VectorXd UT_internal_forces;
         double energy_forces_start_time = igl::get_seconds();
-        if(m_use_reduced_energy) {
+        double predict_weight_time = 0.0;
+        if(m_energy_method == PCR || m_energy_method == AN08) {
             current_reduced_energy_and_forces(energy, UT_internal_forces);
+        }
+        else if(m_energy_method == PRED_WEIGHTS_L1) {
+            current_reduced_energy_and_forces_using_pred_weights_l1(m_prev_z, energy, UT_internal_forces, predict_weight_time);  // Use prev z so weights are constant through search
+        }
+        else if(m_energy_method == PRED_DIRECT) {
+            energy = m_reduced_space->get_energy(new_z);
         }
         else {
             energy = m_tets->getStrainEnergy(m_world->getState());
-            AssemblerEigenVector<double> internal_force_asm;
-            getInternalForceVector(internal_force_asm, *m_tets, *m_world);
-            UT_internal_forces = m_U.transpose() * *internal_force_asm; // TODO can we avoid copy here?
+            getInternalForceVector(m_internal_force_asm, *m_tets, *m_world);
+            UT_internal_forces = m_U.transpose() * *m_internal_force_asm; // TODO can we avoid copy here?
         }
         double energy_forces_time = igl::get_seconds() - energy_forces_start_time;
 
+        double obj_and_grad_time_start = igl::get_seconds();
         VectorXd h_2_UT_external_forces =  m_h * m_h * (m_U.transpose() * m_interaction_force + m_UT_F_ext);
 
-        VectorXd sub_q_tilde = new_sub_q - 2.0 * cur_sub_q + prev_sub_q;
+        VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
         VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
         double obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
                             + m_h * m_h * energy
@@ -898,42 +1051,60 @@ public:
         // **** TODO
         // Can I further reduce the force calculations by carrying through U?
         if(m_use_analytic_jac) {
-            grad = jtvp(new_z,UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+            if(m_energy_method == PRED_DIRECT) {
+                grad = jtvp(new_z,UTMU_sub_q_tilde - h_2_UT_external_forces) - m_h * m_h * m_reduced_space->get_energy_gradient(new_z);
+            } else {
+                grad = jtvp(new_z,UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+            }
         }
         else {
             MatrixXd J = m_reduced_space->inner_jacobian(new_z); // should be identity for linear
             grad = J.transpose() * (UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
         }
-
+        double obj_and_grad_time = igl::get_seconds() - obj_and_grad_time_start;
+        // std::cout << obj_val << std::endl;
         double obj_time = igl::get_seconds() - obj_start_time;
 
         if(LOGGING_ENABLED) {
             timestep_info["iteration_info"]["lbfgs_obj_vals"].push_back(obj_val);
-            timestep_info["iteration_info"]["energy_forces_time_s"].push_back(energy_forces_time);
-            timestep_info["iteration_info"]["tot_obj_time_s"].push_back(obj_time);
-            timestep_info["iteration_info"]["tf_time_s"].push_back(tf_time);
+            timestep_info["iteration_info"]["timing"]["tot_obj_time_s"].push_back(obj_time);
+            timestep_info["iteration_info"]["timing"]["tf_time_s"].push_back(tf_time);
+            timestep_info["iteration_info"]["timing"]["linear_decode_time_s"].push_back(decode_time);
+            timestep_info["iteration_info"]["timing"]["energy_forces_time_s"].push_back(energy_forces_time);
+            timestep_info["iteration_info"]["timing"]["predict_weight_time"].push_back(predict_weight_time);
+            timestep_info["iteration_info"]["timing"]["obj_and_grad_eval_time_s"].push_back(obj_and_grad_time);
         }
 
         return obj_val;
     }
 
+    VectorXi get_current_tets() {
+        return m_cubature_indices;
+    }
+
 private:
     VectorXd m_cur_z;
     VectorXd m_prev_z;
+    VectorXd m_cur_sub_q;
+    VectorXd m_prev_sub_q;
     VectorXd m_F_ext;
     VectorXd m_UT_F_ext;
     SparseVector<double> m_interaction_force;
 
     SparseMatrix<double> m_M; // mass matrix
-    MatrixXd m_UTMU; // reduced mass matrix
-    MatrixXd m_U;
+    // Below is a kind of hack way to get the matrix type used in the reduced space class
+    decltype(std::declval<ReducedSpaceType>().outer_jacobian())  m_UTMU; // reduced mass matrix
+    decltype(std::declval<ReducedSpaceType>().outer_jacobian())  m_U;
+
+    AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_M_asm;
+    AssemblerParallel<double, AssemblerEigenVector<double> > m_internal_force_asm;
 
     double m_h;
 
     MyWorld *m_world;
     NeohookeanTets *m_tets;
 
-    bool m_use_reduced_energy;
+    EnergyMethod m_energy_method;
     bool m_use_analytic_jac;
     ReducedSpaceType *m_reduced_space;
 
@@ -942,8 +1113,10 @@ private:
     VectorXd m_summed_energy_basis;
     MatrixXd m_energy_sampled_basis;
     Eigen::FullPivHouseholderQR<MatrixXd> m_energy_sampled_basis_qr;
+    SparseMatrix<double> m_neg_energy_sample_jac;
 
     VectorXd m_cubature_weights;
+    VectorXi m_cubature_indices;
 };
 
 template <typename ReducedSpaceType>
@@ -954,6 +1127,7 @@ public:
 
         m_use_preconditioner = integrator_config["use_preconditioner"];
         m_use_analytic_jac = integrator_config["use_analytic_jac"];
+        m_is_full_space = integrator_config["reduced_space_type"] == "full";
        // LBFGSpp::LBFGSParam<DataType> param;
        // param.epsilon = 1e-4;
        // param.max_iterations = 1000;
@@ -974,18 +1148,22 @@ public:
 
         m_h = integrator_config["timestep"];
         m_U = reduced_space->outer_jacobian();
-        MatrixXd J = reduced_space->inner_jacobian(m_cur_z);
+        decltype(std::declval<ReducedSpaceType>().outer_jacobian()) J = reduced_space->inner_jacobian(m_cur_z);
 
-        AssemblerEigenSparseMatrix<double> M_asm;
-        AssemblerEigenSparseMatrix<double> K_asm;
-        getMassMatrix(M_asm, *m_world);
-        getStiffnessMatrix(K_asm, *m_world);
+        
+        m_energy_method = energy_method_from_integrator_config(integrator_config);
 
-        std::cout << "Constructing reduced mass and stiffness matrix..." << std::endl;
-        m_UTMU = m_U.transpose() * (*M_asm) * m_U;
-        m_UTKU = m_U.transpose() * (*K_asm) * m_U;
-        m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
-        m_H_llt = m_H.ldlt();
+        if(m_use_preconditioner) {
+            std::cout << "Constructing reduced mass and stiffness matrix..." << std::endl;
+            double start_time = igl::get_seconds();
+            getMassMatrix(m_M_asm, *m_world);
+            getStiffnessMatrix(m_K_asm, *m_world);
+            m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
+            m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
+            m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
+            m_H_llt.compute(m_H);
+            std::cout << "Took " << (igl::get_seconds() - start_time) << "s" << std::endl;
+        }
         // m_H_llt = MatrixXd::Identity(m_H.rows(), m_H.cols()).llt();
     }
 
@@ -1004,9 +1182,16 @@ public:
         double min_val_res;
 
         m_gplc_objective->set_interaction_force(interaction_force);
-        m_gplc_objective->set_prev_zs(m_cur_z, m_prev_z);
+        m_gplc_objective->update_zs(m_cur_z);
         
-
+        int activated_tets = T.rows();
+        if(m_energy_method == PRED_WEIGHTS_L1) {
+            VectorXd weights;
+            VectorXi indices;
+            m_reduced_space->get_cubature_indices_and_weights(m_cur_z, indices, weights);
+            m_gplc_objective->set_cubature_indices_and_weights(indices, weights);
+            activated_tets = indices.size();
+        }
         // Conclusion
         // For the AE model at least, preconditioning with rest hessian is slower
         // but preconditioning with rest hessian with current J gives fairly small speed increas
@@ -1015,9 +1200,20 @@ public:
         double precondition_compute_time = 0.0;
         if(m_use_preconditioner) {
             double precondition_start_time = igl::get_seconds();
-            MatrixXd J = m_reduced_space->inner_jacobian(m_cur_z);
-            m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
-            m_H_llt = m_H_llt.compute(m_H);//m_H.ldlt();
+            // TODO shouldn't do this for any linear space
+            if(!m_is_full_space) { // Only update the hessian each time for nonlinear space. 
+                decltype(std::declval<ReducedSpaceType>().outer_jacobian()) J = m_reduced_space->inner_jacobian(m_cur_z);
+                m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
+                m_H_llt.compute(m_H);//m_H.ldlt();
+            }
+            if(m_is_full_space){ // Currently doing a FULL hessian update for the full space..
+                getMassMatrix(m_M_asm, *m_world);
+                getStiffnessMatrix(m_K_asm, *m_world);
+                m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
+                m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
+                m_H = m_UTMU - m_h * m_h * m_UTKU;
+                m_H_llt.compute(m_H);
+            }
             precondition_compute_time = igl::get_seconds() - precondition_start_time;
 
             niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_llt);   
@@ -1037,13 +1233,18 @@ public:
         m_total_time += update_time;
         std::cout << "Timestep took: " << update_time << "s" << std::endl;
         std::cout << "Avg timestep: " << m_total_time / (double)current_frame << "s" << std::endl;
+        // std::cout << "Current z: " << m_cur_z.transpose() << std::endl;
+        std::cout << "Activated tets: " << activated_tets << std::endl;
 
         if(LOGGING_ENABLED) {
+            m_total_tets += activated_tets;
+
             timestep_info["current_frame"] = current_frame; // since at end of timestep
             timestep_info["tot_step_time_s"] = update_time;
             timestep_info["precondition_time"] = precondition_compute_time;
             timestep_info["lbfgs_iterations"] = niter;
-            
+            timestep_info["avg_activated_tets"] = m_total_tets / (double) current_frame;
+
             timestep_info["mouse_info"]["dragged_pos"] = {dragged_pos[0], dragged_pos[1], dragged_pos[2]};
             timestep_info["mouse_info"]["is_dragging"] = is_dragging;
 
@@ -1074,9 +1275,22 @@ public:
         update_world_with_current_configuration();
     }
 
+    ReducedSpaceType* get_reduced_space() {
+        return m_reduced_space;
+    }
+
+    VectorXd get_current_z() {
+        return m_cur_z;
+    }
+
+    VectorXi get_current_tets() {
+        return m_gplc_objective->get_current_tets();
+    }
+
 private:
     bool m_use_preconditioner;
     bool m_use_analytic_jac;
+    bool m_is_full_space;
 
     LBFGSParam<double> m_lbfgs_param;
     LBFGSSolver<double> *m_solver;
@@ -1087,60 +1301,30 @@ private:
 
     double m_h;
 
-    MatrixXd m_H;
-    Eigen::LDLT<MatrixXd> m_H_llt;
-    MatrixXd m_H_inv;
-    MatrixXd m_UTKU;
-    MatrixXd m_UTMU;
-    MatrixXd m_U;
+    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_H;
+    typename std::conditional<
+        std::is_same<decltype(std::declval<ReducedSpaceType>().outer_jacobian()), MatrixXd>::value,
+        Eigen::LDLT<MatrixXd>,
+        Eigen::SimplicialLDLT<SparseMatrix<double>>>::type m_H_llt;
+    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_H_inv;
+    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_UTKU;
+    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_UTMU;
+    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_U;
+
+    AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_M_asm;
+    AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_K_asm;
 
     MyWorld *m_world;
     NeohookeanTets *m_tets;
 
     ReducedSpaceType *m_reduced_space;
+    EnergyMethod m_energy_method;
 
     double m_total_time = 0.0;
+    int m_total_tets = 0; // Sum the number of tets activated each frame
 };
 
-SparseMatrix<double> construct_constraints_P(NeohookeanTets *tets) {
-    // Construct constraint projection matrix
-    // Fixes all vertices with minimum x coordinate to 0
-    int dim = 0; // x
-    auto min_x_val = tets->getImpl().getV()(0,dim);
-    std::vector<unsigned int> min_verts;
 
-    for(unsigned int ii=0; ii<tets->getImpl().getV().rows(); ++ii) {
-        if(tets->getImpl().getV()(ii,dim) < min_x_val) {
-            min_x_val = tets->getImpl().getV()(ii,dim);
-            min_verts.clear();
-            min_verts.push_back(ii);
-        } else if(fabs(tets->getImpl().getV()(ii,dim) - min_x_val) < 1e-5) {
-            min_verts.push_back(ii);
-        }
-    }
-
-    std::sort(min_verts.begin(), min_verts.end());
-    int n = tets->getImpl().getV().rows() * 3;
-    int m = n - min_verts.size()*3;
-    SparseMatrix<double> P(m, n);
-    P.reserve(VectorXi::Constant(n, 1)); // Reserve enough space for 1 non-zero per column
-    int min_vert_i = 0;
-    int cur_col = 0;
-    for(int i = 0; i < m; i+=3){
-        while(min_verts[min_vert_i] * 3 == cur_col) { // Note * is for vert index -> flattened index
-            cur_col += 3;
-            min_vert_i++;
-        }
-        P.insert(i, cur_col) = 1.0;
-        P.insert(i+1, cur_col+1) = 1.0;
-        P.insert(i+2, cur_col+2) = 1.0;
-        cur_col += 3;
-    }
-    P.makeCompressed();
-    // std::cout << P << std::endl;
-    // -- Done constructing P
-    return P;
-}
 
 SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, int dragged_vert, bool is_dragging, double spring_stiffness, NeohookeanTets *tets, const MyWorld &world) {
     SparseVector<double> force(n_dof);// = VectorXd::Zero(n_dof); // TODO make this a sparse vector?
@@ -1164,17 +1348,18 @@ VectorXd get_von_mises_stresses(NeohookeanTets *tets, MyWorld &world) {
     Eigen::Matrix<double, 3,3> stress = MatrixXd::Zero(3,3);
     VectorXd vm_stresses(n_ele);
 
-    for(unsigned int i=0; i < n_ele; ++i) {
-        tets->getImpl().getElement(i)->getCauchyStress(stress, Vec3d(0,0,0), world.getState());
+    std::cout << "Disabled cauchy stress for linear tets.." << std::endl;
+    // for(unsigned int i=0; i < n_ele; ++i) {
+    //     tets->getImpl().getElement(i)->getCauchyStress(stress, Vec3d(0,0,0), world.getState());
 
-        double s11 = stress(0, 0);
-        double s22 = stress(1, 1);
-        double s33 = stress(2, 2);
-        double s23 = stress(1, 2);
-        double s31 = stress(2, 0);
-        double s12 = stress(0, 1);
-        vm_stresses[i] = sqrt(0.5 * (s11-s22)*(s11-s22) + (s33-s11)*(s33-s11) + 6.0 * (s23*s23 + s31*s31 + s12*s12));
-    }
+    //     double s11 = stress(0, 0);
+    //     double s22 = stress(1, 1);
+    //     double s33 = stress(2, 2);
+    //     double s23 = stress(1, 2);
+    //     double s31 = stress(2, 0);
+    //     double s12 = stress(0, 1);
+    //     vm_stresses[i] = sqrt(0.5 * (s11-s22)*(s11-s22) + (s33-s11)*(s33-s11) + 6.0 * (s23*s23 + s31*s31 + s12*s12));
+    // }
 
     return vm_stresses;
 }
@@ -1188,15 +1373,14 @@ std::string int_to_padded_str(int i) {
 
 // typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
 // typedef ReducedSpace<ConstraintSpaceImpl> ConstraintSpace;
-typedef ReducedSpace<LinearSpaceImpl> LinearSpace;
+typedef ReducedSpace<LinearSpaceImpl<MatrixXd>> LinearSpace;
+typedef ReducedSpace<LinearSpaceImpl<SparseMatrix<double>>> SparseConstraintSpace;
 typedef ReducedSpace<AutoEncoderSpaceImpl> AutoencoderSpace;
 
 template <typename ReducedSpaceType>
 void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path &model_root) {
     // -- Setting up GAUSS
     MyWorld world;
-    igl::readMESH((model_root / "tets.mesh").string(), V, T, F);
-    igl::boundary_facets(T,F);
 
     MatrixXi T_sampled;
     MatrixXi F_sampled;
@@ -1238,6 +1422,17 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     GPLCTimeStepper<ReducedSpaceType> gplc_stepper(model_root, integrator_config, &world, tets, reduced_space);
 
     bool show_stress = visualization_config["show_stress"];
+    bool show_energy = false;
+    bool show_tets = false;
+    try {
+        show_energy = visualization_config.at("show_energy");
+    }
+    catch (nlohmann::detail::out_of_range& e){} // Didn't exist
+
+    if(show_energy && show_stress) {
+        std::cout << "Can't show both energy and stress. Exiting." << std::endl;
+        exit(1);
+    }
 
     /** libigl display stuff **/
     igl::viewer::Viewer viewer;
@@ -1287,7 +1482,17 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             auto q = mapDOFEigen(tets->getQ(), world);
             Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
 
-            viewer.data.set_vertices(newV);
+            if(show_tets) {
+                VectorXi tet_indices = gplc_stepper.get_current_tets();
+                T_sampled = igl::slice(T, tet_indices, 1);
+                igl::boundary_facets(T_sampled, F_sampled);
+
+                viewer.data.clear();
+                viewer.data.set_mesh(newV, F_sampled);
+            } else {
+                viewer.data.set_vertices(newV);
+            }
+
             mesh_pos = newV.row(dragged_vert);
 
             if(per_vertex_normals) {
@@ -1323,14 +1528,40 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             gplc_stepper.step(interaction_force);
 
             if(LOGGING_ENABLED) {
-
                 fs::path obj_filename(int_to_padded_str(current_frame) + "_surface_faces.obj");
-                igl::writeOBJ((obj_dir /obj_filename).string(), newV, F);
+                igl::writeOBJ((surface_obj_dir /obj_filename).string(), newV, F);
 
                 if(config["integrator_config"]["use_reduced_energy"]) {
                     fs::path tet_obj_filename(int_to_padded_str(current_frame) + "_sample_tets.obj");
-                    igl::writeOBJ((obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
+
+                    // Need to recompute sample tets each time if they are changing.
+                    if(PRED_WEIGHTS_L1 == energy_method_from_integrator_config(config["integrator_config"])) {
+                        VectorXd weights;
+                        VectorXi indices;
+                        gplc_stepper.get_reduced_space()->get_cubature_indices_and_weights(gplc_stepper.get_current_z(), indices, weights);
+
+                        MatrixXi sample_tets = igl::slice(T, indices, 1);
+                        igl::boundary_facets(sample_tets, F_sampled);
+
+                        igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
+                    } else {
+                        igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
+                    }
                 }
+
+                // Export the pointer line
+                MatrixXi pointerF(1, 2);
+                pointerF << 0, 1;
+                MatrixXd pointerV(2,3);
+                if(is_dragging) {
+                    pointerV.row(0) = mesh_pos;
+                    pointerV.row(1) = dragged_pos;
+                } else {
+                    pointerV << 10000, 10000, 10000, 10001, 10001, 10001; // Fix this and make it work
+                }
+
+                fs::path pointer_filename(int_to_padded_str(current_frame) + "_mouse_pointer.obj");
+                igl::writeOBJ((pointer_obj_dir / pointer_filename).string(), pointerV, pointerF);
             }
             current_frame++;
         }
@@ -1358,10 +1589,40 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             for(int i=0; i < vm_per_face.size(); i++) {
                 vm_per_face[i] = (vm_per_vert[F(i,0)] + vm_per_vert[F(i,1)] + vm_per_vert[F(i,2)])/3.0;
             }
-            std::cout << vm_per_face.maxCoeff() << " " <<  vm_per_face.minCoeff() << std::endl;
+            // std::cout << vm_per_face.maxCoeff() << " " <<  vm_per_face.minCoeff() << std::endl;
             MatrixXd C;
             //VectorXd((vm_per_face.array() -  vm_per_face.minCoeff()) / vm_per_face.maxCoeff())
             igl::jet(vm_per_vert / 60.0, false, C);
+            viewer.data.set_colors(C);
+        }
+
+        if(show_energy) {
+            // Do stress field viz
+            VectorXd energy_per_element = tets->getImpl().getStrainEnergyPerElement(world.getState());
+            // energy_per_element is per element... Need to compute avg value per vertex
+            VectorXd energy_per_vert = VectorXd::Zero(V.rows());
+            VectorXi neighbors_per_vert = VectorXi::Zero(V.rows());
+            
+            int t = 0;
+            for(int i=0; i < T.rows(); i++) {
+                for(int j=0; j < 4; j++) {
+                    t++;
+                    int vert_index = T(i,j);
+                    energy_per_vert[vert_index] += energy_per_element[i];
+                    neighbors_per_vert[vert_index]++;
+                }
+            }
+            for(int i=0; i < energy_per_vert.size(); i++) {
+                energy_per_vert[i] /= neighbors_per_vert[i];
+            }
+            VectorXd energy_per_face = VectorXd::Zero(F.rows());
+            for(int i=0; i < energy_per_face.size(); i++) {
+                energy_per_face[i] = (energy_per_vert[F(i,0)] + energy_per_vert[F(i,1)] + energy_per_vert[F(i,2)])/3.0;
+            }
+
+            MatrixXd C;
+            
+            igl::jet(energy_per_face / 100.0, false, C);
             viewer.data.set_colors(C);
         }
 
@@ -1372,6 +1633,13 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     {
         switch(key)
         {
+            case 'q':
+            {
+                log_ofstream.seekp(0);
+                log_ofstream << std::setw(2) << sim_log;
+                exit(0);
+                break;
+            }
             case 'P':
             case 'p':
             {
@@ -1389,6 +1657,15 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             case 'S':
             {
                 show_stress = !show_stress;
+                show_energy = false;
+                break;
+            }
+            case 't':
+            case 'T':
+            {
+                viewer.data.clear();
+                viewer.data.set_mesh(V, F);
+                show_tets = !show_tets;
                 break;
             }
             case 'n':
@@ -1425,6 +1702,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
                 dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.001,0.0,0.0); //Epsilon offset so we don't div by 0
                 mesh_pos = curV.row(F(fid,c));
                 dragged_vert = F(fid,c);
+                std::cout << "Grabbed vertex: " << dragged_vert << std::endl;
                 is_dragging = true;
 
 
@@ -1646,7 +1924,9 @@ int main(int argc, char **argv) {
         sim_log["timesteps"] = {};
         fs::path sim_log_path("simulation_logs/");
         log_dir = model_root / fs::path("./simulation_logs/" + currentDateTime() + "/");
-        obj_dir = log_dir / fs::path("objs/");
+        surface_obj_dir = log_dir / fs::path("objs/surface/");
+        pointer_obj_dir = log_dir / fs::path("objs/pointer/");
+        tet_obj_dir = log_dir / fs::path("objs/sampled_tets/");
         if(!boost::filesystem::exists(model_root / sim_log_path)){
             boost::filesystem::create_directory(model_root / sim_log_path);
         }
@@ -1655,8 +1935,16 @@ int main(int argc, char **argv) {
             boost::filesystem::create_directory(log_dir);
         }
 
-        if(!boost::filesystem::exists(obj_dir)){
-            boost::filesystem::create_directory(obj_dir);
+        if(!boost::filesystem::exists(surface_obj_dir)){
+            boost::filesystem::create_directories(surface_obj_dir);
+        }
+
+        if(!boost::filesystem::exists(pointer_obj_dir)){
+            boost::filesystem::create_directories(pointer_obj_dir);
+        }
+
+        if(!boost::filesystem::exists(tet_obj_dir) && integrator_config["use_reduced_energy"]){
+            boost::filesystem::create_directories(tet_obj_dir);
         }
 
         // boost::filesystem::create_directories(log_dir);
@@ -1664,6 +1952,14 @@ int main(int argc, char **argv) {
 
         log_ofstream = std::ofstream((log_dir / log_file).string());
     }
+
+    // Load the mesh here
+    igl::readMESH((model_root / "tets.mesh").string(), V, T, F);
+    igl::boundary_facets(T,F);
+    // Center mesh
+    Eigen::RowVector3d centroid;
+    igl::centroid(V, F, centroid);
+    V = V.rowwise() - centroid;
 
     if(reduced_space_string == "linear") {
         std::string pca_dim(std::to_string((int)integrator_config["pca_dim"]));
@@ -1681,9 +1977,24 @@ int main(int argc, char **argv) {
         run_sim<AutoencoderSpace>(&reduced_space, config, model_root);  
     }
     else if(reduced_space_string == "full") {
-        std::cout << "Not yet implemented." << std::endl;
-        // ConstraintSpace reduced_space(construct_constraints_P(tets));
-        // run_sim<ConstraintSpace>(&reduced_space, config, model_root);
+        int fixed_axis = 1;
+        try {
+            fixed_axis = config["visualization_config"].at("full_space_constrained_axis");
+        } 
+        catch (nlohmann::detail::out_of_range& e){
+            std::cout << "full_space_constrained_axis field not found in visualization_config" << std::endl;
+            exit(1);
+        }
+
+        auto min_verts = get_min_verts(fixed_axis);
+        // For twisting
+        // auto max_verts = get_min_verts(fixed_axis, true);
+        // min_verts.insert(min_verts.end(), max_verts.begin(), max_verts.end());
+
+        SparseMatrix<double> P = construct_constraints_P(V, min_verts); // Constrain on X axis
+        SparseConstraintSpace reduced_space(P.transpose());
+
+        run_sim<SparseConstraintSpace>(&reduced_space, config, model_root);
     }
     else {
         std::cout << "Not yet implemented." << std::endl;
