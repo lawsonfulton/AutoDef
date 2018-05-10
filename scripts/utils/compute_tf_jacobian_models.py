@@ -1,4 +1,27 @@
-import numpy
+import numpy as np
+
+def fd_jacobian(f_orig, x, eps=None, is_keras=False):
+    """
+    Computes the jacobian matrix of f at x with finite diffences.
+    If is_keras is true, then x will be wrapped in an additional array before being passed to f.
+    """
+    if eps is None:
+        eps = np.sqrt(np.finfo(float).eps)
+
+    n_x = len(x)
+    if is_keras:
+        f = lambda x: f_orig(np.array([x])).flatten()
+    else:
+        f = f_orig
+
+    jac = np.zeros([n_x, len(f(x))])
+    dx = np.zeros(n_x)
+    for i in range(n_x): # TODO can do this without for loop
+       dx[i] = eps
+       jac[i] = (f(x + dx ) - f(x - dx)) / (2.0 * eps)
+       dx[i] = 0.0
+
+    return jac.transpose()
 
 
 def generate_jacobian_for_tf_model(model_input_path, jacobian_output_path):
@@ -91,6 +114,25 @@ def generate_vjp(model_input_path, vjp_output_path):
     #   print sess.run(vjp,  feed_dict={x: x_val, u: u_val})
     # tf.train.write_graph(jacobians.as_graph_def(), "./", "test_jac")
 
+    def test_vjp(tol=10e-9):
+        def test_feed_fwd(x):
+            return sess.run(output_node, feed_dict={input_node: [x]})[0]
+
+        def func_vjp(x, vec):
+            return sess.run(vjp, feed_dict={input_node: [x], v: [vec]})[0]
+
+        x = np.random.normal(0.0, 0.1, input_node.shape[1])
+        vjp_jac = np.array([func_vjp(x, v) for v in np.identity(output_node.shape[1])])
+        fd_jac = fd_jacobian(test_feed_fwd, x, eps=0.0001)
+
+        max_error = abs(np.max(vjp_jac - fd_jac))
+
+        if max_error > tol:
+            print("Computing vjp failed! Error of", max_error, "exceeded tolerance of", tol)
+            exit()
+    
+    test_vjp()
+
     # from tensorflow.python.framework import graph_util
     # from tensorflow.python.framework import graph_io
     # # print("pred_node_names", pred_node_names)
@@ -119,7 +161,8 @@ def generate_jvp(model_input_path, jvp_output_path):
       """Forward-mode pushforward analogous to the pullback defined by tf.gradients.
       With tf.gradients, grad_ys is the vector being pulled back, and here d_xs is
       the vector being pushed forward."""
-      v = tf.placeholder(ys.dtype, shape=ys.get_shape(), name="dummy")  # dummy variable
+      # v = tf.placeholder(ys.dtype, shape=ys.get_shape(), name="dummy")  # dummy variable
+      v = tf.ones_like(ys, name="dummy")
       g = tf.gradients(ys, xs, grad_ys=v, name="gradients")
       return (tf.gradients(g, v, grad_ys=d_xs, name="jvp"), g)
 
@@ -135,11 +178,32 @@ def generate_jvp(model_input_path, jvp_output_path):
     input_node = sess.graph.get_tensor_by_name("decoder_input:0")
     output_node = sess.graph.get_tensor_by_name("output_node0:0")
 
+
     n = input_node.get_shape()[1]
     z_v = tf.placeholder(tf.float64, [1, n], name="input_z_v")
     jvp, g = fwd_gradients(output_node, input_node, d_xs=z_v)
     jvp = jvp[0]
     g = g[0]
+
+
+    def test_jvp(tol=10e-9):
+        def test_feed_fwd(x):
+            return sess.run(output_node, feed_dict={input_node: [x]})[0]
+
+        def func_jvp(x, vec):
+            return sess.run(jvp, feed_dict={input_node: [x], z_v: [vec]})[0]
+
+        x = np.random.normal(0.0, 0.1, input_node.shape[1])
+        jvp_jac = np.column_stack([func_jvp(x, v) for v in np.identity(input_node.shape[1])])
+        fd_jac = fd_jacobian(test_feed_fwd, x, eps=0.0001)
+
+        max_error = abs(np.max(jvp_jac - fd_jac))
+
+        if max_error > tol:
+            print("Computing jvp failed! Error of", max_error, "exceeded tolerance of", tol)
+            exit()
+    
+    test_jvp()
     # print(jvp)
     # with tf.Session() as sess:
     #   sess.run(init_op)
@@ -158,3 +222,17 @@ def generate_jvp(model_input_path, jvp_output_path):
     # print(subgraph)
     print(jvp.name)
     # print(output_node.name)
+
+if __name__ == "__main__":
+    import sys, os
+
+    jp_type = sys.argv[1]
+    model_root = sys.argv[2]
+    tf_decoder_path = os.path.join(model_root, 'tf_models/decoder.pb')
+
+    if jp_type == 'vjp':
+        generate_vjp(tf_decoder_path, os.path.join(model_root, 'tf_models/decoder_vjp.pb'))
+    elif jp_type == 'jvp':
+        generate_jvp(tf_decoder_path, os.path.join(model_root, 'tf_models/decoder_jvp.pb'))
+    else:
+        print("First parameter must be vjp or jvp.")

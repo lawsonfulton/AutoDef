@@ -3,12 +3,12 @@
   "logging_enabled": false,
   "material_config": {
     "density": 1000.0,
-    "youngs_modulus": 1000000.0,
+    "youngs_modulus": 5000000.0,
     "poissons_ratio": 0.45
   },
   "integrator_config": {
-    "reduced_space_type": "autoencoder",
-    "use_reduced_energy": true,
+    "reduced_space_type": "full",
+    "use_reduced_energy": false,
     "reduced_energy_method": "an08",
     "use_analytic_jac": true,
     "use_preconditioner": true,

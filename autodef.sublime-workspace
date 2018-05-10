@@ -4,6 +4,434 @@
 		"selected_items":
 		[
 			[
+				"re",
+				"return"
+			],
+			[
+				"load",
+				"load_obj"
+			],
+			[
+				"su",
+				"surface_obj"
+			],
+			[
+				"s",
+				"surface"
+			],
+			[
+				"mes",
+				"mesh_sequence_settings"
+			],
+			[
+				"A",
+				"AutoDef"
+			],
+			[
+				"se",
+				"seq_objs"
+			],
+			[
+				"par",
+				"parent_obj"
+			],
+			[
+				"seq",
+				"seq_objs"
+			],
+			[
+				"name",
+				"names_to_paths"
+			],
+			[
+				"pointer",
+				"pointerV"
+			],
+			[
+				"res",
+				"resize"
+			],
+			[
+				"poin",
+				"pointerF"
+			],
+			[
+				"mesh",
+				"mesh_pos"
+			],
+			[
+				"cur",
+				"current_mouse_x"
+			],
+			[
+				"Matri",
+				"MatrixXi"
+			],
+			[
+				"m_c",
+				"m_cubature_indices"
+			],
+			[
+				"num",
+				"numTotalPoints"
+			],
+			[
+				"be",
+				"begin"
+			],
+			[
+				"curre",
+				"current_frame"
+			],
+			[
+				"Vector",
+				"Vector3d"
+			],
+			[
+				"new",
+				"new_q"
+			],
+			[
+				"max",
+				"max_verts"
+			],
+			[
+				"min",
+				"min_verts"
+			],
+			[
+				"vec",
+				"vector\tstd::vector"
+			],
+			[
+				"vo",
+				"volumes"
+			],
+			[
+				"act",
+				"activity_regularizer"
+			],
+			[
+				"mu",
+				"my_utils"
+			],
+			[
+				"m_inte",
+				"m_internal_force_asm"
+			],
+			[
+				"m_to",
+				"m_total_tets"
+			],
+			[
+				"time",
+				"timestep"
+			],
+			[
+				"ac",
+				"activated_tets"
+			],
+			[
+				"total",
+				"m_total_tets"
+			],
+			[
+				"out",
+				"output"
+			],
+			[
+				"ener",
+				"energy_samples"
+			],
+			[
+				"use",
+				"use_binary_gates"
+			],
+			[
+				"Veco",
+				"VectorXd"
+			],
+			[
+				"get_ener",
+				"get_energy_gradient"
+			],
+			[
+				"energ",
+				"energy_grad"
+			],
+			[
+				"if",
+				"ifmain\tif __name__ == '__main__'"
+			],
+			[
+				"encod",
+				"encoded_displacements"
+			],
+			[
+				"dis",
+				"displacements_path"
+			],
+			[
+				"use_",
+				"use_extra_samples"
+			],
+			[
+				"extra_",
+				"num_extra_per_pose"
+			],
+			[
+				"dma",
+				"dmat_path"
+			],
+			[
+				"tet",
+				"tet_mesh_path"
+			],
+			[
+				"extra",
+				"extra_decoded_displacements"
+			],
+			[
+				"energy",
+				"energy_path"
+			],
+			[
+				"progre",
+				"progress_bar"
+			],
+			[
+				"n_",
+				"n_chunks"
+			],
+			[
+				"st",
+				"start"
+			],
+			[
+				"Mat",
+				"MatrixXd"
+			],
+			[
+				"Matr",
+				"MatrixXi"
+			],
+			[
+				"dec",
+				"decoded_displacements"
+			],
+			[
+				"ex",
+				"extra_decoded_displacements"
+			],
+			[
+				"sma",
+				"sampled_training_data_path"
+			],
+			[
+				"my",
+				"my_utils"
+			],
+			[
+				"enc",
+				"encoded_displacements"
+			],
+			[
+				"pr",
+				"print"
+			],
+			[
+				"np",
+				"np_verts"
+			],
+			[
+				"np_",
+				"np_verts"
+			],
+			[
+				"tra",
+				"training_data_path"
+			],
+			[
+				"abs",
+				"abs_diff"
+			],
+			[
+				"arg",
+				"argv"
+			],
+			[
+				"red",
+				"red_displacements"
+			],
+			[
+				"goa",
+				"goal_tet_count"
+			],
+			[
+				"model",
+				"model_root"
+			],
+			[
+				"mod",
+				"model_root"
+			],
+			[
+				"is_",
+				"is_saving"
+			],
+			[
+				"Vec",
+				"RowVector3d"
+			],
+			[
+				"fix",
+				"fixed_axis"
+			],
+			[
+				"ou",
+				"output_dir"
+			],
+			[
+				"arap",
+				"arap_data_igl"
+			],
+			[
+				"ara",
+				"arap_data_igl"
+			],
+			[
+				"set_",
+				"set_cubature_indices_and_weights"
+			],
+			[
+				"Energy",
+				"EnergyMethod"
+			],
+			[
+				"m_en",
+				"m_energy_sample_tets"
+			],
+			[
+				"m_cubat",
+				"m_cubature_indices"
+			],
+			[
+				"VectorX",
+				"VectorXi"
+			],
+			[
+				"cop",
+				"copy_time"
+			],
+			[
+				"pred",
+				"predict_weight_time"
+			],
+			[
+				"obj_a",
+				"obj_and_grad_time_start"
+			],
+			[
+				"pu",
+				"push_back"
+			],
+			[
+				"iter",
+				"iteration_info"
+			],
+			[
+				"show",
+				"show_tets"
+			],
+			[
+				"F",
+				"F_sampled"
+			],
+			[
+				"sa",
+				"sample_faces"
+			],
+			[
+				"get_",
+				"get_cubature_indices_and_weights"
+			],
+			[
+				"ing",
+				"integrator_config"
+			],
+			[
+				"m_cur",
+				"m_cur_z"
+			],
+			[
+				"reduc",
+				"reduced_space"
+			],
+			[
+				"en",
+				"energy_weight_i"
+			],
+			[
+				"indice",
+				"indices_vec"
+			],
+			[
+				"n_tet",
+				"n_tets_used"
+			],
+			[
+				"m_ener",
+				"m_energy_method"
+			],
+			[
+				"Ener",
+				"EnergyMethod"
+			],
+			[
+				"integrat",
+				"integrator_config"
+			],
+			[
+				"energy_mt",
+				"energy_method"
+			],
+			[
+				"get_e",
+				"get_energy_discrete"
+			],
+			[
+				"non",
+				"nonzeros"
+			],
+			[
+				"wei",
+				"weights"
+			],
+			[
+				"y_",
+				"y_true"
+			],
+			[
+				"base",
+				"base_path"
+			],
+			[
+				"spa",
+				"sparse_learn"
+			],
+			[
+				"energy_per",
+				"energy_per_element"
+			],
+			[
+				"pad",
+				"padding-bottom"
+			],
+			[
+				"marg",
+				"margin-top"
+			],
+			[
 				"full",
 				"full_space_Vs"
 			],
@@ -44,16 +472,8 @@
 				"auto"
 			],
 			[
-				"red",
-				"reduced_space"
-			],
-			[
 				"comp",
 				"compute_reduced_mass_matrix"
-			],
-			[
-				"out",
-				"outer_jacobian"
 			],
 			[
 				"aut",
@@ -68,20 +488,8 @@
 				"sub_q"
 			],
 			[
-				"Vec",
-				"VectorXd"
-			],
-			[
 				"prev",
 				"prev_z"
-			],
-			[
-				"cur",
-				"cur_z"
-			],
-			[
-				"m_cur",
-				"m_cur_sub_q"
 			],
 			[
 				"cu",
@@ -104,416 +512,8 @@
 				"energy_model_dir"
 			],
 			[
-				"energy",
-				"energy_method"
-			],
-			[
-				"energ",
-				"energy_method"
-			],
-			[
-				"new",
-				"new_U"
-			],
-			[
-				"dis",
-				"displacement"
-			],
-			[
 				"for",
 				"forv\tVector For Loop"
-			],
-			[
-				"mesh",
-				"mesh_path"
-			],
-			[
-				"tra",
-				"training_data_root"
-			],
-			[
-				"ar",
-				"argv"
-			],
-			[
-				"Spa",
-				"SparseMatrix"
-			],
-			[
-				"make",
-				"makeCompressed"
-			],
-			[
-				"spar",
-				"sparse_sampled_force"
-			],
-			[
-				"sap",
-				"sparse_sampled_force"
-			],
-			[
-				"res",
-				"reserve"
-			],
-			[
-				"samn",
-				"sampled_energy"
-			],
-			[
-				"sam",
-				"sampled_force"
-			],
-			[
-				"row",
-				"rows"
-			],
-			[
-				"m_s",
-				"m_sub_q_size"
-			],
-			[
-				"Matr",
-				"MatrixXd"
-			],
-			[
-				"samp",
-				"sampled_energy"
-			],
-			[
-				"sub_q",
-				"sub_q_tensor"
-			],
-			[
-				"n",
-				"name"
-			],
-			[
-				"grad",
-				"grad_ys"
-			],
-			[
-				"tet",
-				"tet_indices"
-			],
-			[
-				"trainin",
-				"training_log"
-			],
-			[
-				"train",
-				"training"
-			],
-			[
-				"best",
-				"best_energy"
-			],
-			[
-				"cure",
-				"current_frame"
-			],
-			[
-				"fram",
-				"frame_str"
-			],
-			[
-				"drag",
-				"dragged_vert"
-			],
-			[
-				"mATRI",
-				"MatrixXi"
-			],
-			[
-				"MAtr",
-				"MatrixXi"
-			],
-			[
-				"dragg",
-				"dragged_vert"
-			],
-			[
-				"mouse",
-				"mouse_info"
-			],
-			[
-				"time",
-				"timesteps"
-			],
-			[
-				"play",
-				"sim_playback_json"
-			],
-			[
-				"sim_",
-				"sim_recording"
-			],
-			[
-				"arg",
-				"argc"
-			],
-			[
-				"dra",
-				"dragged_pos"
-			],
-			[
-				"get_s",
-				"get_sampled_tets"
-			],
-			[
-				"m_us",
-				"m_use_reduced_energy"
-			],
-			[
-				"no",
-				"no_pca_mse"
-			],
-			[
-				"no_",
-				"no_pca_hist"
-			],
-			[
-				"with",
-				"with_pca_hist"
-			],
-			[
-				"no_pca",
-				"no_pca_history_path"
-			],
-			[
-				"plot",
-				"plot_training_history"
-			],
-			[
-				"ae_tra",
-				"ae_train_time"
-			],
-			[
-				"tringi",
-				"training_results"
-			],
-			[
-				"hist",
-				"history"
-			],
-			[
-				"enco",
-				"encoded_high_dim_pca_test_displacements"
-			],
-			[
-				"high",
-				"high_dim_pca_decode"
-			],
-			[
-				"encode",
-				"encoded_high_dim_pca_displacements"
-			],
-			[
-				"call",
-				"callback"
-			],
-			[
-				"base",
-				"base_verts"
-			],
-			[
-				"face",
-				"face_indices_eig"
-			],
-			[
-				"dec",
-				"decoded_verts_eig"
-			],
-			[
-				"decoded",
-				"decoded_autoencoder_displacements"
-			],
-			[
-				"obj",
-				"obj_dir"
-			],
-			[
-				"save",
-				"save_objs"
-			],
-			[
-				"Es_",
-				"Es_summed"
-			],
-			[
-				"precon",
-				"precondition_start_time"
-			],
-			[
-				"sim_lo",
-				"sim_log_path"
-			],
-			[
-				"ofs",
-				"log_ofstream"
-			],
-			[
-				"update",
-				"update_time"
-			],
-			[
-				"curre",
-				"current_frame"
-			],
-			[
-				"times",
-				"timestep_info"
-			],
-			[
-				"lo",
-				"LOGGING_ENABLED"
-			],
-			[
-				"log",
-				"log_file"
-			],
-			[
-				"mode",
-				"model_root"
-			],
-			[
-				"Lo",
-				"LOGGING_ENABLED"
-			],
-			[
-				"inte",
-				"integrator_config"
-			],
-			[
-				"drage",
-				"dragged_pos"
-			],
-			[
-				"Matrx",
-				"MatrixXi"
-			],
-			[
-				"v",
-				"viewer"
-			],
-			[
-				"Es",
-				"Es"
-			],
-			[
-				"com",
-				"completion_mse_old"
-			],
-			[
-				"E",
-				"E_stars"
-			],
-			[
-				"E_",
-				"E_stars"
-			],
-			[
-				"star",
-				"start_solve"
-			],
-			[
-				"U",
-				"U_bar"
-			],
-			[
-				"m_UT",
-				"m_UT_F_ext"
-			],
-			[
-				"subq",
-				"sub_q_outputs"
-			],
-			[
-				"act",
-				"activation"
-			],
-			[
-				"validation_da",
-				"validation_data_path"
-			],
-			[
-				"auto",
-				"autoencoder"
-			],
-			[
-				"expl",
-				"explained_var"
-			],
-			[
-				"explained",
-				"explained_var"
-			],
-			[
-				"ener",
-				"energy_model_config"
-			],
-			[
-				"validation_d",
-				"validation_data_path"
-			],
-			[
-				"val",
-				"validation"
-			],
-			[
-				"st",
-				"start"
-			],
-			[
-				"m_Ut",
-				"m_UTMU"
-			],
-			[
-				"m_cu",
-				"m_cur_z"
-			],
-			[
-				"re",
-				"reduced_space"
-			],
-			[
-				"vec",
-				"vector\tstd::vector"
-			],
-			[
-				"m_en",
-				"m_energy_sample_tets"
-			],
-			[
-				"sa",
-				"sampled_force"
-			],
-			[
-				"new_",
-				"new_sub_q"
-			],
-			[
-				"intern",
-				"internal_force"
-			],
-			[
-				"inter",
-				"internal_forces"
-			],
-			[
-				"curren_re",
-				"current_reduced_internal_forces"
-			],
-			[
-				"m_r",
-				"m_M_reduced"
-			],
-			[
-				"ou",
-				"outer_jac"
-			],
-			[
-				"inner",
-				"inner_jac"
 			]
 		]
 	},
@@ -523,7 +523,158 @@
 			"file": "reduced_sim_gauss/src/reduced_sim_example.cpp",
 			"settings":
 			{
-				"buffer_size": 68096,
+				"buffer_size": 77409,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/lawson/Workspace/blender_scripts/import_autodef_sequence.py",
+			"settings":
+			{
+				"buffer_size": 4018,
+				"encoding": "UTF-8",
+				"line_ending": "Unix",
+				"name": "import bpy"
+			}
+		},
+		{
+			"contents": "for i in range(10):\n    print(i)",
+			"file": "/home/lawson/Downloads/test.py",
+			"file_size": 42,
+			"file_write_time": 131695120610517243,
+			"settings":
+			{
+				"buffer_size": 32,
+				"line_ending": "Unix",
+				"name": "for i in range(10) if i != 5:"
+			}
+		},
+		{
+			"file": "/home/lawson/Downloads/mesh_sequence_controller.py",
+			"settings":
+			{
+				"buffer_size": 24678,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "meshes/Coarse_beam.mesh",
+			"settings":
+			{
+				"buffer_size": 23252,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "models/very_coarse_bar/tets.mesh",
+			"settings":
+			{
+				"buffer_size": 23252,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/lawson/Workspace/GAUSS/README.md",
+			"settings":
+			{
+				"buffer_size": 4247,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/lawson/Workspace/GAUSS/InstallGAUSS_Ubuntu.sh",
+			"settings":
+			{
+				"buffer_size": 913,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/generate_energy_models.py",
+			"settings":
+			{
+				"buffer_size": 1270,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/utils/learn.py",
+			"settings":
+			{
+				"buffer_size": 47766,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/lawson/Workspace/cubacode/src/main.cpp",
+			"settings":
+			{
+				"buffer_size": 14703,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/ReducedCubatureTraining.h",
+			"settings":
+			{
+				"buffer_size": 2218,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/ReducedCubatureTrainingOptimization.cpp",
+			"settings":
+			{
+				"buffer_size": 12389,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.cpp",
+			"settings":
+			{
+				"buffer_size": 25110,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "Searching 41 files for \"evalPointForceDensity\"\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.cpp:\n  289  \t\tfor (int t = 0; t < trainingSet.size(); t++)\n  290  \t\t{\n  291: \t\t\tevalPointForceDensity(pointId, *trainingSet[t], g);\n  292  \n  293  \t\t\t// scale g by 1/norm(f_t) and copy into the column\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.h:\n  101  \t\t*\tpointId - an index in [0, getNumTotalPoints()). Implementations must map this index deterministically to a cubature point.\n  102  \t\t*/\n  103: \t\tvirtual void evalPointForceDensity(int pointId, Cubature_VarType::VECTOR& q, Cubature_VarType::VECTOR& gOut) = 0;\n  104  \n  105  \t\t/**\n  ...\n  112  \t\t* This evaluates the column of g^i_t force density vectors at the given point, scaled by the inverse force norms.\n  113  \t\t* Subclasses probably don't need to override this. This just goes through every training sample,\n  114: \t\t* calling evalPointForceDensity (which subclasses must implement).\n  115  \t\t*\n  116  \t\t*\tpointId - an index in [0, getNumTotalPoints()). Implementations must map this index deterministically to a cubature point.\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/README.txt:\n    2  Greetings,\n    3  \n    4: This source code release provides an abstracted implementation of the cubature optimization algorithm described in [An et al. 2008]. The class is GreedyCubop, and to use it, implement the two pure virtual functions for your own problem. \"evalPointForceDensity\" should evaluate the reduced force density at a given sample point, which are the 'g' vectors in equation (12) of the paper. You should probably override \"handleCubature\" as well, to write the cubature rules to disk for run-time use. Then, call \"run\" with your own parameters to run the algorithm. \"runNQP\" uses an alternate method to solve the NNLS problem using quadratic programming, so feel free to try that - it may be faster for certain problems. Code to use the resulting cubature rules at run-time is not provided, but it's relatively trivial (equation (5) in the paper).\n    5  \n    6  Please let me know if you use this or encounter problems. I'd love to hear from anyone that takes interest in this work.\n\n4 matches across 3 files\n\n\nSearching 41 files for \"evalPointForceDensity\"\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.cpp:\n  289  \t\tfor (int t = 0; t < trainingSet.size(); t++)\n  290  \t\t{\n  291: \t\t\tevalPointForceDensity(pointId, *trainingSet[t], g);\n  292  \n  293  \t\t\t// scale g by 1/norm(f_t) and copy into the column\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.h:\n  101  \t\t*\tpointId - an index in [0, getNumTotalPoints()). Implementations must map this index deterministically to a cubature point.\n  102  \t\t*/\n  103: \t\tvirtual void evalPointForceDensity(int pointId, Cubature_VarType::VECTOR& q, Cubature_VarType::VECTOR& gOut) = 0;\n  104  \n  105  \t\t/**\n  ...\n  112  \t\t* This evaluates the column of g^i_t force density vectors at the given point, scaled by the inverse force norms.\n  113  \t\t* Subclasses probably don't need to override this. This just goes through every training sample,\n  114: \t\t* calling evalPointForceDensity (which subclasses must implement).\n  115  \t\t*\n  116  \t\t*\tpointId - an index in [0, getNumTotalPoints()). Implementations must map this index deterministically to a cubature point.\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/README.txt:\n    2  Greetings,\n    3  \n    4: This source code release provides an abstracted implementation of the cubature optimization algorithm described in [An et al. 2008]. The class is GreedyCubop, and to use it, implement the two pure virtual functions for your own problem. \"evalPointForceDensity\" should evaluate the reduced force density at a given sample point, which are the 'g' vectors in equation (12) of the paper. You should probably override \"handleCubature\" as well, to write the cubature rules to disk for run-time use. Then, call \"run\" with your own parameters to run the algorithm. \"runNQP\" uses an alternate method to solve the NNLS problem using quadratic programming, so feel free to try that - it may be faster for certain problems. Code to use the resulting cubature rules at run-time is not provided, but it's relatively trivial (equation (5) in the paper).\n    5  \n    6  Please let me know if you use this or encounter problems. I'd love to hear from anyone that takes interest in this work.\n\n4 matches across 3 files\n\n\nSearching 1924 files for \"evalPointForceDensity\"\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/ReducedCubature/LoboCubatureTraining.cpp:\n  157  }\n  158  \n  159: void LoboCubatureTraining::evalPointForceDensity(int pointId,  Cubature_VarType::VECTOR& q, Cubature_VarType::VECTOR& gOut)\n  160  {\n  161  \tstd::vector<int> nodeindice(1);\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/ReducedCubature/LoboCubatureTraining.h:\n   37  \n   38  \tvirtual int numTotalPoints();\n   39: \tvirtual void evalPointForceDensity(int pointId, Cubature_VarType::VECTOR& q, Cubature_VarType::VECTOR& gOut);\n   40  \n   41  \n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.cpp:\n  289  \t\tfor (int t = 0; t < trainingSet.size(); t++)\n  290  \t\t{\n  291: \t\t\tevalPointForceDensity(pointId, *trainingSet[t], g);\n  292  \n  293  \t\t\t// scale g by 1/norm(f_t) and copy into the column\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.h:\n  101  \t\t*\tpointId - an index in [0, getNumTotalPoints()). Implementations must map this index deterministically to a cubature point.\n  102  \t\t*/\n  103: \t\tvirtual void evalPointForceDensity(int pointId, Cubature_VarType::VECTOR& q, Cubature_VarType::VECTOR& gOut) = 0;\n  104  \n  105  \t\t/**\n  ...\n  112  \t\t* This evaluates the column of g^i_t force density vectors at the given point, scaled by the inverse force norms.\n  113  \t\t* Subclasses probably don't need to override this. This just goes through every training sample,\n  114: \t\t* calling evalPointForceDensity (which subclasses must implement).\n  115  \t\t*\n  116  \t\t*\tpointId - an index in [0, getNumTotalPoints()). Implementations must map this index deterministically to a cubature point.\n\n/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/README.txt:\n    2  Greetings,\n    3  \n    4: This source code release provides an abstracted implementation of the cubature optimization algorithm described in [An et al. 2008]. The class is GreedyCubop, and to use it, implement the two pure virtual functions for your own problem. \"evalPointForceDensity\" should evaluate the reduced force density at a given sample point, which are the 'g' vectors in equation (12) of the paper. You should probably override \"handleCubature\" as well, to write the cubature rules to disk for run-time use. Then, call \"run\" with your own parameters to run the algorithm. \"runNQP\" uses an alternate method to solve the NNLS problem using quadratic programming, so feel free to try that - it may be faster for certain problems. Code to use the resulting cubature rules at run-time is not provided, but it's relatively trivial (equation (5) in the paper).\n    5  \n    6  Please let me know if you use this or encounter problems. I'd love to hear from anyone that takes interest in this work.\n\n6 matches across 5 files\n",
+			"settings":
+			{
+				"buffer_size": 7513,
+				"line_ending": "Unix",
+				"name": "Find Results",
+				"scratch": true
+			}
+		},
+		{
+			"file": "/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/ReducedCubature/LoboCubatureTraining.cpp",
+			"settings":
+			{
+				"buffer_size": 4717,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "scripts/utils/my_utils.py",
+			"settings":
+			{
+				"buffer_size": 7681,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "models/x-final/simulation_logs/simple_pull/compare_error.py",
+			"settings":
+			{
+				"buffer_size": 1511,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -532,8 +683,16 @@
 			"file": "generate_training/src/interactive.cpp",
 			"settings":
 			{
-				"buffer_size": 11513,
+				"buffer_size": 11562,
 				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "meshes/one.1.mesh",
+			"settings":
+			{
+				"buffer_size": 1860767,
 				"line_ending": "Unix"
 			}
 		}
@@ -634,17 +793,101 @@
 	],
 	"file_history":
 	[
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/simple_pull/compare_error.py",
-		"/home/lawson/Workspace/research-experiments/deformation/learn_mesh.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/simple_pull/iglhelpers.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/generate_energy_models.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/one.stl",
+		"/home/lawson/Workspace/blender_scripts/skin_frames.py",
+		"/home/lawson/.config/blender/2.79/scripts/addons/import_autodef_sequence.py",
+		"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/3dmodel/tongueshape/tongueshape01.obj",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/learn.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/my_utils.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/very_coarse_bar/training/parameters.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/build-model.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/2018-04-12.16:33:43/sim_stats.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/reduced_sim_gauss/CMakeLists.txt",
+		"/home/lawson/Workspace/research-experiments/fem-sim/reduced_sim_gauss/cmake/FindGauss.cmake",
 		"/home/lawson/Workspace/research-experiments/fem-sim/regenerate_forces/src/interactive.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/generate_data_for_pose/src/main.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/augment_training_data.py",
+		"/home/lawson/Workspace/scf-site/www/2018.html",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/simple_pull/pred_l1_90/sim_stats.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/simple_pull/pred_l1_50/sim_stats.json",
+		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/bfgs-convergence/plot.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/2018-04-09.14:48:06/sim_stats.json",
+		"/home/lawson/Workspace/cubacode/src/nnls.cpp",
+		"/home/lawson/Workspace/cubacode/src/GreedyCubop.cpp",
+		"/home/lawson/Workspace/cubacode/src/main.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/convert_keras_models_to_tf.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/2018-04-09.15:05:48/objs/surface/00003_surface_faces.obj",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/2018-04-09.14:59:25/sim_stats.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/utils/compute_tf_jacobian_models.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/__init__.py",
+		"/home/lawson/Workspace/research-experiments/deformation/learn_mesh.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/generate_data_for_pose/CMakeLists.txt",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/visualize_model_quality.py",
+		"/home/lawson/Workspace/cubacode/COPYING.txt",
+		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/src/interactive.cpp",
+		"/home/lawson/Workspace/geometry-processing-deformation/src/biharmonic_solve.cpp",
+		"/home/lawson/Downloads/Grad Skills Workshop - Empowering Your Presence.csv",
+		"/home/lawson/Workspace/geometry-processing-deformation/main.cpp",
+		"/home/lawson/Workspace/geometry-processing-deformation/src/arap_precompute.cpp",
+		"/home/lawson/Workspace/geometry-processing-deformation/src/arap_single_iteration.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/CMakeLists.txt",
+		"/home/lawson/Workspace/geometry-processing-deformation/CMakeLists.txt",
+		"/home/lawson/Workspace/geometry-processing-deformation/shared/cmake/CMakeLists.txt",
+		"/home/lawson/Workspace/geometry-processing-deformation/src/biharmonic_precompute.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/utils/my_keras_to_tensorflow.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/mesh/Beam.node",
+		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/mesh/Beam.mesh",
+		"/home/lawson/Workspace/tycowiz13_code/PnIterativeHardThresholding.java",
+		"/home/lawson/Workspace/tycowiz13_code/PnSubsetHardThresholdingPursuit.java",
+		"/home/lawson/Workspace/tycowiz13_code/PnFNNLSSolver.java",
+		"/home/lawson/Workspace/tycowiz13_code/PuThreadCache.java",
+		"/home/lawson/Dropbox/Feels/How to be a better person.txt",
+		"/home/lawson/Workspace/for_oded/src/interactive.cpp",
+		"/home/lawson/Workspace/medit/dlists.c",
+		"/home/lawson/Workspace/medit/medit.c",
+		"/home/lawson/Workspace/medit/Makefile",
+		"/home/lawson/Workspace/medit/scene.c",
+		"/home/lawson/Workspace/medit/inout.c",
+		"/home/lawson/Workspace/VegaFEM-v3.1/build",
+		"/home/lawson/Workspace/VegaFEM-v3.1/utilities/reducedDynamicSolver-rt/Makefile",
+		"/home/lawson/Workspace/VegaFEM-v3.1/models/turtle/turtle-volumetric-homogeneous.veg",
+		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/3_arm_comb.veg",
+		"/home/lawson/Workspace/for_oded/cmake/FindGauss.cmake",
+		"/home/lawson/Workspace/for_oded/cmake/FindLIBIGL.cmake",
+		"/home/lawson/Workspace/VegaFEM-v3.1/utilities/largeModalDeformationFactory/largeModalDeformationFactory.cpp",
+		"/home/lawson/Workspace/VegaFEM-v3.1/libraries/volumetricMesh/volumetricMesh.cpp",
+		"/home/lawson/Workspace/VegaFEM-v3.1/buildModelReduction",
+		"/home/lawson/Workspace/VegaFEM-v3.1/INSTALL.txt",
+		"/home/lawson/Downloads/wxWidgets-2.9.4/wx-config.in",
+		"/home/lawson/Downloads/wxWidgets-2.9.4/docs/gtk/install.txt",
+		"/home/lawson/Workspace/VegaFEM-v3.1/Makefile-headers/Makefile-header",
+		"/home/lawson/Workspace/VegaFEM-v3.1/libraries/include/sparseSolverAvailability.h",
+		"/home/lawson/Workspace/VegaFEM-v3.1/libraries/sparseSolver/PardisoSolver.cpp",
+		"/home/lawson/Workspace/VegaFEM-v3.1/utilities/largeModalDeformationFactory/nonlinearModes.cpp",
+		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/6_arm_comb.veg",
+		"/home/lawson/Workspace/for_oded/CMakeLists.txt",
+		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/6_arm_comb.1.ele",
+		"/home/lawson/Workspace/arpackpp/INSTALL.md",
+		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/X.1.mesh",
+		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/6_arm_comb.1.mesh",
+		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/2_arm_comb.1.mesh",
+		"/home/lawson/Workspace/VegaFEM-v3.1/models/turtle/turtle-volumetric.bou",
+		"/home/lawson/Workspace/VegaFEM-v3.1/models/turtle/turtle-volumetric.obj",
+		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/3_arm_comb.1.ele",
+		"/home/lawson/Workspace/VegaFEM-v3.1/libraries/sparseSolver/sparseSolverAvailability.h",
+		"/home/lawson/ARPACK/ARmake.inc",
+		"/home/lawson/Downloads/ARPACK/README",
+		"/home/lawson/arpack++/Makefile.inc",
+		"/home/lawson/Downloads/ARPACK/ARmake.inc",
+		"/home/lawson/Workspace/VegaFEM-v3.1/documentation/VegaUsersManual.pdf",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/simple_pull/compare_error.py",
+		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/simple_pull/iglhelpers.py",
 		"/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/fd_interpolate.cpp",
 		"/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/fd_partial_derivative.cpp",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof-best/energy_training_history.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/sim_config.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/rough_vs_smooth/plot.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/my_utils.py",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/training_results.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof-best/tets.mesh",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/46k-dragon/model_config.json",
@@ -654,24 +897,19 @@
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof/training_results.json",
 		"/home/lawson/Workspace/geometry-processing-mesh-reconstruction/src/poisson_surface_reconstruction.cpp",
 		"/home/lawson/Workspace/research-experiments/fem-sim/regenerate_forces/CMakeLists.txt",
-		"/home/lawson/Workspace/research-experiments/fem-sim/reduced_sim_gauss/CMakeLists.txt",
 		"/home/lawson/Workspace/cubacode/cmake/FindLIBIGL.cmake",
-		"/home/lawson/Workspace/research-experiments/fem-sim/build-model.py",
 		"/home/lawson/Workspace/research-experiments/fem-sim/utils/iglhelpers.py",
 		"/home/lawson/Downloads/sinkhorn_operator.ipynb",
 		"/home/lawson/Workspace/LBFGSpp/include/LBFGS.h",
-		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/src/interactive.cpp",
 		"/home/lawson/Workspace/cubacode/CMakeLists.txt",
 		"/home/lawson/Workspace/cubacode/main.cpp",
 		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/Fine_beam.mesh",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-with-forces/sim_config.json",
 		"/home/lawson/Workspace/scf-site/www/2017.html",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/my_keras_to_tensorflow.py",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/30k-armadillo-waist/sim_config.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof-smaller-layers/sim_config.json",
 		"/home/lawson/Workspace/tensorflow_cc/README.md",
 		"/home/lawson/Workspace/scf-site/www/index.html",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/learn.py",
 		"/home/lawson/recordings/renders/dragon_original/0.obj",
 		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/stiff-bar/training/parameters.json",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/31k-dragon-10dof/sim_config.json",
@@ -682,96 +920,21 @@
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/2018-01-21.20:44:18/objs/00113_surface_faces.obj",
 		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/tet_viz/recording/recording_reduced_energy/objs/00141_surface_faces.obj",
 		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/tet_viz/playback_with_reduced_energy/objs/sample_tets_586.obj",
-		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/tet_viz/playback_with_reduced_energy/sim_stats.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/tet_viz/recording/sim_stats.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-21.17:45:35/objs/sample_tets_147.obj",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-21.17:37:16/objs/sample_tets_284.obj",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.14:45:23/sim_stats.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/stiff-bar-training-viz/keras_models/training_history.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/stiff-bar-training-viz-with-pca/training_history.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/stiff-bar-training-viz/training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/stiff-bar-training-viz-no-pca-small-final-layer/training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/rough_vs_smooth/with_pca_training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/visualize_model_quality.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/rough_vs_smooth/no_pca_training_results_with_real_time.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/rough_vs_smooth/with_pca_training_results_real_time.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/stiff-bar-training-viz-with-pca/training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/stiff-bar-training-viz-with-pca/keras_models/training_history.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/stiff-bar-training-viz/decoded_training_objs/decoded_590.obj",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/30k-armadillo-waist/simulation_logs/2018-01-20.14:46:12/sim_stats.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/30k-armadillo-waist/simulation_logs/2018-01-20.14:53:31/sim_stats.json",
-		"/home/lawson/Workspace/GAUSS/src/Base/include/ConstraintFixedPoint.h",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.13:56:14/sim_stats.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.13:55:42/sim_stats.json",
-		"/home/lawson/Workspace/research-experiments/.gitignore",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/convert_keras_models_to_tf.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.14:34:26/sim_stats.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.14:43:42/sim_stats.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-test-one-layer/simulation_logs/2018-01-20.14:16:10/378.obj",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/30k-armadillo-waist/training_results.json",
-		"/home/lawson/Workspace/GAUSS/CMakeLists.txt",
-		"/home/lawson/Workspace/GAUSS/build/CMakeCache.txt",
-		"/home/lawson/Workspace/my_gauss_build_instructions.txt",
-		"/home/lawson/Workspace/GAUSS/config.cmake",
-		"/home/lawson/Workspace/AutodefPaper/.gitignore",
-		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/CMakeLists.txt",
-		"/home/lawson/Workspace/GAUSS/src/Examples/CMakeLists.txt",
-		"/home/lawson/Workspace/GAUSS/cmake/FindPardiso.cmake",
-		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/coarse-armadillo/training/displacements_109.dmat",
-		"/home/lawson/Downloads/interactive.cpp",
-		"/opt/anaconda3/lib/python3.6/site-packages/simanneal/anneal.py",
-		"/home/lawson/Downloads/PCAIntegration.m",
-		"/home/lawson/.keras/keras.json",
-		"/opt/anaconda3/lib/python3.6/site-packages/tensorflow_forward_ad/fwgrad.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-with-forces-smaller/training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-with-forces-smaller/model_config.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/sim_config.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/cmake/FindGauss.cmake",
-		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/build/output_data/mouse.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/reduced_sim_gauss/cmake/FindGauss.cmake",
-		"/home/lawson/Workspace/GAUSS/cmake/FindGauss.cmake",
-		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/x-with-forces/params",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-full-energy/pca_results/pca_components_5.dmat",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-energy2/training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-with-energy/training_results.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy/sim_config.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/keras_models/training_history.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/sim_config.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy/training_data/training/energy-modified.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/generate_training/build/energy.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy-2/model_config.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-5dof-no-energy/training_results.json",
-		"/home/lawson/Workspace/research-experiments/Autodef/main.cpp",
-		"/home/lawson/Workspace/GAUSS/src/UI/CMakeLists.txt",
-		"/home/lawson/.cache/.fr-Y4H8cR/Autodef/cmake/FindGauss.cmake",
-		"/home/lawson/Workspace/research-experiments/Autodef/CMakeLists.txt",
-		"/home/lawson/Workspace/research-experiments/Autodef/cmake/FindGauss.cmake",
-		"/home/lawson/Workspace/GAUSS/README.md",
-		"/home/lawson/Workspace/GAUSS/src/UI/include/Qt3DIncludes.h",
-		"/home/lawson/Downloads/Autodef/CMakeLists.txt",
-		"/home/lawson/Downloads/Autodef/cmake/FindGauss.cmake",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/elu-float64-3dof/sim_config.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/elu-float32/keras_models/training_history.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/elu-float64/keras_models/training_history.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/reduced_sim_gauss/configs/test.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/relu-baseline-test/model_config.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/relu-baseline_config.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/relu-baseline-test/keras_models/training_history.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/__init__.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/convert_keras_models_to_tf.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/my_utils.py"
+		"/home/lawson/Workspace/research-experiments/fem-sim/figure data/tet_viz/playback_with_reduced_energy/objs/sample_tets_586.obj"
 	],
 	"find":
 	{
-		"height": 40.0
+		"height": 26.0
 	},
 	"find_in_files":
 	{
 		"height": 105.0,
 		"where_history":
 		[
+			"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src",
+			"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature",
+			"./",
+			"/home/lawson/Workspace/VegaFEM-v3.1",
 			"<current file>",
 			"src/"
 		]
@@ -781,134 +944,134 @@
 		"case_sensitive": false,
 		"find_history":
 		[
-			"poisso",
-			"pcr",
-			"eig",
-			"igl",
-			"surface",
-			"ae",
-			"ae_pcr_",
-			"ae",
+			"discrete_nn_analysis",
+			"dragged_ver",
+			"grab",
+			"Pool",
+			"tet_obj_dir",
+			"tet_obj_filename",
+			"sampled",
+			"loadSequenceFromFile",
+			"importFunc",
+			"loadSequenceFromData",
+			"context",
+			"skin_frames",
+			"initSequenceController",
+			"u",
+			"persi",
+			"persistent",
+			"initSequenceController",
+			"persistent",
+			"updateFrame",
+			"updateStartFrame",
+			"f",
+			"F",
+			"updateFrame",
+			"persistent",
+			"i",
+			"MSC",
+			"parent_obj",
+			"_obj",
+			"load_mesh_sequence",
+			"load_mesh",
+			"newMeshSequence",
+			"objSettings",
+			"dirPath",
+			"add_mesh_sequence",
+			"userpath",
+			"filename_ext",
+			"filter_glob",
+			"type",
+			"import_test",
+			"ImportSomeData",
+			"pointerV",
+			"current_mouse_x",
 			"surface_obj_dir",
-			"obj_dir",
-			"m_drt",
-			"m_H_llt",
-			"m_UTMU",
-			"reduced mass",
-			"decltype",
-			"MatrixXd",
-			"reduced mas",
-			"m_M",
-			"result_of",
-			"()",
-			"::type",
-			"result_of",
-			"()",
-			"decltype",
-			"ReducedSpaceType",
-			"auto",
-			"decltype",
-			"ReducedSpaceType",
-			"MatrixType",
-			"AutoEncoderSpaceImpl",
-			"AutoencoderSpace",
-			"ReducedSpaceType",
-			"MatrixXd",
-			"m_UTMU",
-			"UT_internal_forces",
-			"tf_time",
-			"m_cur_z",
-			"m_cur_sub_q",
-			"VectorXd",
-			"prev_sub_q",
-			"cur_sub_q",
-			"set_prev_zs",
-			"m_use_preconditioner",
-			"LinearSpaceImpl",
-			"SparseConstraintSpace",
-			"LinearSpaceImpl",
-			"SparseConstraintSpace",
-			"SparseMatrix",
-			"r",
-			"MatrixXd",
-			"LinearSpaceImpl",
-			"LinearSpace",
-			"readMESH",
-			"m",
-			"M",
+			"pointer_obj_dir",
+			"surface_obj_dir",
+			"surface",
+			"surface_obj_dir",
+			"obj",
+			"volu",
+			"relErrTol",
+			"m_energy_sample_tets",
+			"m_cubature_indices",
+			"get_current_tets",
+			"T_sampled",
+			"int nonzero = 0;\n        // for(int i=0; i < sampled_force.size(); i++) {\n        //     if(fabs(sampled_force[i]) > 0.01) {\n        //         nonzero++;\n        //         std::cout << i << \",      \";\n        //     } \n        // }\n        // std::cout << std::endl << \"num nonzero: \" << nonzero << std::endl;",
+			"reducedforcemodel",
+			"evalPointForceDensity",
+			"Vert",
+			";\n",
+			"load_displacements",
+			"myvector",
+			"axis",
+			"centroid",
+			"get_min_verts",
+			"b",
+			"verts",
+			"a",
+			"get_min_verts",
+			"get_min_or_max_verts",
 			"construct_constraints_P",
-			"dim",
-			"MatrixXd",
-			"LinearSpaceImpl",
-			"LinearSpace",
-			"tets->getImpl().getV()",
-			"tets",
-			"e",
-			"writeDMAT",
-			"Map",
-			"n:",
-			"Eigen",
-			"this_iteration_output_dir",
-			"slice",
-			"add_sys",
-			"Gauss_LIBS",
-			"getNumTotalPoints",
-			",",
-			",  ",
-			", ",
-			",  ",
-			"GenerateTrainingData",
-			"displacement_num",
-			"displacement_paths",
-			"cand_path",
-			"directory_iterator",
-			"test",
-			"substr",
-			"config",
-			"sim_params",
-			"boos",
-			"m_neg_energy_sample_jac",
-			"neg_energy_sample_jac",
-			"vert_index",
+			"min_verts",
+			"time",
+			"encode",
+			"reset_z",
+			"discrete_nn_analysis",
+			"inv_volumes",
+			"discrete_nn_analysis",
 			"T",
-			"current_reduced_energy_and_forces",
-			"fwd_gradients",
-			"fd_jac",
-			"vjp",
-			"zs",
-			"z.size()",
-			"sub_jac",
-			"use_analytic_vjp",
-			"m_use_analytic_vjp",
-			"m_decoder_jvp_session",
-			"decoder_jvp_graph_def",
-			"vjp",
-			"sub_q",
-			"generate_jacobian_for_tf_model",
-			"generate_vjp",
-			"generate_jacobian_for_tf_model",
-			"vjp",
-			"vjp_output_path",
-			"vjp",
-			"jacobian_transpose_vector_product",
-			"jtvp",
-			"m_summed_force_fact",
-			"m_energy_sampled_basis_qr",
-			"m_summed_force_fact",
-			"A",
-			"m_summed_energy_basis",
-			"current_reduced_energy_and_forces",
-			"J",
-			"z",
-			"z_tensor",
-			"jacobians",
-			"jacobian_output_path",
-			"output_node",
-			"jac",
-			"decoder_jac",
-			"m_decoder_jac_session",
-			"regist",
-			"line"
+			"discrete_nn_analysis",
+			"K_asm",
+			"M_asm",
+			"_asm",
+			"AssemblerParallel",
+			"internal_force_asm",
+			"element_forces",
+			"AssemblerEigenVector",
+			"AssemblerEigenSparseMatrix<double> ",
+			"AssemblerEigenSparseMatrix",
+			"Assembler",
+			"AssemblerEigenVector",
+			"m_is_full_space",
+			"full",
+			"FULL",
+			"get_von_mises_stresses",
+			"float_content8",
+			"float_content9",
+			"midnight",
+			"mean_absolute_percentage_error",
+			"bNorm",
+			"residualNorm",
+			"relErr",
+			"handleCubature",
+			"relErr",
+			"handleCubature",
+			"relErr",
+			"y_true",
+			"sqrt",
+			"log_save_freq",
+			"set_cubature_indices_and_weights",
+			"m_cubature_indices",
+			"m_cubature_weights",
+			"m_total_time",
+			"2018",
+			"April",
+			"<h5>",
+			"paper t",
+			"discrete_nn_analysis",
+			"energy_grad",
+			"m_direct_energy_model_session",
+			"PRED_DIRECT",
+			"pred_energy_direct",
+			"get_energy_gradient",
+			"finite",
+			"m_energy_model_session",
+			"convert_keras_models_to_tf",
+			"get_energy",
+			"fit_nn_direct_energy",
+			"np"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -927,7 +1090,7 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 9,
 			"sheets":
 			[
 				{
@@ -936,15 +1099,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 68096,
+						"buffer_size": 77409,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								51051,
-								51051
+								66373,
+								66373
 							]
 						],
 						"settings":
@@ -954,27 +1117,293 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 22834.0,
+						"translation.y": 29944.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/home/lawson/Workspace/blender_scripts/import_autodef_sequence.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4018,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								941,
+								941
+							]
+						],
+						"settings":
+						{
+							"auto_name": "import bpy",
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 388.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/home/lawson/Downloads/test.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 32,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								32,
+								32
+							]
+						],
+						"settings":
+						{
+							"auto_name": "for i in range(10) if i != 5:",
+							"syntax": "Packages/Python/Python.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "/home/lawson/Downloads/mesh_sequence_controller.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 24678,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								19554,
+								19554
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 7912.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "meshes/Coarse_beam.mesh",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 23252,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								15849,
+								15849
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"tab_size": 3,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 10488.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 15,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "models/very_coarse_bar/tets.mesh",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 23252,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1285,
+								1285
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"tab_size": 3,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 10154.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "/home/lawson/Workspace/GAUSS/README.md",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4247,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Markdown/Markdown.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 11,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "/home/lawson/Workspace/GAUSS/InstallGAUSS_Ubuntu.sh",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 913,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								913,
+								913
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/ShellScript/Shell-Unix-Generic.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "scripts/generate_energy_models.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1270,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								559,
+								559
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 1,
-					"file": "generate_training/src/interactive.cpp",
+					"buffer": 9,
+					"file": "scripts/utils/learn.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 11513,
+						"buffer_size": 47766,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								5479,
-								5479
+								26912,
+								26912
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 12142.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "/home/lawson/Workspace/cubacode/src/main.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 14703,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4419,
+								4419
 							]
 						],
 						"settings":
@@ -984,10 +1413,343 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1910.0,
+						"translation.y": 1414.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 13,
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/ReducedCubatureTraining.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2218,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								919,
+								919
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 18,
+					"type": "text"
+				},
+				{
+					"buffer": 12,
+					"file": "/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/ReducedCubatureTrainingOptimization.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 12389,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 4482.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 17,
+					"type": "text"
+				},
+				{
+					"buffer": 13,
+					"file": "/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 25110,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								13492,
+								13501
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 7821.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 14,
+					"type": "text"
+				},
+				{
+					"buffer": 14,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7513,
+						"regions":
+						{
+							"match":
+							{
+								"flags": 112,
+								"regions":
+								[
+									[
+										219,
+										240
+									],
+									[
+										603,
+										624
+									],
+									[
+										979,
+										1000
+									],
+									[
+										1544,
+										1565
+									],
+									[
+										2529,
+										2550
+									],
+									[
+										2913,
+										2934
+									],
+									[
+										3289,
+										3310
+									],
+									[
+										3854,
+										3875
+									],
+									[
+										4824,
+										4845
+									],
+									[
+										5139,
+										5160
+									],
+									[
+										5424,
+										5445
+									],
+									[
+										5808,
+										5829
+									],
+									[
+										6184,
+										6205
+									],
+									[
+										6749,
+										6770
+									]
+								],
+								"scope": ""
+							}
+						},
+						"selection":
+						[
+							[
+								4830,
+								4830
+							]
+						],
+						"settings":
+						{
+							"detect_indentation": false,
+							"line_numbers": false,
+							"output_tag": 3,
+							"result_base_dir": "",
+							"result_file_regex": "^([^ \t].*):$",
+							"result_line_regex": "^ +([0-9]+):",
+							"scroll_past_end": true,
+							"syntax": "Packages/Default/Find Results.hidden-tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1350.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 16,
+					"type": "text"
+				},
+				{
+					"buffer": 15,
+					"file": "/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/ReducedCubature/LoboCubatureTraining.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4717,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2592,
+								2592
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1728.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 16,
+					"file": "scripts/utils/my_utils.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7681,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								249,
+								250
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 162.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 17,
+					"file": "models/x-final/simulation_logs/simple_pull/compare_error.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1511,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								913,
+								913
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 19,
+					"type": "text"
+				},
+				{
+					"buffer": 18,
+					"file": "generate_training/src/interactive.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 11562,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								5523,
+								5523
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1837.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 19,
+					"file": "meshes/one.1.mesh",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1860767,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1201336,
+								1201336
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 725529.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
 					"type": "text"
 				}
 			]
@@ -1045,6 +1807,26 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"gener",
+				"generate_energy_models.py"
+			],
+			[
+				"utils",
+				"scripts/utils/my_utils.py"
+			],
+			[
+				"inter",
+				"generate_training/src/interactive.cpp"
+			],
+			[
+				"gene",
+				"generate_energy_models.py"
+			],
+			[
+				"main",
+				"~/Workspace/cubacode/src/main.cpp"
+			],
 			[
 				"bui",
 				"build-model.py"
