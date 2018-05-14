@@ -6,6 +6,7 @@ from utils import my_utils
 import numpy
 
 def convert_keras_models_to_tf(model_root):
+    import keras
     from keras.models import load_model
     from keras import backend as K
 
@@ -20,9 +21,12 @@ def convert_keras_models_to_tf(model_root):
     for model_name in model_names:
         model_path = os.path.join(keras_models_dir, model_name + '.hdf5')
         if os.path.exists(model_path):
-            import keras.losses
+            
+            # Custom stuff
             keras.losses.energy_loss = lambda x,y: x
             keras.regularizers.reg = lambda : (lambda x: x)
+            keras.activations.my_elu = my_utils.create_my_elu()
+
             model = load_model(model_path)
             k2tf.save_keras_model_as_tf(model, os.path.join(tf_models_dir, model_name + '.pb'))
             K.clear_session()

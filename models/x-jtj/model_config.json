@@ -14,7 +14,7 @@
       "pca_layer_dim": 30,
       "non_pca_layer_sizes": [200, 200],
       "ae_encoded_dim": 6,
-      "activation": "my_elu",
+      "activation": "elu",
 
       "batch_size": 800,
       "training_epochs": 1000,

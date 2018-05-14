@@ -130,6 +130,8 @@ def generate_vjp(model_input_path, vjp_output_path):
         if max_error > tol:
             print("Computing vjp failed! Error of", max_error, "exceeded tolerance of", tol)
             exit()
+        else:
+            print("vjp passed accuracy test with error of:", max_error)
     
     test_vjp()
 
@@ -202,6 +204,8 @@ def generate_jvp(model_input_path, jvp_output_path):
         if max_error > tol:
             print("Computing jvp failed! Error of", max_error, "exceeded tolerance of", tol)
             exit()
+        else:
+            print("jvp passed accuracy test with error of:", max_error)
     
     test_jvp()
     # print(jvp)

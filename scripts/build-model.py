@@ -106,6 +106,7 @@ def main():
         tf_vjp_path = os.path.join(model_root, 'tf_models/decoder_vjp.pb')
         generate_jacobian_for_tf_model(tf_decoder_path, tf_decoder_jac_path)
         generate_vjp(tf_decoder_path, tf_vjp_path)
+        # generate_jvp(tf_decoder_path, tf_vjp_path)
         print('Done.')
 
     energy_model_config = config['learning_config']['energy_model_config']

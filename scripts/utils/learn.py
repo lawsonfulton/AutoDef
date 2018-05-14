@@ -79,11 +79,14 @@ def autoencoder_analysis(
         #return data * std + mean
         # return data * (s_max - s_min) + s_mi
 
+    # My elu fixes the jvp problem
+    if activation == "my_elu":
+        activation = my_utils.create_my_elu()
     ## Set up the network
     
     input = Input(shape=(len(train_data[0]),), name="encoder_input")
     output = input
-    
+
     if pca_basis is not None:
         # output = Lambda(pca_transform_layer)(output)
         # output = PCALayer(pca_object, is_inv=False, fine_tune=do_fine_tuning)(output)

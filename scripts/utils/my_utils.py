@@ -107,6 +107,12 @@ def load_energy_dmats_to_numpy(base_path, num_samples=None):
 # Keras Helpers
 ###
 
+def create_my_elu():
+    import tensorflow as tf
+    def my_elu(x):
+        return tf.where(x >= 0.0, x, tf.exp(x) - 1.0)
+    return my_elu
+    
 def decompose_ae(autoencoder, do_energy=False):
     """ Takes a Keras autoencoder model and splits it into three seperate models """
     import keras
