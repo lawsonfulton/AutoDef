@@ -13,6 +13,7 @@ set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib )
 #grab important packages
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+find_package(Eigen3 REQUIRED)
 #Tensorflow
 find_package(TensorflowCC REQUIRED)
 

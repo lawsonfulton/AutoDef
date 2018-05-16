@@ -1,5 +1,10 @@
 #include <vector>
 
+// Tensorflow
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/public/session.h>
+
+
 //#include <Qt3DIncludes.h>
 #include <GaussIncludes.h>
 #include <ForceSpring.h>
@@ -45,9 +50,6 @@
 // JSON
 #include <json.hpp>
 
-// Tensorflow
-#include <tensorflow/core/platform/env.h>
-#include <tensorflow/core/public/session.h>
 
 #include <omp.h>
 
@@ -353,14 +355,14 @@ public:
             status = m_decoder_vjp_session->Create(decoder_vjp_graph_def);
             checkStatus(status);
 
-            // // Decoder jvp -- not working
-            // status = tf::NewSession(tf::SessionOptions(), &m_decoder_jvp_session);
-            // checkStatus(status);
-            // tf::GraphDef decoder_jvp_graph_def;
-            // status = ReadBinaryProto(tf::Env::Default(), decoder_jvp_path.string(), &decoder_jvp_graph_def);
-            // checkStatus(status);
-            // status = m_decoder_jvp_session->Create(decoder_jvp_graph_def);
-            // checkStatus(status);
+            // // Decoder jvp
+            status = tf::NewSession(tf::SessionOptions(), &m_decoder_jvp_session);
+            checkStatus(status);
+            tf::GraphDef decoder_jvp_graph_def;
+            status = ReadBinaryProto(tf::Env::Default(), decoder_jvp_path.string(), &decoder_jvp_graph_def);
+            checkStatus(status);
+            status = m_decoder_jvp_session->Create(decoder_jvp_graph_def);
+            checkStatus(status);
         }
 
         // Encoder
@@ -413,36 +415,6 @@ public:
             status = m_direct_energy_model_session->Create(energy_model_graph_def);
             checkStatus(status);
         }
-        
-
-        // tf::Tensor z_tensor(tf::DT_FLOAT, tf::TensorShape({1, 3}));
-        // auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        // z_tensor_mapped(0, 0) = 0.0;
-        // z_tensor_mapped(0, 1) = 0.0;
-        // z_tensor_mapped(0, 2) = 0.0;
-
-        // tf::Tensor q_tensor(tf::DT_FLOAT, tf::TensorShape({1, 1908}));
-        // auto q_tensor_mapped = q_tensor.tensor<tf_dtype_type, 2>();
-        // for(int i =0; i < 1908; i++) {
-        //     q_tensor_mapped(0, i) = 0.0;
-        // }
-
-        // // std::vector<std::pair<tf::string, tf::Tensor>>integrator_config["energy_model_config"]["enabled"] input_tensors = {{"x", x}, {"y", y}};
-        // std::vector<tf::Tensor> q_outputs;
-        // status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
-        //                            {"output_node0:0"}, {}, &q_outputs);
-        // checkStatus(status);
-
-        // std::vector<tf::Tensor> z_outputs;
-        // status = m_encoder_session->Run({{"encoder_input:0", q_tensor}},
-        //                            {"output_node0:0"}, {}, &z_outputs);
-        // checkStatus(status);
-
-        // tf::Tensor q_output = q_outputs[0];
-        // std::cout << "Success: " << q_output.flat<tf_dtype_type>() << "!" << std::endl;
-        // tf::Tensor z_output = z_outputs[0];
-        // std::cout << "Success: " << z_output.flat<tf_dtype_type>() << "!" << std::endl;
-        // std::cout << "Jac: " << jacobian(Vector3d(0.0,0.0,0.0)) << std::endl;
     }
 
     inline VectorXd encode(const VectorXd &q) {
@@ -572,25 +544,25 @@ public:
         // return res;
 
         // Finite differences
-        MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
-        double t = finite_diff_eps;
-        for(int i = 0; i < z.size(); i++) {
-            VectorXd dz_pos(z);
-            VectorXd dz_neg(z);
-            dz_pos[i] += t;
-            dz_neg[i] -= t;
-            sub_jac.col(i) = (sub_decode(dz_pos) - sub_decode(dz_neg)) / (2.0 * t);
-        }
-
-
-
-        // Analytic with jvp - NOT WORKING!?
         // MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
-        // MatrixXd zs = MatrixXd::Identity(z.size(), z.size());
-
+        // double t = finite_diff_eps;
         // for(int i = 0; i < z.size(); i++) {
-        //     sub_jac.col(i) = jacobian_vector_product(z, zs.row(i));
+        //     VectorXd dz_pos(z);
+        //     VectorXd dz_neg(z);
+        //     dz_pos[i] += t;
+        //     dz_neg[i] -= t;
+        //     sub_jac.col(i) = (sub_decode(dz_pos) - sub_decode(dz_neg)) / (2.0 * t);
         // }
+
+
+
+        // Analytic with jvp - (slower than FD probably)
+        MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
+        MatrixXd zs = MatrixXd::Identity(z.size(), z.size());
+
+        for(int i = 0; i < z.size(); i++) {
+            sub_jac.col(i) = jacobian_vector_product(z, zs.row(i));
+        }
  
         // Analytic with vjp
         // MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
@@ -640,11 +612,6 @@ public:
     }
 
     inline VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
-        // WARNIGN THIS IS GIVING BAD VALUES
-        // Analytical - NOT WORKING
-        // TODO
-        // Switch to copy method I used before
-
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); 
         auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
         for(int i =0; i < z.size(); i++) {
@@ -652,14 +619,13 @@ public:
         } // TODO map with proper function
 
         tf::Tensor z_v_tensor(tf_dtype, tf::TensorShape({1, z_v.size()})); 
-        tf::Tensor placeholder(tf_dtype, tf::TensorShape({1, m_sub_q_size})); 
         auto z_v_tensor_mapped = z_v_tensor.tensor<tf_dtype_type, 2>();
         for(int i =0; i < z_v.size(); i++) {
             z_v_tensor_mapped(0, i) = z_v[i];
         } // TODO map with proper function
 
         std::vector<tf::Tensor> jvp_outputs; 
-        tf::Status status = m_decoder_jvp_session->Run({{"decoder_input:0", z_tensor}, {"input_z_v:0", z_v_tensor}, {"dummy", placeholder}},
+        tf::Status status = m_decoder_jvp_session->Run({{"decoder_input:0", z_tensor}, {"input_z_v:0", z_v_tensor}},
                                    {"jvp/gradients/decoder_output_layer/MatMul_grad/MatMul_grad/MatMul:0"}, {}, &jvp_outputs); // TODO get better names
         checkStatus(status);
         auto jvp_tensor_mapped = jvp_outputs[0].tensor<tf_dtype_type, 2>();
@@ -1892,6 +1858,112 @@ const std::string currentDateTime() {
     return buf;
 }
 
+VectorXd tf_JTJ(const VectorXd &z, const VectorXd &z_v, tf::Session* m_decoder_JTJ_session) {
+    tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, z_v.size()})); 
+    auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
+    for(int i =0; i < z.size(); i++) {
+        z_tensor_mapped(0, i) = z[i];
+    } // TODO map with proper function
+
+    tf::Tensor z_v_tensor(tf_dtype, tf::TensorShape({1, z_v.size()}));  
+    auto z_v_tensor_mapped = z_v_tensor.tensor<tf_dtype_type, 2>();
+    for(int i =0; i < z_v.size(); i++) {
+        z_v_tensor_mapped(0, i) = z_v[i];
+    } // TODO map with proper function
+
+    std::vector<tf::Tensor> JTJ_outputs; 
+    tf::Status status = m_decoder_JTJ_session->Run({{"decoder_input:0", z_tensor}, {"input_z_v:0", z_v_tensor}},
+                               {"JTJ/dense_decode_layer_0/MatMul_grad/MatMul:0"}, {}, &JTJ_outputs); // TODO get better names
+    
+    auto JTJ_tensor_mapped = JTJ_outputs[0].tensor<tf_dtype_type, 2>();
+    
+    VectorXd res(z_v.size()); // TODO generalize
+    for(int i = 0; i < res.rows(); i++) {
+        res[i] = JTJ_tensor_mapped(0,i);    
+    }
+    return res;
+}
+
+void compare_jac_speeds(AutoencoderSpace &reduced_space) {
+    fs::path tf_models_root("../../models/x-final/tf_models/");
+    fs::path decoder_JTJ_path = tf_models_root / "decoder_JTJ.pb";
+    tf::Session* m_decoder_JTJ_session;
+    tf::NewSession(tf::SessionOptions(), &m_decoder_JTJ_session);
+    
+    tf::GraphDef decoder_JTJ_graph_def;
+    ReadBinaryProto(tf::Env::Default(), decoder_JTJ_path.string(), &decoder_JTJ_graph_def);
+    
+    m_decoder_JTJ_session->Create(decoder_JTJ_graph_def);
+    
+
+
+
+    for(int j = 100; j < 10001; j *= 10) {
+        int n_its = j;
+        
+        VectorXd q = VectorXd::Zero(reduced_space.outer_jacobian().rows());
+        VectorXd z = reduced_space.encode(q);
+        VectorXd vq = MatrixXd::Ones(reduced_space.outer_jacobian().cols(), 1);
+        VectorXd vz = MatrixXd::Ones(z.size(), 1);
+    
+        
+        double start = igl::get_seconds();
+        for(int i = 0; i < n_its; i++) {
+            MatrixXd full_jac = reduced_space.inner_jacobian(z);
+            VectorXd Jv = full_jac * vz;    
+        }
+        std::cout << n_its << " its of fd jac product took " << igl::get_seconds() - start << std::endl;
+
+        start = igl::get_seconds();
+        for(int i = 0; i < n_its; i++) {
+            VectorXd Jv = reduced_space.jacobian_vector_product(z, vz);    
+        }
+        std::cout << n_its << " its of jvp took " << igl::get_seconds() - start << std::endl;
+
+        start = igl::get_seconds();
+        for(int i = 0; i < n_its; i++) {
+            MatrixXd full_jac = reduced_space.inner_jacobian(z);
+            VectorXd Jv = full_jac.transpose() * vq;    
+        }
+        std::cout << n_its << " its of fd jacT product took " << igl::get_seconds() - start << std::endl;
+
+        start = igl::get_seconds();
+        for(int i = 0; i < n_its; i++) {
+            VectorXd Jv = reduced_space.jacobian_transpose_vector_product(z, vq);    
+        }
+        std::cout << n_its << " its of vjp took " << igl::get_seconds() - start << std::endl;
+
+        MatrixXd U = reduced_space.outer_jacobian();
+        MatrixXd UTU = U.transpose() * U;
+        start = igl::get_seconds();
+        for(int i = 0; i < n_its; i++) {
+            MatrixXd full_jac = reduced_space.inner_jacobian(z);
+            VectorXd JUTUv = full_jac.transpose() * UTU * full_jac * vz;    
+        }
+        std::cout << n_its << " its of fd JUTUJv product took " << igl::get_seconds() - start << std::endl;
+
+        start = igl::get_seconds();
+        for(int i = 0; i < n_its; i++) {
+            VectorXd JUTUv = reduced_space.jacobian_transpose_vector_product(z, UTU * reduced_space.jacobian_vector_product(z, vz));    
+        }
+        std::cout << n_its << " its of vjp JUTUJv took " << igl::get_seconds() - start << std::endl;
+
+        start = igl::get_seconds();
+        for(int i = 0; i < n_its; i++) {
+            VectorXd JUTUv = reduced_space.jacobian_transpose_vector_product(z, reduced_space.jacobian_vector_product(z, vz));    
+        }
+        std::cout << n_its << " its of vjp JTJv took " << igl::get_seconds() - start << std::endl;
+
+        start = igl::get_seconds();
+        for(int i = 0; i < n_its; i++) {
+            VectorXd JUTUv = tf_JTJ(z, vz, m_decoder_JTJ_session);    
+        }
+        std::cout << n_its << " its of Tensorflow JTJv took " << igl::get_seconds() - start << std::endl;
+
+    }
+
+}
+
 int main(int argc, char **argv) {
     
     // Load the configuration file
@@ -1974,6 +2046,7 @@ int main(int argc, char **argv) {
     else if(reduced_space_string == "autoencoder") {
         fs::path tf_models_root(model_root / "tf_models/");
         AutoencoderSpace reduced_space(tf_models_root, integrator_config);
+        // compare_jac_speeds(reduced_space);
         run_sim<AutoencoderSpace>(&reduced_space, config, model_root);  
     }
     else if(reduced_space_string == "full") {

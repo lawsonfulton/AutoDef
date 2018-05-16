@@ -1,5 +1,5 @@
 {
-  "mesh": "models/x-final/tets.mesh",
+  "mesh": "models/x-zero-elu/tets.mesh",
   "logging_enabled": false,
   "material_config": {
     "density": 1000.0,

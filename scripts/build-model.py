@@ -12,7 +12,7 @@ from optparse import OptionParser
 from utils import my_utils
 from utils import learn
 from utils.convert_keras_models_to_tf import convert_keras_models_to_tf
-from utils.compute_tf_jacobian_models import generate_jacobian_for_tf_model, generate_vjp
+from utils.compute_tf_jacobian_models import generate_jacobian_for_tf_model, generate_vjp, generate_jvp
 
 
 # TODO
@@ -104,9 +104,10 @@ def main():
         tf_decoder_path = os.path.join(model_root, 'tf_models/decoder.pb') # TODO these path defn's shouldn't be repeated everywhere
         tf_decoder_jac_path = os.path.join(model_root, 'tf_models/decoder_jac.pb')
         tf_vjp_path = os.path.join(model_root, 'tf_models/decoder_vjp.pb')
+        tf_jvp_path = os.path.join(model_root, 'tf_models/decoder_jvp.pb')
         generate_jacobian_for_tf_model(tf_decoder_path, tf_decoder_jac_path)
         generate_vjp(tf_decoder_path, tf_vjp_path)
-        # generate_jvp(tf_decoder_path, tf_vjp_path)
+        generate_jvp(tf_decoder_path, tf_jvp_path)
         print('Done.')
 
     energy_model_config = config['learning_config']['energy_model_config']
@@ -137,7 +138,7 @@ def main():
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
             'ae_decoded_dim': config['learning_config']['autoencoder_config']['pca_layer_dim'], # Shouldn't be change. Kind of a hack.
-            'timestep': 0.01,
+            'timestep': 1/30.0,
             'finite_diff_eps': 0.00005,
             'lbfgs_config': {
                 'lbfgs_max_iterations': 150,

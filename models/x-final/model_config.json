@@ -5,11 +5,11 @@
   "validation_dataset": "",
 
   "learning_config": {
-    "save_objs": true,
-    "skip_training": true,
-    "skip_jacobian": true,
+    "save_objs": false,
+    "skip_training": false,
+    "skip_jacobian": false,
     "autoencoder_config": {
-      "pca_compare_dims": [6, 10, 20, 30, 40],
+      "pca_compare_dims": [6, 30],
 
       "pca_layer_dim": 30,
       "non_pca_layer_sizes": [200, 200],
@@ -17,7 +17,8 @@
       "activation": "elu",
 
       "batch_size": 800,
-      "training_epochs": 2500,
+      "learning_rate": 0.001,
+      "training_epochs": 2000,
       "do_fine_tuning": false,
       "loss_weight": 1.0
     },

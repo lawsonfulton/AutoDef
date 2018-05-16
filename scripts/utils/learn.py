@@ -30,6 +30,7 @@ def autoencoder_analysis(
     latent_dim=3,
     epochs=100,
     batch_size=100,
+    learning_rate=0.001,
     layers=[32, 16],
     pca_weights=None,
     pca_basis=None,
@@ -121,7 +122,7 @@ def autoencoder_analysis(
     autoencoder = Model(input, output)
     ## Set the optimization parameters
 
-    optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
+    optimizer = keras.optimizers.Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
     autoencoder.compile(
         optimizer=optimizer,
         loss='mean_squared_error',
@@ -1008,6 +1009,7 @@ def generate_model(
     ae_dim = autoencoder_config['ae_encoded_dim']
     ae_epochs = autoencoder_config['training_epochs']
     batch_size = autoencoder_config['batch_size'] if autoencoder_config['batch_size'] > 0 else len(displacements)
+    learning_rate = autoencoder_config['learning_rate']
     layers = autoencoder_config['non_pca_layer_sizes']
     do_fine_tuning = autoencoder_config['do_fine_tuning']
     activation = autoencoder_config['activation']
@@ -1104,6 +1106,7 @@ def generate_model(
                                     latent_dim=ae_dim,
                                     epochs=ae_epochs,
                                     batch_size=batch_size,
+                                    learning_rate=learning_rate,
                                     layers=layers, # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
                                     # pca_basis=U_ae,
                                     do_fine_tuning=do_fine_tuning,

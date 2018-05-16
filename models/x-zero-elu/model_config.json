@@ -14,11 +14,11 @@
       "pca_layer_dim": 30,
       "non_pca_layer_sizes": [200, 200],
       "ae_encoded_dim": 6,
-      "activation": "elu",
+      "activation": "my_elu",
 
       "batch_size": 800,
-      "learning_rate": 0.001,
-      "training_epochs": 2000,
+      "learning_rate": 0.005,
+      "training_epochs": 1000,
       "do_fine_tuning": false,
       "loss_weight": 1.0
     },
