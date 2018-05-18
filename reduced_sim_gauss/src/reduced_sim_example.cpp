@@ -252,6 +252,10 @@ public:
         return m_impl.get_cubature_indices_and_weights(z, indices, weights);
     }
 
+    inline VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {
+        return m_impl.cubature_vjp(z, energies);
+    }
+
 private:
     ReducedSpaceImpl m_impl;
 };
@@ -305,6 +309,7 @@ public:
     inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
     inline VectorXd get_energy_gradient(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
     inline void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {std::cout << "Reduced energy not implemented!" << std::endl;}
+    inline VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {std::cout << "Reduced energy not implemented!" << std::endl;}
 private:
     MatrixType m_U;
     MatrixType m_inner_jac;
@@ -402,6 +407,17 @@ public:
             status = ReadBinaryProto(tf::Env::Default(), discrete_energy_model_path.string(), &discrete_energy_model_graph_def);
             checkStatus(status);
             status = m_discrete_energy_model_session->Create(discrete_energy_model_graph_def);
+            checkStatus(status);
+
+            // Disabled since we don't currently need it.
+            fs::path cubature_vjp_model_path = tf_models_root / "l1_discrete_energy_model_vjp.pb";
+
+            status = tf::NewSession(tf::SessionOptions(), &m_cubature_vjp_session);
+            checkStatus(status);
+            tf::GraphDef cubature_vjp_graph_def;
+            status = ReadBinaryProto(tf::Env::Default(), cubature_vjp_model_path.string(), &cubature_vjp_graph_def);
+            checkStatus(status);
+            status = m_cubature_vjp_session->Create(cubature_vjp_graph_def);
             checkStatus(status);
         }
         else if (energy_method == PRED_DIRECT) {
@@ -543,7 +559,7 @@ public:
         // }
         // return res;
 
-        // Finite differences
+        // Finite differeninline VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {ces
         // MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
         // double t = finite_diff_eps;
         // for(int i = 0; i < z.size(); i++) {
@@ -709,9 +725,32 @@ public:
         }
 
         double copy_time = igl::get_seconds() - start_time - predict_time;
+    }
 
-        // std::cout << "Predict took: " << predict_time << std::endl;
-        // std::cout << "Scan&Copy took " << copy_time << std::endl << std::endl;
+    inline VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {
+        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim}));
+        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
+        for(int i =0; i < z.size(); i++) {
+            z_tensor_mapped(0, i) = z[i];
+        } // TODO map with proper function
+
+        tf::Tensor energies_tensor(tf_dtype, tf::TensorShape({1, energies.size()}));
+        auto energies_tensor_mapped = energies_tensor.tensor<tf_dtype_type, 2>();
+        for(int i =0; i < energies.size(); i++) {
+            energies_tensor_mapped(0, i) = energies[i];
+        } // TODO map with proper function
+
+        std::vector<tf::Tensor> vjp_outputs;
+        tf::Status status = m_cubature_vjp_session->Run({{"energy_model_input:0", z_tensor}, {"input_v:0", energies_tensor}},
+                                   {"vjp/dense_decode_layer_0/MatMul_grad/MatMul:0"}, {}, &vjp_outputs);
+
+        auto vjp_tensor_mapped = vjp_outputs[0].tensor<tf_dtype_type, 2>();
+        
+        VectorXd res(m_enc_dim);
+        for(int i = 0; i < res.rows(); i++) {
+            res[i] = vjp_tensor_mapped(0,i);    
+        }
+        return res;
     }
 
     void checkStatus(const tf::Status& status) {
@@ -734,6 +773,7 @@ private:
     tf::Session* m_encoder_session;
     tf::Session* m_direct_energy_model_session;
     tf::Session* m_discrete_energy_model_session;
+    tf::Session* m_cubature_vjp_session;
 };
 
 template <typename ReducedSpaceType>
@@ -1009,6 +1049,7 @@ public:
 
         VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
         VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
+        // Old
         double obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
                             + m_h * m_h * energy
                             - sub_q_tilde.transpose() * h_2_UT_external_forces;
@@ -1158,6 +1199,7 @@ public:
             m_gplc_objective->set_cubature_indices_and_weights(indices, weights);
             activated_tets = indices.size();
         }
+        
         // Conclusion
         // For the AE model at least, preconditioning with rest hessian is slower
         // but preconditioning with rest hessian with current J gives fairly small speed increas

@@ -322,5 +322,7 @@ if __name__ == "__main__":
         generate_jvp(tf_decoder_path, os.path.join(model_root, 'tf_models/decoder_jvp.pb'))
     elif jp_type == 'JTJ':
         generate_JTJ(tf_decoder_path, os.path.join(model_root, 'tf_models/decoder_JTJ.pb'))
+    elif jp_type == 'energy_vjp':
+        generate_vjp(tf_decoder_path, os.path.join(model_root, 'tf_models/l1_discrete_energy_model_vjp.pb'))
     else:
         print("First parameter must be vjp or jvp.")
