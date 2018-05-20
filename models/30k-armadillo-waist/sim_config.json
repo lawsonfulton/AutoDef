@@ -1,6 +1,6 @@
 {
   "mesh": "models/30k-armadillo-waist/tets.mesh",
-  "logging_enabled": false,
+  "logging_enabled": true,
   "material_config": {
     "density": 100.0,
     "youngs_modulus": 1000000.0,
@@ -12,7 +12,7 @@
     "reduced_energy_method": "pcr",
     "use_analytic_jac": true,
     "use_preconditioner": true,
-    "pca_dim": 20,
+    "pca_dim": 35,
     "ae_encoded_dim": 20,
     "ae_decoded_dim": 35,
     "timestep": 0.03,
@@ -26,6 +26,7 @@
   },
   "visualization_config": {
     "show_stress": false,
-    "interaction_spring_stiffness": 100000.0
+    "interaction_spring_stiffness": 100000.0,
+    "full_space_constrained_axis": 1
   }
 }

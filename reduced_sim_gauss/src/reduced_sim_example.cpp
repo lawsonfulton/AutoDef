@@ -1,4 +1,5 @@
 #include <vector>
+#include <set>
 
 // Tensorflow
 #include <tensorflow/core/platform/env.h>
@@ -203,56 +204,56 @@ public:
     ReducedSpace(Params ...params) : m_impl(params...) {}
     ReducedSpace() : m_impl() {}
 
-    inline VectorXd encode(const VectorXd &q) {
+    VectorXd encode(const VectorXd &q) {
         return m_impl.encode(q);
     }
 
-    inline VectorXd decode(const VectorXd &z) {
+    VectorXd decode(const VectorXd &z) {
         return m_impl.decode(z);
     }
 
-    inline VectorXd sub_decode(const VectorXd &z) {
+    VectorXd sub_decode(const VectorXd &z) {
         return m_impl.sub_decode(z);
     }
     // Must be a better way than this crazy decltyp
-    inline decltype(auto) jacobian(const VectorXd &z) {
+    decltype(auto) jacobian(const VectorXd &z) {
         return m_impl.jacobian(z);
     }
 
-    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {
+    VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {
         // d decode / d z * q
         return m_impl.jacobian_transpose_vector_product(z, q);
     }
 
-    inline VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
+    VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
         return m_impl.jacobian_vector_product(z, z_v);
     }
 
-    inline decltype(auto) outer_jacobian() {
+    decltype(auto) outer_jacobian() {
         return m_impl.outer_jacobian();
     }
 
-    inline decltype(auto) inner_jacobian(const VectorXd &z) { // TODO make this sparse for linear subspace?
+    decltype(auto) inner_jacobian(const VectorXd &z) { // TODO make this sparse for linear subspace?
         return m_impl.inner_jacobian(z);
     }
 
-    inline decltype(auto) compute_reduced_mass_matrix(const SparseMatrix<double> &M) {
+    decltype(auto) compute_reduced_mass_matrix(const SparseMatrix<double> &M) {
         return m_impl.compute_reduced_mass_matrix(M);
     }
 
-    inline double get_energy(const VectorXd &z) {
+    double get_energy(const VectorXd &z) {
         return m_impl.get_energy(z);
     }
 
-    inline VectorXd get_energy_gradient(const VectorXd &z) {
+    VectorXd get_energy_gradient(const VectorXd &z) {
         return m_impl.get_energy_gradient(z);
     }
 
-    inline void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {
+    void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {
         return m_impl.get_cubature_indices_and_weights(z, indices, weights);
     }
 
-    inline VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {
+    VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {
         return m_impl.cubature_vjp(z, energies);
     }
 
@@ -272,44 +273,44 @@ public:
         m_inner_jac.setIdentity();
     }
 
-    inline VectorXd encode(const VectorXd &q) {
+    VectorXd encode(const VectorXd &q) {
         return m_U.transpose() * q;
     }
 
-    inline VectorXd decode(const VectorXd &z) {
+    VectorXd decode(const VectorXd &z) {
         return m_U * z;
     }
 
-    inline VectorXd sub_decode(const VectorXd &z) {
+    VectorXd sub_decode(const VectorXd &z) {
         return z;
     }
 
-    inline MatrixType jacobian(const VectorXd &z) { return m_U; }
+    MatrixType jacobian(const VectorXd &z) { return m_U; }
 
-    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
+    VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
         return q;
     }
 
-    inline VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
+    VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
         return z_v;
     }
 
-    inline MatrixType outer_jacobian() {
+    MatrixType outer_jacobian() {
         return m_U;
     }
 
-    inline MatrixType inner_jacobian(const VectorXd &z) {
+    MatrixType inner_jacobian(const VectorXd &z) {
         return m_inner_jac;
     }
 
-    inline MatrixType compute_reduced_mass_matrix(const MatrixType &M) {
+    MatrixType compute_reduced_mass_matrix(const MatrixType &M) {
         return m_U.transpose() * M * m_U;
     }
 
-    inline double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-    inline VectorXd get_energy_gradient(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-    inline void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {std::cout << "Reduced energy not implemented!" << std::endl;}
-    inline VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {std::cout << "Reduced energy not implemented!" << std::endl;}
+    double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
+    VectorXd get_energy_gradient(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
+    void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {std::cout << "Reduced energy not implemented!" << std::endl;}
+    VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {std::cout << "Reduced energy not implemented!" << std::endl;}
 private:
     MatrixType m_U;
     MatrixType m_inner_jac;
@@ -350,25 +351,24 @@ public:
         status = m_decoder_jac_session->Create(decoder_jac_graph_def);
         checkStatus(status);
 
-        if(integrator_config["use_analytic_jac"]) {
-            // Decoder vjp
-            status = tf::NewSession(tf::SessionOptions(), &m_decoder_vjp_session);
-            checkStatus(status);
-            tf::GraphDef decoder_vjp_graph_def;
-            status = ReadBinaryProto(tf::Env::Default(), decoder_vjp_path.string(), &decoder_vjp_graph_def);
-            checkStatus(status);
-            status = m_decoder_vjp_session->Create(decoder_vjp_graph_def);
-            checkStatus(status);
+        // Decoder vjp
+        status = tf::NewSession(tf::SessionOptions(), &m_decoder_vjp_session);
+        checkStatus(status);
+        tf::GraphDef decoder_vjp_graph_def;
+        status = ReadBinaryProto(tf::Env::Default(), decoder_vjp_path.string(), &decoder_vjp_graph_def);
+        checkStatus(status);
+        status = m_decoder_vjp_session->Create(decoder_vjp_graph_def);
+        checkStatus(status);
 
-            // // Decoder jvp
-            status = tf::NewSession(tf::SessionOptions(), &m_decoder_jvp_session);
-            checkStatus(status);
-            tf::GraphDef decoder_jvp_graph_def;
-            status = ReadBinaryProto(tf::Env::Default(), decoder_jvp_path.string(), &decoder_jvp_graph_def);
-            checkStatus(status);
-            status = m_decoder_jvp_session->Create(decoder_jvp_graph_def);
-            checkStatus(status);
-        }
+        // // Decoder jvp
+        status = tf::NewSession(tf::SessionOptions(), &m_decoder_jvp_session);
+        checkStatus(status);
+        tf::GraphDef decoder_jvp_graph_def;
+        status = ReadBinaryProto(tf::Env::Default(), decoder_jvp_path.string(), &decoder_jvp_graph_def);
+        checkStatus(status);
+        status = m_decoder_jvp_session->Create(decoder_jvp_graph_def);
+        checkStatus(status);
+
 
         // Encoder
         status = tf::NewSession(tf::SessionOptions(), &m_encoder_session);
@@ -433,236 +433,112 @@ public:
         }
     }
 
-    inline VectorXd encode(const VectorXd &q) {
+    VectorXd encode(const VectorXd &q) {
         VectorXd sub_q = m_U.transpose() * q;
 
         tf::Tensor sub_q_tensor(tf_dtype, tf::TensorShape({1, sub_q.size()}));
-        auto sub_q_tensor_mapped = sub_q_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < sub_q.size(); i++) {
-            sub_q_tensor_mapped(0, i) = sub_q[i];
-        } // TODO map with proper function
-        // auto dst = sub_q_tensor.flat<double>().data(); // Experimental, probably not worth it
-        // VectorXd::Map(dst, sub_q.size()) = sub_q;
+        std::copy_n(sub_q.data(), sub_q.size(), sub_q_tensor.flat<tf_dtype_type>().data());
 
         std::vector<tf::Tensor> z_outputs;
         tf::Status status = m_encoder_session->Run({{"encoder_input:0", sub_q_tensor}},
                                    {"output_node0:0"}, {}, &z_outputs);
 
-        auto z_tensor_mapped = z_outputs[0].tensor<tf_dtype_type, 2>();
-        VectorXd res(m_enc_dim); // TODO generalize and below in decode
-        for(int i = 0; i < res.size(); i++) {
-            res[i] = z_tensor_mapped(0,i);
-        }
+        VectorXd res(m_enc_dim);
+        std::copy_n(z_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
 
         return res;
     }
 
-    inline VectorXd sub_decode(const VectorXd &z) {
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
-        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        for(int i = 0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = z[i];
-        } // TODO map with proper function
-        // auto dst = z_tensor.flat<double>().data(); // Experimental, probably not worth it
-        // VectorXd::Map(dst, z.size()) = z;
+    VectorXd sub_decode(const VectorXd &z) {
+        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim}));
+        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
 
         std::vector<tf::Tensor> sub_q_outputs;
         tf::Status status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
                                    {"output_node0:0"}, {}, &sub_q_outputs);
 
-        auto sub_q_tensor_mapped = sub_q_outputs[0].tensor<tf_dtype_type, 2>();
         VectorXd res(m_U.cols());
-        for(int i = 0; i < res.size(); i++) {
-            res[i] = sub_q_tensor_mapped(0,i);
-        }
+        std::copy_n(sub_q_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
 
         return res;
     }
 
-    inline VectorXd decode(const VectorXd &z) {
+    VectorXd decode(const VectorXd &z) {
         return m_U * sub_decode(z);
     }
 
-    inline MatrixXd jacobian(const VectorXd &z) {
+    MatrixXd jacobian(const VectorXd &z) {
         return m_U * inner_jacobian(z);
     }
 
-    inline MatrixXd outer_jacobian() {
+    MatrixXd outer_jacobian() {
         return m_U;
     }
 
-    inline MatrixXd inner_jacobian(const VectorXd &z) {
-        // Finite differences parallel
-
-        // tf::Tensor z_tensor(tf_dtype, tf::TensorShape({z.size() * 2, m_enc_dim})); // TODO generalize
-        // auto dst = z_tensor.flat<double>().data();
-        // double t = finite_diff_eps;
-        // for(int j = 0; j < z.size(); j++) {
-        //     std::cout << j << std::endl;
-        //     VectorXd dz_pos(z);
-        //     VectorXd dz_neg(z);
-        //     dz_pos[j] += t;
-        //     dz_neg[j] -= t;
-        //     // std::copy_n(std::begin(dz_pos.data()), m_enc_dim, dst);
-        //     VectorXd::Map(dst, m_enc_dim) = dz_pos;
-        //     dst += m_enc_dim;
-        //     // std::copy_n(std::begin(dz_neg.data()), m_enc_dim, dst);
-        //     VectorXd::Map(dst, m_enc_dim) = dz_neg;
-        //     dst += m_enc_dim;
-        // }
-
-        // // for(int i = 0; i < z.size()*2; i++) {
-        //     std::cout << z_tensor.tensor<double, 2>() << std::endl;
-        // // }
-
-        // std::vector<tf::Tensor> sub_q_outputs;
-        // tf::Status status = m_decoder_session->Run(
-        //                         {{"decoder_input", z_tensor}},
-        //                         {"output_node0"}, {}, &sub_q_outputs);
-
-        // std::cout << sub_q_outputs.size() << std::endl;
-        // // std::cout << sub_q_outputs[0] << std::endl;
-        // auto sub_q_tensor_mapped = sub_q_outputs[0].tensor<tf_dtype_type, 2>();
-
-        // MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
-        // for(int j = 0; j < z.size(); j++) {
-        //     VectorXd res_pos(m_U.cols());
-        //     VectorXd res_neg(m_U.cols());
-        //     for(int i = 0; i < res_pos.size(); i++) {
-        //         res_pos[i] = sub_q_tensor_mapped(j*2,i); // dz_pos
-        //         res_neg[i] = sub_q_tensor_mapped(j*2 + 1,i); // dz_pos
-        //     }
-        //     sub_jac.col(j) = (res_pos - res_neg) / (2.0 * t);
-        // }
-
-
-        // return sub_jac;
-
-        // Analytical
-        // tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
-        // auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        // for(int i =0; i < z.size(); i++) {
-        //     z_tensor_mapped(0, i) = z[i];
-        // } // TODO map with proper function
-
-        // std::vector<tf::Tensor> jac_outputs;
-        // tf::Status status = m_decoder_jac_session->Run({{"decoder_input:0", z_tensor}},
-        //                            {"TensorArrayStack/TensorArrayGatherV3:0"}, {}, &jac_outputs); // TODO get better names
-
-        // auto jac_tensor_mapped = jac_outputs[0].tensor<tf_dtype_type, 3>();
-        
-        // MatrixXd res(m_sub_q_size, m_enc_dim); // TODO generalize
-        // for(int i = 0; i < res.rows(); i++) {
-        //     for(int j = 0; j < res.cols(); j++) {
-        //         res(i,j) = jac_tensor_mapped(0,i,j);
-        //     }
-        // }
-        // return res;
-
-        // Finite differeninline VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {ces
-        // MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
-        // double t = finite_diff_eps;
-        // for(int i = 0; i < z.size(); i++) {
-        //     VectorXd dz_pos(z);
-        //     VectorXd dz_neg(z);
-        //     dz_pos[i] += t;
-        //     dz_neg[i] -= t;
-        //     sub_jac.col(i) = (sub_decode(dz_pos) - sub_decode(dz_neg)) / (2.0 * t);
-        // }
-
-
-
-        // Analytic with jvp - (slower than FD probably)
+    MatrixXd inner_jacobian(const VectorXd &z) {
+        // //Analytic with jvp 
         MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
         MatrixXd zs = MatrixXd::Identity(z.size(), z.size());
 
+        // #pragma omp parallel for
         for(int i = 0; i < z.size(); i++) {
             sub_jac.col(i) = jacobian_vector_product(z, zs.row(i));
         }
  
-        // Analytic with vjp
-        // MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
-        // MatrixXd subqs = MatrixXd::Identity(m_sub_q_size, m_sub_q_size);
+        // // Analytic with vjp - (slower than FD probably)
+        // // MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
+        // // MatrixXd subqs = MatrixXd::Identity(m_sub_q_size, m_sub_q_size);
 
-        // for(int i = 0; i < m_sub_q_size; i++) {
-        //     sub_jac.row(i) = jacobian_transpose_vector_product(z, subqs.row(i));
-        // }
-
-        // std::cout << (sub_jac) << std::endl;
-        // std::cout << std::endl;
-        // std::cout << std::endl;
-        // std::cout << (fd_jac) << std::endl;
+        // // for(int i = 0; i < m_sub_q_size; i++) {
+        // //     sub_jac.row(i) = jacobian_transpose_vector_product(z, subqs.row(i));
+        // // }
 
         return sub_jac;
+
     }
 
     
-    inline VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &sub_q) { // TODO: do this without copy?
-        // Analytical
-        // TODO
-        // Switch to copy method I used before
-
+    VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &sub_q) { // TODO: do this without copy?
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); 
-        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = z[i];
-        } // TODO map with proper function
+        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
 
         tf::Tensor sub_q_tensor(tf_dtype, tf::TensorShape({1, sub_q.size()})); 
-        auto sub_q_tensor_mapped = sub_q_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < sub_q.size(); i++) {
-            sub_q_tensor_mapped(0, i) = sub_q[i];
-        } // TODO map with proper function
+        std::copy_n(sub_q.data(), sub_q.size(), sub_q_tensor.flat<tf_dtype_type>().data());
 
         std::vector<tf::Tensor> vjp_outputs;
         tf::Status status = m_decoder_vjp_session->Run({{"decoder_input:0", z_tensor}, {"input_v:0", sub_q_tensor}},
                                    {"vjp/dense_decode_layer_0/MatMul_grad/MatMul:0"}, {}, &vjp_outputs); // TODO get better names
-        checkStatus(status);
-        auto vjp_tensor_mapped = vjp_outputs[0].tensor<tf_dtype_type, 2>();
         
-        VectorXd res(m_enc_dim); // TODO generalize
-        for(int i = 0; i < res.rows(); i++) {
-            res[i] = vjp_tensor_mapped(0,i);    
-        }
+        VectorXd res(m_enc_dim);
+        std::copy_n(vjp_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
+
         return res;
     }
 
-    inline VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
+    VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); 
-        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = z[i];
-        } // TODO map with proper function
+        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
 
         tf::Tensor z_v_tensor(tf_dtype, tf::TensorShape({1, z_v.size()})); 
-        auto z_v_tensor_mapped = z_v_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < z_v.size(); i++) {
-            z_v_tensor_mapped(0, i) = z_v[i];
-        } // TODO map with proper function
+        std::copy_n(z_v.data(), z_v.size(), z_v_tensor.flat<tf_dtype_type>().data());
 
         std::vector<tf::Tensor> jvp_outputs; 
         tf::Status status = m_decoder_jvp_session->Run({{"decoder_input:0", z_tensor}, {"input_z_v:0", z_v_tensor}},
-                                   {"jvp/gradients/decoder_output_layer/MatMul_grad/MatMul_grad/MatMul:0"}, {}, &jvp_outputs); // TODO get better names
-        checkStatus(status);
-        auto jvp_tensor_mapped = jvp_outputs[0].tensor<tf_dtype_type, 2>();
-        
-        VectorXd res(m_sub_q_size); // TODO generalize
-        for(int i = 0; i < res.rows(); i++) {
-            res[i] = jvp_tensor_mapped(0,i);    
-        }
+                                   {"jvp/gradients/decoder_output_layer/MatMul_grad/MatMul_grad/MatMul:0"}, {}, &jvp_outputs);
+
+        VectorXd res(m_sub_q_size);
+        std::copy_n(jvp_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
+
         return res;
     }
 
-    inline MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {
+    MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {
         return m_U.transpose() * M * m_U;
     }
 
-    inline double get_energy(const VectorXd &z) {
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); // TODO generalize
-        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = z[i];
-        } // TODO map with proper function
+    double get_energy(const VectorXd &z) {
+        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); 
+        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
 
         std::vector<tf::Tensor> q_outputs;
         tf::Status status = m_direct_energy_model_session->Run({{"energy_model_input:0", z_tensor}},
@@ -670,11 +546,10 @@ public:
 
         auto energy_tensor_mapped = q_outputs[0].tensor<tf_dtype_type, 2>();
 
-        return energy_tensor_mapped(0,0); // TODO keep track of this normalizaiton factor
+        return energy_tensor_mapped(0,0);
     }
 
-    // TODO!!
-    inline VectorXd get_energy_gradient(const VectorXd &z) {
+    VectorXd get_energy_gradient(const VectorXd &z) {
         VectorXd energy_grad(z.size()); 
         double t = finite_diff_eps;
         for(int i = 0; i < z.size(); i++) {
@@ -687,18 +562,15 @@ public:
         return energy_grad;
     }
 
-    inline void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {
+    void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {
         double start_time = igl::get_seconds();
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim}));
-        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = z[i];
-        } // TODO map with proper function
+        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
 
         std::vector<tf::Tensor> energy_weight_outputs;
         tf::Status status = m_discrete_energy_model_session->Run({{"energy_model_input:0", z_tensor}},
                                    {"output_node0:0"}, {}, &energy_weight_outputs);
-
+        
         auto energy_weight_tensor_mapped = energy_weight_outputs[0].tensor<tf_dtype_type, 2>();
         double predict_time = igl::get_seconds() - start_time;
 
@@ -727,29 +599,19 @@ public:
         double copy_time = igl::get_seconds() - start_time - predict_time;
     }
 
-    inline VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {
+    VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {
         tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim}));
-        auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < z.size(); i++) {
-            z_tensor_mapped(0, i) = z[i];
-        } // TODO map with proper function
+        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
 
         tf::Tensor energies_tensor(tf_dtype, tf::TensorShape({1, energies.size()}));
-        auto energies_tensor_mapped = energies_tensor.tensor<tf_dtype_type, 2>();
-        for(int i =0; i < energies.size(); i++) {
-            energies_tensor_mapped(0, i) = energies[i];
-        } // TODO map with proper function
+        std::copy_n(energies.data(), energies.size(), energies_tensor.flat<tf_dtype_type>().data());
 
         std::vector<tf::Tensor> vjp_outputs;
         tf::Status status = m_cubature_vjp_session->Run({{"energy_model_input:0", z_tensor}, {"input_v:0", energies_tensor}},
                                    {"vjp/dense_decode_layer_0/MatMul_grad/MatMul:0"}, {}, &vjp_outputs);
 
-        auto vjp_tensor_mapped = vjp_outputs[0].tensor<tf_dtype_type, 2>();
-        
         VectorXd res(m_enc_dim);
-        for(int i = 0; i < res.rows(); i++) {
-            res[i] = vjp_tensor_mapped(0,i);    
-        }
+        std::copy_n(vjp_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
         return res;
     }
 
@@ -797,7 +659,6 @@ public:
         m_cur_sub_q = sub_dec(cur_z);
         m_prev_sub_q = sub_dec(prev_z);
 
-        m_use_analytic_jac = integrator_config["use_analytic_jac"];
         m_h = integrator_config["timestep"];
         finite_diff_eps = integrator_config["finite_diff_eps"];
         // Construct mass matrix and external forces
@@ -845,6 +706,30 @@ public:
             }
             m_cubature_indices = tet_indices_mat.col(0); // TODO fix these duplicate structures
 
+            // Computing the sampled verts
+            // figure out the verts
+            std::set<int> vert_set;
+            int n_sample_tets = m_energy_sample_tets.size();
+            for(int i = 0; i < m_energy_sample_tets.size(); i++) {
+                int tet_index = m_energy_sample_tets[i];
+                for(int j = 0; j < 4; j++) {
+                    int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
+                    for(int k = 0; k < 3; k++) {
+                        vert_set.insert(vert_index + k);
+                    }
+                }
+            }
+            // Put them in a vector sorted order
+            m_cubature_vert_indices = VectorXi(vert_set.size());
+            int i = 0;
+            for(auto vi: vert_set) {
+                m_cubature_vert_indices[i++] = vi;
+                // std::cout << vi << ", " << std::endl;
+            }
+            MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
+            m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
+
+            // Other stuff?
             m_energy_basis = U;
             m_energy_sampled_basis = igl::slice(m_energy_basis, tet_indices_mat, 1);
             m_summed_energy_basis = m_energy_basis.colwise().sum();
@@ -896,10 +781,10 @@ public:
     }
 
     // Just short helpers
-    inline VectorXd dec(const VectorXd &z) { return m_reduced_space->decode(z); }
-    inline VectorXd sub_dec(const VectorXd &z) { return m_reduced_space->sub_decode(z); }
-    inline VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
-    inline VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
+    VectorXd dec(const VectorXd &z) { return m_reduced_space->decode(z); }
+    VectorXd sub_dec(const VectorXd &z) { return m_reduced_space->sub_decode(z); }
+    VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
+    VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
 
     double current_reduced_energy_and_forces(double &energy, VectorXd &UT_forces) {
         int n_sample_tets = m_energy_sample_tets.size();
@@ -942,14 +827,14 @@ public:
         // energy = m_summed_energy_basis.dot(alpha);
         energy = m_cubature_weights.dot(sampled_energy);
 
-        UT_forces = (m_U.transpose() * m_neg_energy_sample_jac) * m_cubature_weights;
+        UT_forces = m_U.transpose() * (m_neg_energy_sample_jac * m_cubature_weights);
     }
 
     double current_reduced_energy_and_forces_using_pred_weights_l1(const VectorXd &z, double &energy, VectorXd &UT_forces, double &prediction_time_s) {
         // double get_weights_start = igl::get_seconds();
         // VectorXd weights;
         // VectorXi indices;
-        // m_reduced_space->get_cubature_indices_and_weights(z, indices, weights);
+        m_reduced_space->get_cubature_indices_and_weights(z, m_cubature_indices, m_cubature_weights);
         // prediction_time_s = igl::get_seconds() - get_weights_start;
         // TODO do I need to do this every step of optimization?
 
@@ -960,6 +845,7 @@ public:
         MatrixXd element_forces(n_sample_tets, n_force_per_element);
         
         VectorXd energy_samp(n_sample_tets);
+        // VectorXd full_energies = VectorXd::Zero(T.rows());
 
         #pragma omp parallel for num_threads(4) //schedule(static,64)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
@@ -971,6 +857,12 @@ public:
             m_tets->getImpl().getElement(tet_index)->getInternalForce(sampled_force, m_world->getState());
             element_forces.row(i) = sampled_force;
         }
+
+        // #pragma omp parallel for //schedule(static,64)// TODO how to optimize this
+        // for(int i = 0; i < T.rows(); i++) { // TODO parallel
+        //     full_energies[i] = m_tets->getImpl().getElement(i)->getStrainEnergy(m_world->getState());
+        // }
+        // m_weight_vjp = m_reduced_space->cubature_vjp(z, full_energies);
 
         // Constructing sparse matrix is not thread safe
         m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
@@ -988,7 +880,7 @@ public:
         m_neg_energy_sample_jac.makeCompressed();
 
         energy = energy_samp.transpose() * m_cubature_weights;
-        UT_forces = (m_U.transpose() * m_neg_energy_sample_jac) * m_cubature_weights;
+        UT_forces = m_U.transpose() * (m_neg_energy_sample_jac * m_cubature_weights);
     }
 
 
@@ -1001,13 +893,16 @@ public:
 
         double decode_start_time = igl::get_seconds();
         Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
-        VectorXd new_q = m_U * new_sub_q; // TODO use sparse m_U
-        for(int i=0; i < q.size(); i++) {
-            // ******************************************
-            // TODO also I really only have to update the tets that I'm sampling, so I can avoid a full decoder here right??
-            // ******************************************
-            q[i] = new_q[i]; // TODO is this the fastest way to do this?
-        }
+        
+        if(m_energy_method == PCR || m_energy_method == AN08) {
+            // We only need to update verts for the tets we actually sample
+            VectorXd sampled_q = m_U_sampled * new_sub_q;
+            for(int i = 0; i < sampled_q.size(); i++) {
+                q[m_cubature_vert_indices[i]] = sampled_q[i]; // TODO this could probably be more efficient with a sparse operator?
+            } 
+        } else {
+            q = m_U * new_sub_q;
+        } 
 
         // TWISTING
         // auto max_verts = get_min_verts(1, true);
@@ -1057,19 +952,14 @@ public:
         // Compute gradient
         // **** TODO
         // Can I further reduce the force calculations by carrying through U?
-        if(m_use_analytic_jac) {
-            if(m_energy_method == PRED_DIRECT) {
-                grad = jtvp(new_z,UTMU_sub_q_tilde - h_2_UT_external_forces) - m_h * m_h * m_reduced_space->get_energy_gradient(new_z);
-            } else {
-                grad = jtvp(new_z,UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
-            }
+
+        if(m_energy_method == PRED_DIRECT) {
+            grad = jtvp(new_z,UTMU_sub_q_tilde - h_2_UT_external_forces) - m_h * m_h * m_reduced_space->get_energy_gradient(new_z);
+        } else {
+            grad = jtvp(new_z,UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
         }
-        else {
-            MatrixXd J = m_reduced_space->inner_jacobian(new_z); // should be identity for linear
-            grad = J.transpose() * (UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
-        }
+
         double obj_and_grad_time = igl::get_seconds() - obj_and_grad_time_start;
-        // std::cout << obj_val << std::endl;
         double obj_time = igl::get_seconds() - obj_start_time;
 
         if(LOGGING_ENABLED) {
@@ -1096,12 +986,14 @@ private:
     VectorXd m_prev_sub_q;
     VectorXd m_F_ext;
     VectorXd m_UT_F_ext;
+
     SparseVector<double> m_interaction_force;
 
     SparseMatrix<double> m_M; // mass matrix
     // Below is a kind of hack way to get the matrix type used in the reduced space class
     decltype(std::declval<ReducedSpaceType>().outer_jacobian())  m_UTMU; // reduced mass matrix
     decltype(std::declval<ReducedSpaceType>().outer_jacobian())  m_U;
+    MatrixXd m_U_sampled; // Always used in dense mode
 
     AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_M_asm;
     AssemblerParallel<double, AssemblerEigenVector<double> > m_internal_force_asm;
@@ -1112,10 +1004,10 @@ private:
     NeohookeanTets *m_tets;
 
     EnergyMethod m_energy_method;
-    bool m_use_analytic_jac;
     ReducedSpaceType *m_reduced_space;
 
     std::vector<int> m_energy_sample_tets;
+
     MatrixXd m_energy_basis;
     VectorXd m_summed_energy_basis;
     MatrixXd m_energy_sampled_basis;
@@ -1124,6 +1016,7 @@ private:
 
     VectorXd m_cubature_weights;
     VectorXi m_cubature_indices;
+    VectorXi m_cubature_vert_indices;
 };
 
 template <typename ReducedSpaceType>
@@ -1133,7 +1026,6 @@ public:
         m_world(world), m_tets(tets), m_reduced_space(reduced_space) {
 
         m_use_preconditioner = integrator_config["use_preconditioner"];
-        m_use_analytic_jac = integrator_config["use_analytic_jac"];
         m_is_full_space = integrator_config["reduced_space_type"] == "full";
        // LBFGSpp::LBFGSParam<DataType> param;
        // param.epsilon = 1e-4;
@@ -1192,14 +1084,14 @@ public:
         m_gplc_objective->update_zs(m_cur_z);
         
         int activated_tets = T.rows();
-        if(m_energy_method == PRED_WEIGHTS_L1) {
-            VectorXd weights;
-            VectorXi indices;
-            m_reduced_space->get_cubature_indices_and_weights(m_cur_z, indices, weights);
-            m_gplc_objective->set_cubature_indices_and_weights(indices, weights);
-            activated_tets = indices.size();
-        }
-        
+        // if(m_energy_method == PRED_WEIGHTS_L1) {
+        //     VectorXd weights;
+        //     VectorXi indices;
+        //     m_reduced_space->get_cubature_indices_and_weights(m_cur_z, indices, weights);
+        //     m_gplc_objective->set_cubature_indices_and_weights(indices, weights);
+        //     activated_tets = indices.size();
+        // }
+
         // Conclusion
         // For the AE model at least, preconditioning with rest hessian is slower
         // but preconditioning with rest hessian with current J gives fairly small speed increas
@@ -1291,13 +1183,16 @@ public:
         return m_cur_z;
     }
 
+    VectorXd get_current_q() {
+        return m_reduced_space->decode(m_cur_z);
+    }
+
     VectorXi get_current_tets() {
         return m_gplc_objective->get_current_tets();
     }
 
 private:
     bool m_use_preconditioner;
-    bool m_use_analytic_jac;
     bool m_is_full_space;
 
     LBFGSParam<double> m_lbfgs_param;
@@ -1488,7 +1383,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
         if(viewer.core.is_animating)
         {   
             auto q = mapDOFEigen(tets->getQ(), world);
-            Eigen::MatrixXd newV = getCurrentVertPositions(world, tets); 
+            Eigen::MatrixXd newV = gplc_stepper.get_current_q();//getCurrentVertPositions(world, tets); 
 
             if(show_tets) {
                 VectorXi tet_indices = gplc_stepper.get_current_tets();
@@ -1645,6 +1540,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             {
                 log_ofstream.seekp(0);
                 log_ofstream << std::setw(2) << sim_log;
+                log_ofstream.close();
                 exit(0);
                 break;
             }

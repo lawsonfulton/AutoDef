@@ -134,6 +134,60 @@ def generate_vjp(model_input_path, vjp_output_path):
             print("vjp passed accuracy test with error of:", max_error)
     
     test_vjp()
+    subgraph = tf.graph_util.extract_sub_graph(sess.graph.as_graph_def(), ["decoder_input", vjp.name[:-2], "input_v"])
+    graph_io.write_graph(subgraph, "./", vjp_output_path, as_text=False)
+    print(vjp.name)
+
+def generate_energy_vjp(model_input_path, vjp_output_path):
+    import tensorflow as tf
+    from tensorflow_forward_ad import forward_gradients
+    from tensorflow.python.platform import gfile
+    from tensorflow.core.protobuf import saved_model_pb2
+    from tensorflow.python.util import compat
+    from tensorflow.python.framework import graph_util
+    from tensorflow.python.framework import graph_io    
+
+    sess = tf.Session()
+    tf.reset_default_graph()
+
+    with gfile.FastGFile(model_input_path, 'rb') as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+        tf.import_graph_def(graph_def, name='')
+
+    sess = tf.Session()
+    input_node = sess.graph.get_tensor_by_name("energy_model_input:0")
+    output_node = sess.graph.get_tensor_by_name("output_node0:0")
+
+    n = output_node.get_shape()[1]
+    v = tf.placeholder(tf.float64, [1, n], name="input_v")
+    vjp = tf.gradients(output_node, input_node, grad_ys=v, name="vjp")[0]
+    # print(vjp)
+    # with tf.Session() as sess:
+    #   sess.run(init_op)
+    #   print sess.run(vjp,  feed_dict={x: x_val, u: u_val})
+    # tf.train.write_graph(jacobians.as_graph_def(), "./", "test_jac")
+
+    def test_vjp(tol=1e-4):
+        def test_feed_fwd(x):
+            return sess.run(output_node, feed_dict={input_node: [x]})[0]
+
+        def func_vjp(x, vec):
+            return sess.run(vjp, feed_dict={input_node: [x], v: [vec]})[0]
+
+        x = np.random.normal(0.0, 0.1, input_node.shape[1])
+        vjp_jac = np.array([func_vjp(x, v) for v in np.identity(output_node.shape[1])])
+        fd_jac = fd_jacobian(test_feed_fwd, x, eps=0.0001)
+
+        max_error = abs(np.max(vjp_jac - fd_jac))
+
+        if max_error > tol:
+            print("Computing vjp failed! Error of", max_error, "exceeded tolerance of", tol)
+            exit()
+        else:
+            print("vjp passed accuracy test with error of:", max_error)
+    
+    test_vjp()
 
     # from tensorflow.python.framework import graph_util
     # from tensorflow.python.framework import graph_io
@@ -142,7 +196,7 @@ def generate_vjp(model_input_path, vjp_output_path):
     # graph_io.write_graph(constant_graph, output_fld, output_path, as_text=False)
     # print('saved the freezed graph (ready for inference) at: ', osp.join(output_fld, output_path))
     # print(sess.graph.as_graph_def())
-    subgraph = tf.graph_util.extract_sub_graph(sess.graph.as_graph_def(), ["decoder_input", vjp.name[:-2], "input_v"])
+    subgraph = tf.graph_util.extract_sub_graph(sess.graph.as_graph_def(), ["energy_model_input", vjp.name[:-2], "input_v"])
     graph_io.write_graph(subgraph, "./", vjp_output_path, as_text=False)
     # print(subgraph)
     print(vjp.name)
@@ -208,24 +262,11 @@ def generate_jvp(model_input_path, jvp_output_path):
             print("jvp passed accuracy test with error of:", max_error)
     
     test_jvp()
-    # print(jvp)
-    # with tf.Session() as sess:
-    #   sess.run(init_op)
-    #   print sess.run(jvp,  feed_dict={x: x_val, u: u_val})
-    # tf.train.write_graph(jacobians.as_graph_def(), "./", "test_jac")
 
-    # from tensorflow.python.framework import graph_util
-    # from tensorflow.python.framework import graph_io
-    # # print("pred_node_names", pred_node_names)
-    # constant_graph = graph_util.convert_variables_to_constants(sess, sess.graph.as_graph_def(), jacobians.name)
-    # graph_io.write_graph(constant_graph, output_fld, output_path, as_text=False)
-    # print('saved the freezed graph (ready for inference) at: ', osp.join(output_fld, output_path))
-    # print(sess.graph.as_graph_def())
     subgraph = tf.graph_util.extract_sub_graph(sess.graph.as_graph_def(), ["decoder_input", jvp.name[:-2], "input_z_v"])
     graph_io.write_graph(subgraph, "./", jvp_output_path, as_text=False)
-    # print(subgraph)
     print(jvp.name)
-    # print(output_node.name)
+
 
 def generate_JTJ(model_input_path, JTJ_output_path):
     """WARNING THIS IS GIVING BAD VALUES"""
@@ -290,22 +331,10 @@ def generate_JTJ(model_input_path, JTJ_output_path):
             print("JTJ passed accuracy test with error of:", max_error)
     
     JTMJvp()
-    # print(jvp)
-    # with tf.Session() as sess:
-    #   sess.run(init_op)
-    #   print sess.run(jvp,  feed_dict={x: x_val, u: u_val})
-    # tf.train.write_graph(jacobians.as_graph_def(), "./", "test_jac")
 
-    # from tensorflow.python.framework import graph_util
-    # from tensorflow.python.framework import graph_io
-    # # print("pred_node_names", pred_node_names)
-    # constant_graph = graph_util.convert_variables_to_constants(sess, sess.graph.as_graph_def(), jacobians.name)
-    # graph_io.write_graph(constant_graph, output_fld, output_path, as_text=False)
-    # print('saved the freezed graph (ready for inference) at: ', osp.join(output_fld, output_path))
-    # print(sess.graph.as_graph_def())
     subgraph = tf.graph_util.extract_sub_graph(sess.graph.as_graph_def(), ["decoder_input", JTJ.name[:-2], "input_z_v"])
     graph_io.write_graph(subgraph, "./", JTJ_output_path, as_text=False)
-    # print(subgraph)
+
     
     print(JTJ.name)
 
@@ -323,6 +352,7 @@ if __name__ == "__main__":
     elif jp_type == 'JTJ':
         generate_JTJ(tf_decoder_path, os.path.join(model_root, 'tf_models/decoder_JTJ.pb'))
     elif jp_type == 'energy_vjp':
-        generate_vjp(tf_decoder_path, os.path.join(model_root, 'tf_models/l1_discrete_energy_model_vjp.pb'))
+        energy_model_path = os.path.join(model_root, 'tf_models/l1_discrete_energy_model.pb')
+        generate_energy_vjp(energy_model_path, os.path.join(model_root, 'tf_models/l1_discrete_energy_model_vjp.pb'))
     else:
         print("First parameter must be vjp or jvp.")
