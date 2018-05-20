@@ -1,9 +1,10 @@
 #include <vector>
 #include <set>
 
-// Tensorflow
-#include <tensorflow/core/platform/env.h>
-#include <tensorflow/core/public/session.h>
+// Autodef
+#include "TypeDefs.h"
+#include "AutoDefUtils.h"
+#include "ReducedSpace.h"
 
 
 //#include <Qt3DIncludes.h>
@@ -59,13 +60,7 @@
 using json = nlohmann::json;
 namespace fs = boost::filesystem;
 
-using Eigen::VectorXd;
-using Eigen::Vector3d;
-using Eigen::VectorXi;
-using Eigen::MatrixXd;
-using Eigen::MatrixXi;
-using Eigen::SparseMatrix;
-using Eigen::SparseVector;
+
 using namespace LBFGSpp;
 
 using namespace Gauss;
@@ -92,7 +87,6 @@ Eigen::MatrixXd N; // Normals
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
 int n_dof;
-double finite_diff_eps;
 
 // Mouse/Viewer state
 Eigen::RowVector3f last_mouse;
@@ -116,27 +110,8 @@ fs::path pointer_obj_dir;
 fs::path tet_obj_dir;
 std::ofstream log_ofstream;
 
-enum EnergyMethod {FULL, PCR, AN08, PRED_WEIGHTS_L1, PRED_DIRECT};
 
 
-EnergyMethod energy_method_from_integrator_config(const json &integrator_config) {
-    try {
-        if(!integrator_config.at("use_reduced_energy")) {
-            return FULL;
-        }
-
-        std::string energy_method = integrator_config.at("reduced_energy_method");    
-
-        if(energy_method == "full") return FULL;
-        if(energy_method == "pcr") return PCR;
-        if(energy_method == "an08") return AN08;
-        if(energy_method == "pred_weights_l1") return PRED_WEIGHTS_L1;
-        if(energy_method == "pred_energy_direct") return PRED_DIRECT;
-    } 
-    catch (nlohmann::detail::out_of_range& e){} // Didn't exist
-    std::cout << "Unkown energy method." << std::endl;
-    exit(1);
-}
 
 std::vector<unsigned int> get_min_verts(int axis, bool get_max = false, double tol = 0.01) {
     int dim = axis; // x
@@ -187,449 +162,10 @@ void reset_world (MyWorld &world) {
 
 
 // -- My integrator
-template <typename ReducedSpaceImpl>
-class ReducedSpace
-{
-public:
-    template<typename ...Params> // TODO necessary?
-    ReducedSpace(Params ...params) : m_impl(params...) {}
-    ReducedSpace() : m_impl() {}
 
-    VectorXd encode(const VectorXd &q) {
-        return m_impl.encode(q);
-    }
 
-    VectorXd decode(const VectorXd &z) {
-        return m_impl.decode(z);
-    }
 
-    VectorXd sub_decode(const VectorXd &z) {
-        return m_impl.sub_decode(z);
-    }
-    // Must be a better way than this crazy decltyp
-    decltype(auto) jacobian(const VectorXd &z) {
-        return m_impl.jacobian(z);
-    }
-
-    VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) {
-        // d decode / d z * q
-        return m_impl.jacobian_transpose_vector_product(z, q);
-    }
-
-    VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
-        return m_impl.jacobian_vector_product(z, z_v);
-    }
-
-    decltype(auto) outer_jacobian() {
-        return m_impl.outer_jacobian();
-    }
-
-    decltype(auto) inner_jacobian(const VectorXd &z) { // TODO make this sparse for linear subspace?
-        return m_impl.inner_jacobian(z);
-    }
-
-    decltype(auto) compute_reduced_mass_matrix(const SparseMatrix<double> &M) {
-        return m_impl.compute_reduced_mass_matrix(M);
-    }
-
-    double get_energy(const VectorXd &z) {
-        return m_impl.get_energy(z);
-    }
-
-    VectorXd get_energy_gradient(const VectorXd &z) {
-        return m_impl.get_energy_gradient(z);
-    }
-
-    void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {
-        return m_impl.get_cubature_indices_and_weights(z, indices, weights);
-    }
-
-    VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {
-        return m_impl.cubature_vjp(z, energies);
-    }
-
-private:
-    ReducedSpaceImpl m_impl;
-};
-
-template <typename MatrixType>
-class LinearSpaceImpl
-{
-public:
-    LinearSpaceImpl(const MatrixType &U) : m_U(U) {
-        std::cout<<"U rows: " << U.rows() << std::endl;
-        std::cout<<"U cols: " << U.cols() << std::endl;
-
-        m_inner_jac.resize(U.cols(), U.cols());
-        m_inner_jac.setIdentity();
-    }
-
-    VectorXd encode(const VectorXd &q) {
-        return m_U.transpose() * q;
-    }
-
-    VectorXd decode(const VectorXd &z) {
-        return m_U * z;
-    }
-
-    VectorXd sub_decode(const VectorXd &z) {
-        return z;
-    }
-
-    MatrixType jacobian(const VectorXd &z) { return m_U; }
-
-    VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &q) { // TODO: do this without copy?
-        return q;
-    }
-
-    VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
-        return z_v;
-    }
-
-    MatrixType outer_jacobian() {
-        return m_U;
-    }
-
-    MatrixType inner_jacobian(const VectorXd &z) {
-        return m_inner_jac;
-    }
-
-    MatrixType compute_reduced_mass_matrix(const MatrixType &M) {
-        return m_U.transpose() * M * m_U;
-    }
-
-    double get_energy(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-    VectorXd get_energy_gradient(const VectorXd &z) {std::cout << "Reduced energy not implemented!" << std::endl;}
-    void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {std::cout << "Reduced energy not implemented!" << std::endl;}
-    VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {std::cout << "Reduced energy not implemented!" << std::endl;}
-private:
-    MatrixType m_U;
-    MatrixType m_inner_jac;
-};
-
-namespace tf = tensorflow;
-auto tf_dtype = tf::DT_DOUBLE;
-typedef double tf_dtype_type;
-
-class AutoEncoderSpaceImpl
-{
-public:
-    AutoEncoderSpaceImpl(fs::path tf_models_root, json integrator_config) {
-        m_enc_dim = integrator_config["ae_encoded_dim"];
-        m_sub_q_size = integrator_config["ae_decoded_dim"];
-
-        fs::path decoder_path = tf_models_root / "decoder.pb";
-        fs::path decoder_jac_path = tf_models_root / "decoder_jac.pb";
-        fs::path decoder_vjp_path = tf_models_root / "decoder_vjp.pb";
-        fs::path decoder_jvp_path = tf_models_root / "decoder_jvp.pb";
-        fs::path encoder_path = tf_models_root / "encoder.pb";
-
-        // Decoder
-        tf::Status status = tf::NewSession(tf::SessionOptions(), &m_decoder_session);
-        checkStatus(status);
-        tf::GraphDef decoder_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), decoder_path.string(), &decoder_graph_def);
-        checkStatus(status);
-        status = m_decoder_session->Create(decoder_graph_def);
-        checkStatus(status);
-
-        // Decoder Jacobian
-        status = tf::NewSession(tf::SessionOptions(), &m_decoder_jac_session);
-        checkStatus(status);
-        tf::GraphDef decoder_jac_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), decoder_jac_path.string(), &decoder_jac_graph_def);
-        checkStatus(status);
-        status = m_decoder_jac_session->Create(decoder_jac_graph_def);
-        checkStatus(status);
-
-        // Decoder vjp
-        status = tf::NewSession(tf::SessionOptions(), &m_decoder_vjp_session);
-        checkStatus(status);
-        tf::GraphDef decoder_vjp_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), decoder_vjp_path.string(), &decoder_vjp_graph_def);
-        checkStatus(status);
-        status = m_decoder_vjp_session->Create(decoder_vjp_graph_def);
-        checkStatus(status);
-
-        // // Decoder jvp
-        status = tf::NewSession(tf::SessionOptions(), &m_decoder_jvp_session);
-        checkStatus(status);
-        tf::GraphDef decoder_jvp_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), decoder_jvp_path.string(), &decoder_jvp_graph_def);
-        checkStatus(status);
-        status = m_decoder_jvp_session->Create(decoder_jvp_graph_def);
-        checkStatus(status);
-
-
-        // Encoder
-        status = tf::NewSession(tf::SessionOptions(), &m_encoder_session);
-        checkStatus(status);
-        tf::GraphDef encoder_graph_def;
-        status = ReadBinaryProto(tf::Env::Default(), encoder_path.string(), &encoder_graph_def);
-        checkStatus(status);
-        status = m_encoder_session->Create(encoder_graph_def);
-        checkStatus(status);
-
-        // Last layer
-        fs::path U_path = tf_models_root / "../pca_results/ae_pca_components.dmat";
-        igl::readDMAT(U_path.string(), m_U);
-
-        // Currently disabled
-        // if(integrator_config["use_reduced_energy"]) {
-        //     fs::path energy_model_path = tf_models_root / "energy_model.pb";
-
-        //     status = tf::NewSession(tf::SessionOptions(), &m_direct_energy_model_session);
-        //     checkStatus(status);
-        //     tf::GraphDef energy_model_graph_def;
-        //     status = ReadBinaryProto(tf::Env::Default(), energy_model_path.string(), &energy_model_graph_def);
-        //     checkStatus(status);
-        //     status = m_direct_energy_model_session->Create(energy_model_graph_def);
-        //     checkStatus(status);
-        // }
-
-        EnergyMethod energy_method = energy_method_from_integrator_config(integrator_config);
-
-        if(energy_method == PRED_WEIGHTS_L1) {
-            fs::path discrete_energy_model_path = tf_models_root / "l1_discrete_energy_model.pb";
-
-            status = tf::NewSession(tf::SessionOptions(), &m_discrete_energy_model_session);
-            checkStatus(status);
-            tf::GraphDef discrete_energy_model_graph_def;
-            status = ReadBinaryProto(tf::Env::Default(), discrete_energy_model_path.string(), &discrete_energy_model_graph_def);
-            checkStatus(status);
-            status = m_discrete_energy_model_session->Create(discrete_energy_model_graph_def);
-            checkStatus(status);
-
-            // Disabled since we don't currently need it.
-            fs::path cubature_vjp_model_path = tf_models_root / "l1_discrete_energy_model_vjp.pb";
-
-            status = tf::NewSession(tf::SessionOptions(), &m_cubature_vjp_session);
-            checkStatus(status);
-            tf::GraphDef cubature_vjp_graph_def;
-            status = ReadBinaryProto(tf::Env::Default(), cubature_vjp_model_path.string(), &cubature_vjp_graph_def);
-            checkStatus(status);
-            status = m_cubature_vjp_session->Create(cubature_vjp_graph_def);
-            checkStatus(status);
-        }
-        else if (energy_method == PRED_DIRECT) {
-            fs::path energy_model_path = tf_models_root / "direct_energy_model.pb";
-
-            status = tf::NewSession(tf::SessionOptions(), &m_direct_energy_model_session);
-            checkStatus(status);
-            tf::GraphDef energy_model_graph_def;
-            status = ReadBinaryProto(tf::Env::Default(), energy_model_path.string(), &energy_model_graph_def);
-            checkStatus(status);
-            status = m_direct_energy_model_session->Create(energy_model_graph_def);
-            checkStatus(status);
-        }
-    }
-
-    VectorXd encode(const VectorXd &q) {
-        VectorXd sub_q = m_U.transpose() * q;
-
-        tf::Tensor sub_q_tensor(tf_dtype, tf::TensorShape({1, sub_q.size()}));
-        std::copy_n(sub_q.data(), sub_q.size(), sub_q_tensor.flat<tf_dtype_type>().data());
-
-        std::vector<tf::Tensor> z_outputs;
-        tf::Status status = m_encoder_session->Run({{"encoder_input:0", sub_q_tensor}},
-                                   {"output_node0:0"}, {}, &z_outputs);
-
-        VectorXd res(m_enc_dim);
-        std::copy_n(z_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
-
-        return res;
-    }
-
-    VectorXd sub_decode(const VectorXd &z) {
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim}));
-        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
-
-        std::vector<tf::Tensor> sub_q_outputs;
-        tf::Status status = m_decoder_session->Run({{"decoder_input:0", z_tensor}},
-                                   {"output_node0:0"}, {}, &sub_q_outputs);
-
-        VectorXd res(m_U.cols());
-        std::copy_n(sub_q_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
-
-        return res;
-    }
-
-    VectorXd decode(const VectorXd &z) {
-        return m_U * sub_decode(z);
-    }
-
-    MatrixXd jacobian(const VectorXd &z) {
-        return m_U * inner_jacobian(z);
-    }
-
-    MatrixXd outer_jacobian() {
-        return m_U;
-    }
-
-    MatrixXd inner_jacobian(const VectorXd &z) {
-        // //Analytic with jvp 
-        MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
-        MatrixXd zs = MatrixXd::Identity(z.size(), z.size());
-
-        // #pragma omp parallel for
-        for(int i = 0; i < z.size(); i++) {
-            sub_jac.col(i) = jacobian_vector_product(z, zs.row(i));
-        }
- 
-        // // Analytic with vjp - (slower than FD probably)
-        // // MatrixXd sub_jac(m_sub_q_size, z.size()); // just m_U.cols()?
-        // // MatrixXd subqs = MatrixXd::Identity(m_sub_q_size, m_sub_q_size);
-
-        // // for(int i = 0; i < m_sub_q_size; i++) {
-        // //     sub_jac.row(i) = jacobian_transpose_vector_product(z, subqs.row(i));
-        // // }
-
-        return sub_jac;
-
-    }
-
-    
-    VectorXd jacobian_transpose_vector_product(const VectorXd &z, const VectorXd &sub_q) { // TODO: do this without copy?
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); 
-        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
-
-        tf::Tensor sub_q_tensor(tf_dtype, tf::TensorShape({1, sub_q.size()})); 
-        std::copy_n(sub_q.data(), sub_q.size(), sub_q_tensor.flat<tf_dtype_type>().data());
-
-        std::vector<tf::Tensor> vjp_outputs;
-        tf::Status status = m_decoder_vjp_session->Run({{"decoder_input:0", z_tensor}, {"input_v:0", sub_q_tensor}},
-                                   {"vjp/dense_decode_layer_0/MatMul_grad/MatMul:0"}, {}, &vjp_outputs); // TODO get better names
-        
-        VectorXd res(m_enc_dim);
-        std::copy_n(vjp_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
-
-        return res;
-    }
-
-    VectorXd jacobian_vector_product(const VectorXd &z, const VectorXd &z_v) {
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); 
-        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
-
-        tf::Tensor z_v_tensor(tf_dtype, tf::TensorShape({1, z_v.size()})); 
-        std::copy_n(z_v.data(), z_v.size(), z_v_tensor.flat<tf_dtype_type>().data());
-
-        std::vector<tf::Tensor> jvp_outputs; 
-        tf::Status status = m_decoder_jvp_session->Run({{"decoder_input:0", z_tensor}, {"input_z_v:0", z_v_tensor}},
-                                   {"jvp/gradients/decoder_output_layer/MatMul_grad/MatMul_grad/MatMul:0"}, {}, &jvp_outputs);
-
-        VectorXd res(m_sub_q_size);
-        std::copy_n(jvp_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
-
-        return res;
-    }
-
-    MatrixXd compute_reduced_mass_matrix(const MatrixXd &M) {
-        return m_U.transpose() * M * m_U;
-    }
-
-    double get_energy(const VectorXd &z) {
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim})); 
-        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
-
-        std::vector<tf::Tensor> q_outputs;
-        tf::Status status = m_direct_energy_model_session->Run({{"energy_model_input:0", z_tensor}},
-                                   {"output_node0:0"}, {}, &q_outputs);
-
-        auto energy_tensor_mapped = q_outputs[0].tensor<tf_dtype_type, 2>();
-
-        return energy_tensor_mapped(0,0);
-    }
-
-    VectorXd get_energy_gradient(const VectorXd &z) {
-        VectorXd energy_grad(z.size()); 
-        double t = finite_diff_eps;
-        for(int i = 0; i < z.size(); i++) {
-            VectorXd dz_pos(z);
-            VectorXd dz_neg(z);
-            dz_pos[i] += t;
-            dz_neg[i] -= t;
-            energy_grad[i] = (get_energy(dz_pos) - get_energy(dz_neg)) / (2.0 * t);
-        }
-        return energy_grad;
-    }
-
-    void get_cubature_indices_and_weights(const VectorXd &z, VectorXi &indices, VectorXd &weights) {
-        double start_time = igl::get_seconds();
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim}));
-        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
-
-        std::vector<tf::Tensor> energy_weight_outputs;
-        tf::Status status = m_discrete_energy_model_session->Run({{"energy_model_input:0", z_tensor}},
-                                   {"output_node0:0"}, {}, &energy_weight_outputs);
-        
-        auto energy_weight_tensor_mapped = energy_weight_outputs[0].tensor<tf_dtype_type, 2>();
-        double predict_time = igl::get_seconds() - start_time;
-
-        double eps = 0.01;
-        int n_tets_used = 0;
-
-        std::vector<int> indices_vec;
-        indices_vec.reserve(100);
-        for(int i = 0; i < T.rows(); i++) {
-            double energy_weight_i = energy_weight_tensor_mapped(0, i);
-            if(energy_weight_i > eps) {
-                indices_vec.push_back(i);
-                n_tets_used++;
-            }
-        }
-
-        indices.resize(n_tets_used);
-        weights.resize(n_tets_used);
-
-        for(int i = 0; i < n_tets_used; i++) {
-            int idx = indices_vec[i];
-            indices[i] = idx;
-            weights[i] = energy_weight_tensor_mapped(0, idx);
-        }
-
-        double copy_time = igl::get_seconds() - start_time - predict_time;
-    }
-
-    VectorXd cubature_vjp(const VectorXd &z, VectorXd &energies) {
-        tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, m_enc_dim}));
-        std::copy_n(z.data(), z.size(), z_tensor.flat<tf_dtype_type>().data());
-
-        tf::Tensor energies_tensor(tf_dtype, tf::TensorShape({1, energies.size()}));
-        std::copy_n(energies.data(), energies.size(), energies_tensor.flat<tf_dtype_type>().data());
-
-        std::vector<tf::Tensor> vjp_outputs;
-        tf::Status status = m_cubature_vjp_session->Run({{"energy_model_input:0", z_tensor}, {"input_v:0", energies_tensor}},
-                                   {"vjp/dense_decode_layer_0/MatMul_grad/MatMul:0"}, {}, &vjp_outputs);
-
-        VectorXd res(m_enc_dim);
-        std::copy_n(vjp_outputs[0].flat<tf_dtype_type>().data(), res.size(), res.data());
-        return res;
-    }
-
-    void checkStatus(const tf::Status& status) {
-      if (!status.ok()) {
-        std::cout << status.ToString() << std::endl;
-        exit(1);
-      }
-    }
-
-private:
-    int m_enc_dim;
-    int m_sub_q_size;
-
-    MatrixXd m_U;
-
-    tf::Session* m_decoder_session;
-    tf::Session* m_decoder_jac_session;
-    tf::Session* m_decoder_vjp_session;
-    tf::Session* m_decoder_jvp_session;
-    tf::Session* m_encoder_session;
-    tf::Session* m_direct_energy_model_session;
-    tf::Session* m_discrete_energy_model_session;
-    tf::Session* m_cubature_vjp_session;
-};
-
-template <typename ReducedSpaceType>
+template <typename ReducedSpaceType, typename MatrixType>
 class GPLCObjective
 {
 public:
@@ -651,7 +187,6 @@ public:
         m_prev_sub_q = sub_dec(prev_z);
 
         m_h = integrator_config["timestep"];
-        finite_diff_eps = integrator_config["finite_diff_eps"];
         // Construct mass matrix and external forces
         getMassMatrix(m_M_asm, *m_world);
 
@@ -982,8 +517,8 @@ private:
 
     SparseMatrix<double> m_M; // mass matrix
     // Below is a kind of hack way to get the matrix type used in the reduced space class
-    decltype(std::declval<ReducedSpaceType>().outer_jacobian())  m_UTMU; // reduced mass matrix
-    decltype(std::declval<ReducedSpaceType>().outer_jacobian())  m_U;
+    MatrixType  m_UTMU; // reduced mass matrix
+    MatrixType  m_U;
     MatrixXd m_U_sampled; // Always used in dense mode
 
     AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_M_asm;
@@ -1010,7 +545,7 @@ private:
     VectorXi m_cubature_vert_indices;
 };
 
-template <typename ReducedSpaceType>
+template <typename ReducedSpaceType, typename MatrixType>
 class GPLCTimeStepper {
 public:
     GPLCTimeStepper(fs::path model_root, json integrator_config, MyWorld *world, NeohookeanTets *tets, ReducedSpaceType *reduced_space) :
@@ -1034,11 +569,11 @@ public:
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
         reset_zs_to_current_world();
-        m_gplc_objective = new GPLCObjective<ReducedSpaceType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
+        m_gplc_objective = new GPLCObjective<ReducedSpaceType, MatrixType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
 
         m_h = integrator_config["timestep"];
         m_U = reduced_space->outer_jacobian();
-        decltype(std::declval<ReducedSpaceType>().outer_jacobian()) J = reduced_space->inner_jacobian(m_cur_z);
+        MatrixType J = reduced_space->inner_jacobian(m_cur_z);
 
         
         m_energy_method = energy_method_from_integrator_config(integrator_config);
@@ -1093,7 +628,7 @@ public:
             double precondition_start_time = igl::get_seconds();
             // TODO shouldn't do this for any linear space
             if(!m_is_full_space) { // Only update the hessian each time for nonlinear space. 
-                decltype(std::declval<ReducedSpaceType>().outer_jacobian()) J = m_reduced_space->inner_jacobian(m_cur_z);
+                MatrixType J = m_reduced_space->inner_jacobian(m_cur_z);
                 m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
                 m_H_llt.compute(m_H);//m_H.ldlt();
             }
@@ -1178,11 +713,10 @@ public:
         return m_reduced_space->decode(m_cur_z);
     }
 
-    VectorXd get_current_V() {
-        auto q = get_current_q();
+    MatrixXd get_current_V() {
+        VectorXd q = get_current_q();
         Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
-
-        return V + dV.transpose(); 
+        return V + dV.transpose();    
     }
 
     VectorXi get_current_tets() {
@@ -1195,22 +729,22 @@ private:
 
     LBFGSParam<double> m_lbfgs_param;
     LBFGSSolver<double> *m_solver;
-    GPLCObjective<ReducedSpaceType> *m_gplc_objective;
+    GPLCObjective<ReducedSpaceType, MatrixType> *m_gplc_objective;
 
     VectorXd m_prev_z;
     VectorXd m_cur_z;
 
     double m_h;
 
-    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_H;
+    MatrixType m_H;
     typename std::conditional<
-        std::is_same<decltype(std::declval<ReducedSpaceType>().outer_jacobian()), MatrixXd>::value,
+        std::is_same<MatrixType, MatrixXd>::value,
         Eigen::LDLT<MatrixXd>,
         Eigen::SimplicialLDLT<SparseMatrix<double>>>::type m_H_llt;
-    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_H_inv;
-    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_UTKU;
-    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_UTMU;
-    decltype(std::declval<ReducedSpaceType>().outer_jacobian()) m_U;
+    MatrixType m_H_inv;
+    MatrixType m_UTKU;
+    MatrixType m_UTMU;
+    MatrixType m_U;
 
     AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_M_asm;
     AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_K_asm;
@@ -1274,11 +808,9 @@ std::string int_to_padded_str(int i) {
 
 // typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
 // typedef ReducedSpace<ConstraintSpaceImpl> ConstraintSpace;
-typedef ReducedSpace<LinearSpaceImpl<MatrixXd>> LinearSpace;
-typedef ReducedSpace<LinearSpaceImpl<SparseMatrix<double>>> SparseConstraintSpace;
-typedef ReducedSpace<AutoEncoderSpaceImpl> AutoencoderSpace;
 
-template <typename ReducedSpaceType>
+
+template <typename ReducedSpaceType, typename MatrixType>
 void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path &model_root) {
     // -- Setting up GAUSS
     MyWorld world;
@@ -1320,7 +852,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     SparseVector<double> interaction_force(n_dof);// = VectorXd::Zero(n_dof);
 
 
-    GPLCTimeStepper<ReducedSpaceType> gplc_stepper(model_root, integrator_config, &world, tets, reduced_space);
+    GPLCTimeStepper<ReducedSpaceType, MatrixType> gplc_stepper(model_root, integrator_config, &world, tets, reduced_space);
 
     bool show_stress = visualization_config["show_stress"];
     bool show_energy = false;
@@ -1794,111 +1326,109 @@ const std::string currentDateTime() {
     return buf;
 }
 
-VectorXd tf_JTJ(const VectorXd &z, const VectorXd &z_v, tf::Session* m_decoder_JTJ_session) {
-    tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, z_v.size()})); 
-    auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-    for(int i =0; i < z.size(); i++) {
-        z_tensor_mapped(0, i) = z[i];
-    } // TODO map with proper function
+// VectorXd tf_JTJ(const VectorXd &z, const VectorXd &z_v, tf::Session* m_decoder_JTJ_session) {
+//     tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, z_v.size()})); 
+//     auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
+//     for(int i =0; i < z.size(); i++) {
+//         z_tensor_mapped(0, i) = z[i];
+//     } // TODO map with proper function
 
-    tf::Tensor z_v_tensor(tf_dtype, tf::TensorShape({1, z_v.size()}));  
-    auto z_v_tensor_mapped = z_v_tensor.tensor<tf_dtype_type, 2>();
-    for(int i =0; i < z_v.size(); i++) {
-        z_v_tensor_mapped(0, i) = z_v[i];
-    } // TODO map with proper function
+//     tf::Tensor z_v_tensor(tf_dtype, tf::TensorShape({1, z_v.size()}));  
+//     auto z_v_tensor_mapped = z_v_tensor.tensor<tf_dtype_type, 2>();
+//     for(int i =0; i < z_v.size(); i++) {
+//         z_v_tensor_mapped(0, i) = z_v[i];
+//     } // TODO map with proper function
 
-    std::vector<tf::Tensor> JTJ_outputs; 
-    tf::Status status = m_decoder_JTJ_session->Run({{"decoder_input:0", z_tensor}, {"input_z_v:0", z_v_tensor}},
-                               {"JTJ/dense_decode_layer_0/MatMul_grad/MatMul:0"}, {}, &JTJ_outputs); // TODO get better names
+//     std::vector<tf::Tensor> JTJ_outputs; 
+//     tf::Status status = m_decoder_JTJ_session->Run({{"decoder_input:0", z_tensor}, {"input_z_v:0", z_v_tensor}},
+//                                {"JTJ/dense_decode_layer_0/MatMul_grad/MatMul:0"}, {}, &JTJ_outputs); // TODO get better names
     
-    auto JTJ_tensor_mapped = JTJ_outputs[0].tensor<tf_dtype_type, 2>();
+//     auto JTJ_tensor_mapped = JTJ_outputs[0].tensor<tf_dtype_type, 2>();
     
-    VectorXd res(z_v.size()); // TODO generalize
-    for(int i = 0; i < res.rows(); i++) {
-        res[i] = JTJ_tensor_mapped(0,i);    
-    }
-    return res;
-}
+//     VectorXd res(z_v.size()); // TODO generalize
+//     for(int i = 0; i < res.rows(); i++) {
+//         res[i] = JTJ_tensor_mapped(0,i);    
+//     }
+//     return res;
+// }
 
-void compare_jac_speeds(AutoencoderSpace &reduced_space) {
-    fs::path tf_models_root("../../models/x-final/tf_models/");
-    fs::path decoder_JTJ_path = tf_models_root / "decoder_JTJ.pb";
-    tf::Session* m_decoder_JTJ_session;
-    tf::NewSession(tf::SessionOptions(), &m_decoder_JTJ_session);
+// void compare_jac_speeds(AutoencoderSpace &reduced_space) {
+//     fs::path tf_models_root("../../models/x-final/tf_models/");
+//     fs::path decoder_JTJ_path = tf_models_root / "decoder_JTJ.pb";
+//     tf::Session* m_decoder_JTJ_session;
+//     tf::NewSession(tf::SessionOptions(), &m_decoder_JTJ_session);
     
-    tf::GraphDef decoder_JTJ_graph_def;
-    ReadBinaryProto(tf::Env::Default(), decoder_JTJ_path.string(), &decoder_JTJ_graph_def);
+//     tf::GraphDef decoder_JTJ_graph_def;
+//     ReadBinaryProto(tf::Env::Default(), decoder_JTJ_path.string(), &decoder_JTJ_graph_def);
     
-    m_decoder_JTJ_session->Create(decoder_JTJ_graph_def);
-    
-
+//     m_decoder_JTJ_session->Create(decoder_JTJ_graph_def);
 
 
-    for(int j = 100; j < 10001; j *= 10) {
-        int n_its = j;
+//     for(int j = 100; j < 10001; j *= 10) {
+//         int n_its = j;
         
-        VectorXd q = VectorXd::Zero(reduced_space.outer_jacobian().rows());
-        VectorXd z = reduced_space.encode(q);
-        VectorXd vq = MatrixXd::Ones(reduced_space.outer_jacobian().cols(), 1);
-        VectorXd vz = MatrixXd::Ones(z.size(), 1);
+//         VectorXd q = VectorXd::Zero(reduced_space.outer_jacobian().rows());
+//         VectorXd z = reduced_space.encode(q);
+//         VectorXd vq = MatrixXd::Ones(reduced_space.outer_jacobian().cols(), 1);
+//         VectorXd vz = MatrixXd::Ones(z.size(), 1);
     
         
-        double start = igl::get_seconds();
-        for(int i = 0; i < n_its; i++) {
-            MatrixXd full_jac = reduced_space.inner_jacobian(z);
-            VectorXd Jv = full_jac * vz;    
-        }
-        std::cout << n_its << " its of fd jac product took " << igl::get_seconds() - start << std::endl;
+//         double start = igl::get_seconds();
+//         for(int i = 0; i < n_its; i++) {
+//             MatrixXd full_jac = reduced_space.inner_jacobian(z);
+//             VectorXd Jv = full_jac * vz;    
+//         }
+//         std::cout << n_its << " its of fd jac product took " << igl::get_seconds() - start << std::endl;
 
-        start = igl::get_seconds();
-        for(int i = 0; i < n_its; i++) {
-            VectorXd Jv = reduced_space.jacobian_vector_product(z, vz);    
-        }
-        std::cout << n_its << " its of jvp took " << igl::get_seconds() - start << std::endl;
+//         start = igl::get_seconds();
+//         for(int i = 0; i < n_its; i++) {
+//             VectorXd Jv = reduced_space.jacobian_vector_product(z, vz);    
+//         }
+//         std::cout << n_its << " its of jvp took " << igl::get_seconds() - start << std::endl;
 
-        start = igl::get_seconds();
-        for(int i = 0; i < n_its; i++) {
-            MatrixXd full_jac = reduced_space.inner_jacobian(z);
-            VectorXd Jv = full_jac.transpose() * vq;    
-        }
-        std::cout << n_its << " its of fd jacT product took " << igl::get_seconds() - start << std::endl;
+//         start = igl::get_seconds();
+//         for(int i = 0; i < n_its; i++) {
+//             MatrixXd full_jac = reduced_space.inner_jacobian(z);
+//             VectorXd Jv = full_jac.transpose() * vq;    
+//         }
+//         std::cout << n_its << " its of fd jacT product took " << igl::get_seconds() - start << std::endl;
 
-        start = igl::get_seconds();
-        for(int i = 0; i < n_its; i++) {
-            VectorXd Jv = reduced_space.jacobian_transpose_vector_product(z, vq);    
-        }
-        std::cout << n_its << " its of vjp took " << igl::get_seconds() - start << std::endl;
+//         start = igl::get_seconds();
+//         for(int i = 0; i < n_its; i++) {
+//             VectorXd Jv = reduced_space.jacobian_transpose_vector_product(z, vq);    
+//         }
+//         std::cout << n_its << " its of vjp took " << igl::get_seconds() - start << std::endl;
 
-        MatrixXd U = reduced_space.outer_jacobian();
-        MatrixXd UTU = U.transpose() * U;
-        start = igl::get_seconds();
-        for(int i = 0; i < n_its; i++) {
-            MatrixXd full_jac = reduced_space.inner_jacobian(z);
-            VectorXd JUTUv = full_jac.transpose() * UTU * full_jac * vz;    
-        }
-        std::cout << n_its << " its of fd JUTUJv product took " << igl::get_seconds() - start << std::endl;
+//         MatrixXd U = reduced_space.outer_jacobian();
+//         MatrixXd UTU = U.transpose() * U;
+//         start = igl::get_seconds();
+//         for(int i = 0; i < n_its; i++) {
+//             MatrixXd full_jac = reduced_space.inner_jacobian(z);
+//             VectorXd JUTUv = full_jac.transpose() * UTU * full_jac * vz;    
+//         }
+//         std::cout << n_its << " its of fd JUTUJv product took " << igl::get_seconds() - start << std::endl;
 
-        start = igl::get_seconds();
-        for(int i = 0; i < n_its; i++) {
-            VectorXd JUTUv = reduced_space.jacobian_transpose_vector_product(z, UTU * reduced_space.jacobian_vector_product(z, vz));    
-        }
-        std::cout << n_its << " its of vjp JUTUJv took " << igl::get_seconds() - start << std::endl;
+//         start = igl::get_seconds();
+//         for(int i = 0; i < n_its; i++) {
+//             VectorXd JUTUv = reduced_space.jacobian_transpose_vector_product(z, UTU * reduced_space.jacobian_vector_product(z, vz));    
+//         }
+//         std::cout << n_its << " its of vjp JUTUJv took " << igl::get_seconds() - start << std::endl;
 
-        start = igl::get_seconds();
-        for(int i = 0; i < n_its; i++) {
-            VectorXd JUTUv = reduced_space.jacobian_transpose_vector_product(z, reduced_space.jacobian_vector_product(z, vz));    
-        }
-        std::cout << n_its << " its of vjp JTJv took " << igl::get_seconds() - start << std::endl;
+//         start = igl::get_seconds();
+//         for(int i = 0; i < n_its; i++) {
+//             VectorXd JUTUv = reduced_space.jacobian_transpose_vector_product(z, reduced_space.jacobian_vector_product(z, vz));    
+//         }
+//         std::cout << n_its << " its of vjp JTJv took " << igl::get_seconds() - start << std::endl;
 
-        start = igl::get_seconds();
-        for(int i = 0; i < n_its; i++) {
-            VectorXd JUTUv = tf_JTJ(z, vz, m_decoder_JTJ_session);    
-        }
-        std::cout << n_its << " its of Tensorflow JTJv took " << igl::get_seconds() - start << std::endl;
+//         start = igl::get_seconds();
+//         for(int i = 0; i < n_its; i++) {
+//             VectorXd JUTUv = tf_JTJ(z, vz, m_decoder_JTJ_session);    
+//         }
+//         std::cout << n_its << " its of Tensorflow JTJv took " << igl::get_seconds() - start << std::endl;
 
-    }
+//     }
 
-}
+// }
 
 int main(int argc, char **argv) {
     
@@ -1977,13 +1507,13 @@ int main(int argc, char **argv) {
         igl::readDMAT((model_root / pca_components_path).string(), U);
         LinearSpace reduced_space(U);
 
-        run_sim<LinearSpace>(&reduced_space, config, model_root);
+        run_sim<LinearSpace, MatrixXd>(&reduced_space, config, model_root);
     }
     else if(reduced_space_string == "autoencoder") {
         fs::path tf_models_root(model_root / "tf_models/");
         AutoencoderSpace reduced_space(tf_models_root, integrator_config);
         // compare_jac_speeds(reduced_space);
-        run_sim<AutoencoderSpace>(&reduced_space, config, model_root);  
+        run_sim<AutoencoderSpace, MatrixXd>(&reduced_space, config, model_root);  
     }
     else if(reduced_space_string == "full") {
         int fixed_axis = 1;
@@ -2003,7 +1533,7 @@ int main(int argc, char **argv) {
         SparseMatrix<double> P = construct_constraints_P(V, min_verts); // Constrain on X axis
         SparseConstraintSpace reduced_space(P.transpose());
 
-        run_sim<SparseConstraintSpace>(&reduced_space, config, model_root);
+        run_sim<SparseConstraintSpace, SparseMatrix<double>>(&reduced_space, config, model_root);
     }
     else {
         std::cout << "Not yet implemented." << std::endl;
@@ -2011,5 +1541,6 @@ int main(int argc, char **argv) {
     }
     
     return EXIT_SUCCESS;
+    
 }
 

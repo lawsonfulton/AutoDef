@@ -64,8 +64,13 @@ find_package(LIBIGL REQUIRED QUIET)
 
 
 #get the source code files
-file(GLOB HEADER_CODE ${ReduceSimExample_SOURCE_DIR}/src/*.h)
-file(GLOB SRC_CODE ${ReduceSimExample_SOURCE_DIR}/src/*.cpp)
+#file(GLOB HEADER_CODE ${ReduceSimExample_SOURCE_DIR}/src/*.h)
+#file(GLOB SRC_CODE ${ReduceSimExample_SOURCE_DIR}/src/*.cpp)
+
+file(GLOB SRC_CODE
+    ${ReduceSimExample_SOURCE_DIR}/src/*.h
+    ${ReduceSimExample_SOURCE_DIR}/src/*.cpp
+)
 
 include_directories(${Gauss_INCLUDE_DIRS})
 
@@ -74,7 +79,7 @@ include_directories(${Gauss_INCLUDE_DIRS})
 
 #Example codes
 link_directories(${Gauss_LIB_DIR_RELEASE})
-add_executable(ReduceSimExample ${ReduceSimExample_SOURCE_DIR}/src/reduced_sim_example.cpp)
+add_executable(ReduceSimExample ${SRC_CODE})
 target_link_libraries(ReduceSimExample ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer TensorflowCC::Static Boost::filesystem -lgomp)
 
 # add_executable(ViewData ${ReduceSimExample_SOURCE_DIR}/src/cpp/viewData.cpp)

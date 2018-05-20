@@ -138,7 +138,6 @@ def main():
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
             'ae_decoded_dim': config['learning_config']['autoencoder_config']['pca_layer_dim'], # Shouldn't be change. Kind of a hack.
             'timestep': 1/30.0,
-            'finite_diff_eps': 0.00005,
             'lbfgs_config': {
                 'lbfgs_max_iterations': 150,
                 'lbfgs_epsilon': 1e-4,
