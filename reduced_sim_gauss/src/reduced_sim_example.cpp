@@ -179,15 +179,6 @@ SparseMatrix<double> construct_constraints_P(const MatrixXd &V, std::vector<unsi
     return P;
 }
 
-// Todo put this in utilities
-Eigen::MatrixXd getCurrentVertPositions(MyWorld &world, NeohookeanTets *tets) {
-    // Eigen::Map<Eigen::MatrixXd> q(mapStateEigen<0>(world).data(), V.cols(), V.rows()); // Get displacements only
-    auto q = mapDOFEigen(tets->getQ(), world);
-    Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
-
-    return V + dV.transpose(); 
-}
-
 
 void reset_world (MyWorld &world) {
         auto q = mapStateEigen(world); // TODO is this necessary?
@@ -1187,6 +1178,13 @@ public:
         return m_reduced_space->decode(m_cur_z);
     }
 
+    VectorXd get_current_V() {
+        auto q = get_current_q();
+        Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
+
+        return V + dV.transpose(); 
+    }
+
     VectorXi get_current_tets() {
         return m_gplc_objective->get_current_tets();
     }
@@ -1383,7 +1381,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
         if(viewer.core.is_animating)
         {   
             auto q = mapDOFEigen(tets->getQ(), world);
-            Eigen::MatrixXd newV = gplc_stepper.get_current_q();//getCurrentVertPositions(world, tets); 
+            Eigen::MatrixXd newV = gplc_stepper.get_current_V();
 
             if(show_tets) {
                 VectorXi tet_indices = gplc_stepper.get_current_tets();
@@ -1587,7 +1585,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     viewer.callback_mouse_down = [&](igl::viewer::Viewer&, int, int)->bool
     {   
         if(!PLAYBACK_SIM) {
-            Eigen::MatrixXd curV = getCurrentVertPositions(world, tets); 
+            Eigen::MatrixXd curV = gplc_stepper.get_current_V(); 
             last_mouse = Eigen::RowVector3f(viewer.current_mouse_x,viewer.core.viewport(3)-viewer.current_mouse_y,0);
             
             // Find closest point on mesh to mouse position
@@ -1635,7 +1633,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     viewer.callback_mouse_move = [&](igl::viewer::Viewer &, int,int)->bool
     {
         if(!PLAYBACK_SIM) {
-            Eigen::MatrixXd curV = getCurrentVertPositions(world, tets);
+            Eigen::MatrixXd curV = gplc_stepper.get_current_V();
             if(is_dragging) {
                 Eigen::RowVector3f drag_mouse(
                     viewer.current_mouse_x,

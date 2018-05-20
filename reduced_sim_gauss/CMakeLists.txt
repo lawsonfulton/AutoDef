@@ -3,7 +3,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 project(ReduceSimExample)
 
-set(CMAKE_BUILD_TYPE Debug)#Release) #RelWithDebInfo
+set(CMAKE_BUILD_TYPE Release)#Release) #RelWithDebInfo
 set(CMAKE_CXX_STANDARD 14)
 
 #Output directories
