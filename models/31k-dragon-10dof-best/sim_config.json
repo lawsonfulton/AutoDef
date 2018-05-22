@@ -10,6 +10,7 @@
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
     "reduced_energy_method": "pcr",
+    "use_partial_decode": true,
     "use_analytic_jac": true,
     "use_preconditioner": true,
     "pca_dim": 40,

@@ -9,9 +9,10 @@
   "integrator_config": {
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
+    "use_partial_decode": true,
     "reduced_energy_method": "pcr",
     "use_preconditioner": true,
-    "pca_dim": 6,
+    "pca_dim": 30,
     "ae_encoded_dim": 6,
     "ae_decoded_dim": 30,
     "timestep": 0.03333333333333333,

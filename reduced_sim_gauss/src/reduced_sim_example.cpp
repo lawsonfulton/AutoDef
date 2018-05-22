@@ -6,16 +6,32 @@
 #include "AutoDefUtils.h"
 #include "ReducedSpace.h"
 
-
-//#include <Qt3DIncludes.h>
 #include <GaussIncludes.h>
 #include <ForceSpring.h>
 #include <FEMIncludes.h>
 #include <PhysicalSystemParticles.h>
-//Any extra things I need such as constraints
 #include <ConstraintFixedPoint.h>
 #include <TimeStepperEulerImplicitLinear.h>
 #include <AssemblerParallel.h>
+
+
+using namespace Gauss;
+using namespace FEM;
+using namespace ParticleSystem; //For Force Spring
+
+/* Tetrahedral finite elements */
+
+//typedef physical entities I need
+
+typedef PhysicalSystemFEM<double, NeohookeanTet> NeohookeanTets;
+
+typedef World<double, 
+                        std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
+                        std::tuple<ForceSpringFEMParticle<double> *>,
+                        std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
+typedef TimeStepperEulerImplicitLinear<double, AssemblerParallel<double, AssemblerEigenSparseMatrix<double>>,
+AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
+
 
 #include <igl/writeDMAT.h>
 #include <igl/readDMAT.h>
@@ -62,23 +78,6 @@ namespace fs = boost::filesystem;
 
 
 using namespace LBFGSpp;
-
-using namespace Gauss;
-using namespace FEM;
-using namespace ParticleSystem; //For Force Spring
-
-/* Tetrahedral finite elements */
-
-//typedef physical entities I need
-
-typedef PhysicalSystemFEM<double, NeohookeanTet> NeohookeanTets;
-
-typedef World<double, 
-                        std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
-                        std::tuple<ForceSpringFEMParticle<double> *>,
-                        std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
-typedef TimeStepperEulerImplicitLinear<double, AssemblerParallel<double, AssemblerEigenSparseMatrix<double>>,
-AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 
 
 // Mesh
@@ -208,6 +207,7 @@ public:
         m_interaction_force = SparseVector<double>(m_F_ext.size());
 
         m_energy_method = energy_method_from_integrator_config(integrator_config);
+        m_use_partial_decode =  (m_energy_method == PCR || m_energy_method == AN08) && get_json_value(integrator_config, "use_partial_decode", true);
 
         if(m_energy_method == PCR){
             fs::path pca_components_path("pca_results/energy_pca_components.dmat");
@@ -420,7 +420,7 @@ public:
         double decode_start_time = igl::get_seconds();
         Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
         
-        if(m_energy_method == PCR || m_energy_method == AN08) {
+        if(m_use_partial_decode) {
             // We only need to update verts for the tets we actually sample
             VectorXd sampled_q = m_U_sampled * new_sub_q;
             for(int i = 0; i < sampled_q.size(); i++) {
@@ -531,6 +531,7 @@ private:
 
     EnergyMethod m_energy_method;
     ReducedSpaceType *m_reduced_space;
+    bool m_use_partial_decode;
 
     std::vector<int> m_energy_sample_tets;
 
@@ -776,28 +777,28 @@ SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, int 
     return force;
 }
 
-VectorXd get_von_mises_stresses(NeohookeanTets *tets, MyWorld &world) {
-    // Compute cauchy stress
-    int n_ele = tets->getImpl().getF().rows();
+// VectorXd get_von_mises_stresses(NeohookeanTets *tets, MyWorld &world) {
+//     // Compute cauchy stress
+//     int n_ele = tets->getImpl().getF().rows();
 
-    Eigen::Matrix<double, 3,3> stress = MatrixXd::Zero(3,3);
-    VectorXd vm_stresses(n_ele);
+//     Eigen::Matrix<double, 3,3> stress = MatrixXd::Zero(3,3);
+//     VectorXd vm_stresses(n_ele);
 
-    std::cout << "Disabled cauchy stress for linear tets.." << std::endl;
-    // for(unsigned int i=0; i < n_ele; ++i) {
-    //     tets->getImpl().getElement(i)->getCauchyStress(stress, Vec3d(0,0,0), world.getState());
+//     std::cout << "Disabled cauchy stress for linear tets.." << std::endl;
+//     // for(unsigned int i=0; i < n_ele; ++i) {
+//     //     tets->getImpl().getElement(i)->getCauchyStress(stress, Vec3d(0,0,0), world.getState());
 
-    //     double s11 = stress(0, 0);
-    //     double s22 = stress(1, 1);
-    //     double s33 = stress(2, 2);
-    //     double s23 = stress(1, 2);
-    //     double s31 = stress(2, 0);
-    //     double s12 = stress(0, 1);
-    //     vm_stresses[i] = sqrt(0.5 * (s11-s22)*(s11-s22) + (s33-s11)*(s33-s11) + 6.0 * (s23*s23 + s31*s31 + s12*s12));
-    // }
+//     //     double s11 = stress(0, 0);
+//     //     double s22 = stress(1, 1);
+//     //     double s33 = stress(2, 2);
+//     //     double s23 = stress(1, 2);
+//     //     double s31 = stress(2, 0);
+//     //     double s12 = stress(0, 1);
+//     //     vm_stresses[i] = sqrt(0.5 * (s11-s22)*(s11-s22) + (s33-s11)*(s33-s11) + 6.0 * (s23*s23 + s31*s31 + s12*s12));
+//     // }
 
-    return vm_stresses;
-}
+//     return vm_stresses;
+// }
 
 std::string int_to_padded_str(int i) {
     std::stringstream frame_str;
@@ -840,9 +841,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     }
 
     world.addSystem(tets);
-    fixDisplacementMin(world, tets);
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
-    
     reset_world(world);
     // --- Finished GAUSS set up
     
@@ -999,35 +998,35 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             current_frame++;
         }
 
-        if(show_stress) {
-            // Do stress field viz
-            VectorXd vm_stresses = get_von_mises_stresses(tets, world);
-            // vm_stresses is per element... Need to compute avg value per vertex
-            VectorXd vm_per_vert = VectorXd::Zero(V.rows());
-            VectorXi neighbors_per_vert = VectorXi::Zero(V.rows());
+        // if(show_stress) {
+        //     // Do stress field viz
+        //     VectorXd vm_stresses = get_von_mises_stresses(tets, world);
+        //     // vm_stresses is per element... Need to compute avg value per vertex
+        //     VectorXd vm_per_vert = VectorXd::Zero(V.rows());
+        //     VectorXi neighbors_per_vert = VectorXi::Zero(V.rows());
             
-            int t = 0;
-            for(int i=0; i < T.rows(); i++) {
-                for(int j=0; j < 4; j++) {
-                    t++;
-                    int vert_index = T(i,j);
-                    vm_per_vert[vert_index] += vm_stresses[i];
-                    neighbors_per_vert[vert_index]++;
-                }
-            }
-            for(int i=0; i < vm_per_vert.size(); i++) {
-                vm_per_vert[i] /= neighbors_per_vert[i];
-            }
-            VectorXd vm_per_face = VectorXd::Zero(F.rows());
-            for(int i=0; i < vm_per_face.size(); i++) {
-                vm_per_face[i] = (vm_per_vert[F(i,0)] + vm_per_vert[F(i,1)] + vm_per_vert[F(i,2)])/3.0;
-            }
-            // std::cout << vm_per_face.maxCoeff() << " " <<  vm_per_face.minCoeff() << std::endl;
-            MatrixXd C;
-            //VectorXd((vm_per_face.array() -  vm_per_face.minCoeff()) / vm_per_face.maxCoeff())
-            igl::jet(vm_per_vert / 60.0, false, C);
-            viewer.data.set_colors(C);
-        }
+        //     int t = 0;
+        //     for(int i=0; i < T.rows(); i++) {
+        //         for(int j=0; j < 4; j++) {
+        //             t++;
+        //             int vert_index = T(i,j);
+        //             vm_per_vert[vert_index] += vm_stresses[i];
+        //             neighbors_per_vert[vert_index]++;
+        //         }
+        //     }
+        //     for(int i=0; i < vm_per_vert.size(); i++) {
+        //         vm_per_vert[i] /= neighbors_per_vert[i];
+        //     }
+        //     VectorXd vm_per_face = VectorXd::Zero(F.rows());
+        //     for(int i=0; i < vm_per_face.size(); i++) {
+        //         vm_per_face[i] = (vm_per_vert[F(i,0)] + vm_per_vert[F(i,1)] + vm_per_vert[F(i,2)])/3.0;
+        //     }
+        //     // std::cout << vm_per_face.maxCoeff() << " " <<  vm_per_face.minCoeff() << std::endl;
+        //     MatrixXd C;
+        //     //VectorXd((vm_per_face.array() -  vm_per_face.minCoeff()) / vm_per_face.maxCoeff())
+        //     igl::jet(vm_per_vert / 60.0, false, C);
+        //     viewer.data.set_colors(C);
+        // }
 
         if(show_energy) {
             // Do stress field viz
@@ -1326,109 +1325,7 @@ const std::string currentDateTime() {
     return buf;
 }
 
-// VectorXd tf_JTJ(const VectorXd &z, const VectorXd &z_v, tf::Session* m_decoder_JTJ_session) {
-//     tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, z_v.size()})); 
-//     auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
-//     for(int i =0; i < z.size(); i++) {
-//         z_tensor_mapped(0, i) = z[i];
-//     } // TODO map with proper function
 
-//     tf::Tensor z_v_tensor(tf_dtype, tf::TensorShape({1, z_v.size()}));  
-//     auto z_v_tensor_mapped = z_v_tensor.tensor<tf_dtype_type, 2>();
-//     for(int i =0; i < z_v.size(); i++) {
-//         z_v_tensor_mapped(0, i) = z_v[i];
-//     } // TODO map with proper function
-
-//     std::vector<tf::Tensor> JTJ_outputs; 
-//     tf::Status status = m_decoder_JTJ_session->Run({{"decoder_input:0", z_tensor}, {"input_z_v:0", z_v_tensor}},
-//                                {"JTJ/dense_decode_layer_0/MatMul_grad/MatMul:0"}, {}, &JTJ_outputs); // TODO get better names
-    
-//     auto JTJ_tensor_mapped = JTJ_outputs[0].tensor<tf_dtype_type, 2>();
-    
-//     VectorXd res(z_v.size()); // TODO generalize
-//     for(int i = 0; i < res.rows(); i++) {
-//         res[i] = JTJ_tensor_mapped(0,i);    
-//     }
-//     return res;
-// }
-
-// void compare_jac_speeds(AutoencoderSpace &reduced_space) {
-//     fs::path tf_models_root("../../models/x-final/tf_models/");
-//     fs::path decoder_JTJ_path = tf_models_root / "decoder_JTJ.pb";
-//     tf::Session* m_decoder_JTJ_session;
-//     tf::NewSession(tf::SessionOptions(), &m_decoder_JTJ_session);
-    
-//     tf::GraphDef decoder_JTJ_graph_def;
-//     ReadBinaryProto(tf::Env::Default(), decoder_JTJ_path.string(), &decoder_JTJ_graph_def);
-    
-//     m_decoder_JTJ_session->Create(decoder_JTJ_graph_def);
-
-
-//     for(int j = 100; j < 10001; j *= 10) {
-//         int n_its = j;
-        
-//         VectorXd q = VectorXd::Zero(reduced_space.outer_jacobian().rows());
-//         VectorXd z = reduced_space.encode(q);
-//         VectorXd vq = MatrixXd::Ones(reduced_space.outer_jacobian().cols(), 1);
-//         VectorXd vz = MatrixXd::Ones(z.size(), 1);
-    
-        
-//         double start = igl::get_seconds();
-//         for(int i = 0; i < n_its; i++) {
-//             MatrixXd full_jac = reduced_space.inner_jacobian(z);
-//             VectorXd Jv = full_jac * vz;    
-//         }
-//         std::cout << n_its << " its of fd jac product took " << igl::get_seconds() - start << std::endl;
-
-//         start = igl::get_seconds();
-//         for(int i = 0; i < n_its; i++) {
-//             VectorXd Jv = reduced_space.jacobian_vector_product(z, vz);    
-//         }
-//         std::cout << n_its << " its of jvp took " << igl::get_seconds() - start << std::endl;
-
-//         start = igl::get_seconds();
-//         for(int i = 0; i < n_its; i++) {
-//             MatrixXd full_jac = reduced_space.inner_jacobian(z);
-//             VectorXd Jv = full_jac.transpose() * vq;    
-//         }
-//         std::cout << n_its << " its of fd jacT product took " << igl::get_seconds() - start << std::endl;
-
-//         start = igl::get_seconds();
-//         for(int i = 0; i < n_its; i++) {
-//             VectorXd Jv = reduced_space.jacobian_transpose_vector_product(z, vq);    
-//         }
-//         std::cout << n_its << " its of vjp took " << igl::get_seconds() - start << std::endl;
-
-//         MatrixXd U = reduced_space.outer_jacobian();
-//         MatrixXd UTU = U.transpose() * U;
-//         start = igl::get_seconds();
-//         for(int i = 0; i < n_its; i++) {
-//             MatrixXd full_jac = reduced_space.inner_jacobian(z);
-//             VectorXd JUTUv = full_jac.transpose() * UTU * full_jac * vz;    
-//         }
-//         std::cout << n_its << " its of fd JUTUJv product took " << igl::get_seconds() - start << std::endl;
-
-//         start = igl::get_seconds();
-//         for(int i = 0; i < n_its; i++) {
-//             VectorXd JUTUv = reduced_space.jacobian_transpose_vector_product(z, UTU * reduced_space.jacobian_vector_product(z, vz));    
-//         }
-//         std::cout << n_its << " its of vjp JUTUJv took " << igl::get_seconds() - start << std::endl;
-
-//         start = igl::get_seconds();
-//         for(int i = 0; i < n_its; i++) {
-//             VectorXd JUTUv = reduced_space.jacobian_transpose_vector_product(z, reduced_space.jacobian_vector_product(z, vz));    
-//         }
-//         std::cout << n_its << " its of vjp JTJv took " << igl::get_seconds() - start << std::endl;
-
-//         start = igl::get_seconds();
-//         for(int i = 0; i < n_its; i++) {
-//             VectorXd JUTUv = tf_JTJ(z, vz, m_decoder_JTJ_session);    
-//         }
-//         std::cout << n_its << " its of Tensorflow JTJv took " << igl::get_seconds() - start << std::endl;
-
-//     }
-
-// }
 
 int main(int argc, char **argv) {
     
@@ -1541,6 +1438,6 @@ int main(int argc, char **argv) {
     }
     
     return EXIT_SUCCESS;
-    
+
 }
 

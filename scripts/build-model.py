@@ -132,6 +132,7 @@ def main():
         'integrator_config': {
             'reduced_space_type': 'autoencoder', # Options are one of ['autoencoder, linear, full']
             'use_reduced_energy': config['learning_config']['energy_model_config']['enabled'],
+            'use_partial_decode': true,
             "reduced_energy_method": "pcr", # options: an08, pcr, and not fullyimplemented: pred_weights_l1
             'use_preconditioner': True,
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
