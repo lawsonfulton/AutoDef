@@ -15,6 +15,7 @@
 #include <AssemblerParallel.h>
 
 
+
 using namespace Gauss;
 using namespace FEM;
 using namespace ParticleSystem; //For Force Spring
@@ -39,6 +40,7 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 #include <igl/viewer/Viewer.h>
 #include <igl/readMESH.h>
 #include <igl/unproject_onto_mesh.h>
+#include <igl/unproject.h>
 #include <igl/get_seconds.h>
 #include <igl/jet.h>
 #include <igl/slice.h>

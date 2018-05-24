@@ -40,7 +40,7 @@ find_package(Gauss REQUIRED)
 
 #Libigl
 set(LIBIGL_INCLUDE_DIR "/home/lawson/Workspace/libigl/include")
-option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" OFF)
+option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" ON)
 option(LIBIGL_WITH_ANTTWEAKBAR      "Use AntTweakBar"    OFF)
 option(LIBIGL_WITH_CGAL             "Use CGAL"           OFF)
 option(LIBIGL_WITH_COMISO           "Use CoMiso"         OFF)
