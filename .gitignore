@@ -11,7 +11,7 @@
 *.edge
 *.ele
 *.face
-*.mesh
+
 *.smesh
 *.node
 *.zip
