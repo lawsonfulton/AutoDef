@@ -72,7 +72,7 @@ while tot_its < num_samples
     
     %Build Stiffness Matrix
     fem = WorldFEM('neohookean_linear_tetrahedra', V, T);
-
+    setMeshParameters(fem, 1000, 0.35, 1);
     %% Solve for Modes %%
     rng('shuffle')
     h = zeros(3*nH,1); %handle displacements
@@ -174,8 +174,8 @@ while tot_its < num_samples
             writeDMAT([out_dir, 'displacements_', num2str(tot_its,'%05.f'),'.dmat'], u1, false);
             tot_its = tot_its + 1;
             %save out per tet potential energies as well. 
-            %Evec = [Evec strainEnergyPerElement(fem)];
-            writeDMAT([out_dir, 'energy_', num2str(tot_its, '%05.f'),'.dmat'], Evec, false);
+            Evec = strainEnergyPerElement(fem);
+            writeDMAT([out_dir, 'energy_', num2str(tot_its, '%05.f'),'.dmat'], Evec, true);
 
             S = stress(fem,u);
             disp(max( sum(S.*S, 2)))
