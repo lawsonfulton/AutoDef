@@ -1,13 +1,13 @@
 {
-     "youngs": 10000,
+     "youngs": 100000,
      "poisson": 0.35,
-     "density": 25,
+     "density": 100,
      "yield_stress": 1000,
      "num_handles": 1,
      "num_samples": 100,
      "output_dir" : "./test_x/",
-     "mesh_path" : "../meshes/31kdragon.mesh",
+     "mesh_path" : "../meshes/Fine_beam.mesh",
      "scale_factor": 0.1,
-     "num_fixed_regions": 2,
-     "only_write_out_fracture_state": true
+     "num_fixed_regions": 1,
+     "only_write_out_fracture_state": false
  }

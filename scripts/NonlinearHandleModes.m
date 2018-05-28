@@ -98,11 +98,11 @@ while tot_its < num_samples
     rng('shuffle')
     h = zeros(3*nH,1); %handle displacements
     u = zeros(numel(V),1);
-    alpha = 0.05%0.5 %0.1 %step length % set based on size of bounding box?
+    alpha = 0.1%0.5 %0.1 %step length % set based on size of bounding box?
     
     [BB,BF] = bounding_box(V);
     maxLength2 = max(max((BB(:,1) - BB(:,1)').^2+(BB(:,2) - BB(:,2)').^2+(BB(:,3) - BB(:,3)').^2));
-    step_size = ((pi*sqrt(maxLength2))/30);
+    step_size = ((pi*sqrt(maxLength2))/15);
     %step_size = 0.05 % 0.1 %0.05
     numIter = randi([1 30],1,2);
 
