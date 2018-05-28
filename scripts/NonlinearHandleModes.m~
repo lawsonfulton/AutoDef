@@ -30,20 +30,24 @@ numHandles = configs.num_handles;
 mesh_path = configs.mesh_path;
 out_dir = configs.output_dir;
 scale = configs.scale_factor;
-only_writeout_fracture = configs.only_write_out_fracture_state;
-num_fixed_regions = configs.num_fixed_regions;
+only_writeout_fracture = f;
 
 if ~exist(out_dir, 'dir')
   mkdir(out_dir);
 end
-copyfile("configs.json", out_dir+"/parameters.json");
+
+
+
+
+
+
 
 [V, T, F] = readMESH(mesh_path);
 V = V * scale;
 
 P = [];
 H = zeros(size(V,1),1);
-disp("Select moving handles")
+
 for hh=1:numHandles 
     t = trisurf(F, V(:,1),V(:,2),V(:,3));
     axis equal; axis vis3d;
@@ -70,15 +74,13 @@ T = IM(T);
 % T = DT.ConnectivityList; 
  
 %Boundary Conditions
-disp("Select fixed handles")
-bcV = zeros(size(V,1),1);
-for ff=1: num_fixed_regions
-    t = trisurf(F, V(:,1),V(:,2),V(:,3));
-    axis equal; axis vis3d;
-    pause
-    S = select_region(t);
-    bcV = bcV + S;
-end
+%leftV = (abs(V(:,2) - min(V(:,2))) < 0.01);
+
+t = trisurf(F, V(:,1),V(:,2),V(:,3));
+axis equal; axis vis3d;
+pause
+[S,P] = select_region(t,P);
+bcV = S;
 
 P = fixedBC(bcV);
 
@@ -195,15 +197,14 @@ while tot_its < num_samples
             axis vis3d
             img = getframe(gcf);
             %imwrite(img.cdata, ['test', num2str(num),'_',num2str(ii),'_',num2str(jj),'.png']);
-            
-            if(~only_writeout_fracture)
-                imwrite(img.cdata, [out_dir, 'displacements_image_', num2str(tot_its,'%05.f'),'.png']);
-                writeDMAT([out_dir, 'displacements_', num2str(tot_its,'%05.f'),'.dmat'], u1, false);
-                tot_its = tot_its + 1;
-                %save out per tet potential energies as well. 
-                Evec = strainEnergyPerElement(fem);
-                writeDMAT([out_dir, 'energy_', num2str(tot_its, '%05.f'),'.dmat'], Evec, false);
-            end
+
+            imwrite(img.cdata, [out_dir, 'displacements_image_', num2str(tot_its,'%05.f'),'.png']);
+            writeDMAT([out_dir, 'displacements_', num2str(tot_its,'%05.f'),'.dmat'], u1, false);
+            tot_its = tot_its + 1;
+            %save out per tet potential energies as well. 
+            Evec = strainEnergyPerElement(fem);
+            writeDMAT([out_dir, 'energy_', num2str(tot_its, '%05.f'),'.dmat'], Evec, false);
+
             S = stress(fem,u);
             disp(max( sum(S.*S, 2)))
 
@@ -213,14 +214,6 @@ while tot_its < num_samples
 
             if(fracture) 
                 disp(['FRACTURE'])
-                
-                %Writing out fracture state
-                imwrite(img.cdata, [out_dir, 'displacements_image_', num2str(tot_its,'%05.f'),'.png']);
-                writeDMAT([out_dir, 'displacements_', num2str(tot_its,'%05.f'),'.dmat'], u1, false);
-                tot_its = tot_its + 1;
-                %save out per tet potential energies as well. 
-                Evec = strainEnergyPerElement(fem);
-                writeDMAT([out_dir, 'energy_', num2str(tot_its, '%05.f'),'.dmat'], Evec, false);
                 break;
             end
         end

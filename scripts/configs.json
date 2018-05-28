@@ -1,0 +1,13 @@
+{
+     "youngs": 10000,
+     "poisson": 0.35,
+     "density": 25,
+     "yield_stress": 1000,
+     "num_handles": 1,
+     "num_samples": 100,
+     "output_dir" : "./test_x/",
+     "mesh_path" : "../meshes/coarseoctopus.mesh",
+     "scale_factor": 0.1,
+     "num_fixed_regions": 2,
+     "only_write_out_fracture_state": true
+ }
