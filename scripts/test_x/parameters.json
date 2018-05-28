@@ -6,7 +6,8 @@
      "num_handles": 1,
      "num_samples": 100,
      "output_dir" : "./test_x/",
-     "mesh_path" : "../meshes/coarseoctopus.mesh",
+     "mesh_path" : "../meshes/31kdragon.mesh",
      "scale_factor": 0.1,
-     "num_fixed_regions": 2
+     "num_fixed_regions": 2,
+     "only_write_out_fracture_state": true
  }
