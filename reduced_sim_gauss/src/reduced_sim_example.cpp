@@ -49,6 +49,7 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 #include <igl/material_colors.h>
 #include <igl/snap_points.h>
 #include <igl/centroid.h>
+#include <igl/LinSpaced.h>
 
 #include <time.h>
 #include <stdlib.h>
@@ -99,6 +100,7 @@ int dragged_vert = 0;
 int current_frame = 0;
 
 // Parameters
+int print_freq = 40;
 bool LOGGING_ENABLED = false;
 bool PLAYBACK_SIM = false;
 int log_save_freq = 5;
@@ -111,7 +113,7 @@ fs::path pointer_obj_dir;
 fs::path tet_obj_dir;
 std::ofstream log_ofstream;
 
-
+const Eigen::RowVector3d sea_green(229./255.,211./255.,91./255.);
 
 
 std::vector<unsigned int> get_min_verts(int axis, bool get_max = false, double tol = 0.01) {
@@ -193,6 +195,7 @@ public:
 
         std::cout << "Constructing reduced mass matrix..." << std::endl;
         m_M = *m_M_asm;
+
         m_U = m_reduced_space->outer_jacobian();
         m_UTMU = m_U.transpose() * m_M * m_U;
         std::cout << "Done." << std::endl;
@@ -234,29 +237,6 @@ public:
             }
             m_cubature_indices = tet_indices_mat.col(0); // TODO fix these duplicate structures
 
-            // Computing the sampled verts
-            // figure out the verts
-            std::set<int> vert_set;
-            int n_sample_tets = m_energy_sample_tets.size();
-            for(int i = 0; i < m_energy_sample_tets.size(); i++) {
-                int tet_index = m_energy_sample_tets[i];
-                for(int j = 0; j < 4; j++) {
-                    int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
-                    for(int k = 0; k < 3; k++) {
-                        vert_set.insert(vert_index + k);
-                    }
-                }
-            }
-            // Put them in a vector sorted order
-            m_cubature_vert_indices = VectorXi(vert_set.size());
-            int i = 0;
-            for(auto vi: vert_set) {
-                m_cubature_vert_indices[i++] = vi;
-                // std::cout << vi << ", " << std::endl;
-            }
-            MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
-            m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
-
             // Other stuff?
             m_energy_basis = U;
             m_energy_sampled_basis = igl::slice(m_energy_basis, tet_indices_mat, 1);
@@ -288,6 +268,31 @@ public:
             m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_energy_sample_tets.size());
             m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
             std::cout << "Done. Will sample from " << m_energy_sample_tets.size() << " tets." << std::endl;
+        }
+
+        // Computing the sampled verts
+        if (m_energy_method == AN08 || m_energy_method == PCR) {
+            // figure out the verts
+            std::set<int> vert_set;
+            int n_sample_tets = m_energy_sample_tets.size();
+            for(int i = 0; i < m_energy_sample_tets.size(); i++) {
+                int tet_index = m_energy_sample_tets[i];
+                for(int j = 0; j < 4; j++) {
+                    int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
+                    for(int k = 0; k < 3; k++) {
+                        vert_set.insert(vert_index + k);
+                    }
+                }
+            }
+            // Put them in a vector sorted order
+            m_cubature_vert_indices = VectorXi(vert_set.size());
+            int i = 0;
+            for(auto vi: vert_set) {
+                m_cubature_vert_indices[i++] = vi;
+                // std::cout << vi << ", " << std::endl;
+            }
+            MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
+            m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
         }
 
     }
@@ -571,7 +576,7 @@ public:
         m_lbfgs_param.max_iterations = lbfgs_config["lbfgs_max_iterations"];//500;//300;
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
-        reset_zs_to_current_world();
+        reset_zs();
         m_gplc_objective = new GPLCObjective<ReducedSpaceType, MatrixType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
 
         m_h = integrator_config["timestep"];
@@ -610,9 +615,8 @@ public:
         double min_val_res;
 
         m_gplc_objective->set_interaction_force(interaction_force);
-        m_gplc_objective->update_zs(m_cur_z);
         
-        int activated_tets = T.rows();
+        // int activated_tets = T.rows();
         // if(m_energy_method == PRED_WEIGHTS_L1) {
         //     VectorXd weights;
         //     VectorXi indices;
@@ -651,36 +655,55 @@ public:
         }
         double update_time = igl::get_seconds() - start_time;
 
-        std::cout << niter << " iterations" << std::endl;
-        std::cout << "objective val = " << min_val_res << std::endl;
+
+        
 
         m_prev_z = m_cur_z;
         m_cur_z = z_param; // TODO: Use pointers to avoid copies
+        m_gplc_objective->update_zs(m_cur_z);
 
         // update_world_with_current_configuration(); This happens in each opt loop
 
         m_total_time += update_time;
-        std::cout << "Timestep took: " << update_time << "s" << std::endl;
-        std::cout << "Avg timestep: " << m_total_time / (double)current_frame << "s" << std::endl;
-        // std::cout << "Current z: " << m_cur_z.transpose() << std::endl;
-        std::cout << "Activated tets: " << activated_tets << std::endl;
+        m_total_time_since_last += update_time;
+        m_tot_its_since_last += niter;
+
+        if(current_frame % print_freq == 0) {
+            std::cout << std::endl;
+            std::cout << "Averages for last " << print_freq << " frames:" << std::endl;
+
+            std::cout << "L-BFGS Iterations: " << m_tot_its_since_last / (double)print_freq << std::endl;
+            std::cout << "Step time(s): " << m_total_time_since_last / (double)print_freq << "s" << std::endl;
+            std::cout << "Step time(Hz): " << print_freq / (double)m_total_time_since_last << "s" << std::endl;
+            std::cout << "Total step time avg: " << m_total_time / (double)current_frame << "s" << std::endl;
+            // std::cout << "objective val = " << min_val_res << std::endl;
+            // std::cout << "Current z: " << m_cur_z.transpose() << std::endl;
+            // std::cout << "Activated tets: " << activated_tets << std::endl;
+
+            m_total_time_since_last = 0.0;
+            m_tot_its_since_last = 0;
+        }
 
         if(LOGGING_ENABLED) {
-            m_total_tets += activated_tets;
+            if(current_frame % print_freq == 0) {
+                std::cout << "LOGGING_ENABLED" << std::endl; // just a warning
+            }
+            // m_total_tets += activated_tets;
 
             timestep_info["current_frame"] = current_frame; // since at end of timestep
             timestep_info["tot_step_time_s"] = update_time;
             timestep_info["precondition_time"] = precondition_compute_time;
             timestep_info["lbfgs_iterations"] = niter;
-            timestep_info["avg_activated_tets"] = m_total_tets / (double) current_frame;
+            // timestep_info["avg_activated_tets"] = m_total_tets / (double) current_frame;
 
             timestep_info["mouse_info"]["dragged_pos"] = {dragged_pos[0], dragged_pos[1], dragged_pos[2]};
+            timestep_info["mouse_info"]["dragged_vert"] = dragged_vert;
             timestep_info["mouse_info"]["is_dragging"] = is_dragging;
 
             sim_log["timesteps"].push_back(timestep_info);
             if(current_frame % log_save_freq == 0) {
                 log_ofstream.seekp(0);
-                log_ofstream << std::setw(2) << sim_log;
+                log_ofstream << std::setw(2) << sim_log; // TODO 
             }
         }
 
@@ -697,10 +720,10 @@ public:
         }
     }
 
-    void reset_zs_to_current_world() {
-        Eigen::Map<Eigen::VectorXd> gauss_map_q = mapDOFEigen(m_tets->getQ(), *m_world);
-        m_prev_z = m_reduced_space->encode(gauss_map_q);
-        m_cur_z = m_reduced_space->encode(gauss_map_q);
+    void reset_zs() {
+        Eigen::VectorXd rest = VectorXd::Zero(V.size());
+        m_prev_z = m_reduced_space->encode(rest);
+        m_cur_z = m_prev_z;
         update_world_with_current_configuration();
     }
 
@@ -724,6 +747,12 @@ public:
 
     VectorXi get_current_tets() {
         return m_gplc_objective->get_current_tets();
+    }
+
+    VectorXd get_current_vert_pos(int vert_index) {
+        VectorXd sub_q = m_reduced_space->sub_decode(m_cur_z);
+
+        return V.row(vert_index).transpose() + m_U.block(vert_index * 3, 0, 3, m_U.cols()) * sub_q;
     }
 
 private:
@@ -759,6 +788,8 @@ private:
     EnergyMethod m_energy_method;
 
     double m_total_time = 0.0;
+    double m_total_time_since_last = 0.0;
+    int m_tot_its_since_last = 0;
     int m_total_tets = 0; // Sum the number of tets activated each frame
 };
 
@@ -868,19 +899,230 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
         exit(1);
     }
 
-    /** libigl display stuff **/
-    igl::viewer::Viewer viewer;
+    bool do_gpu_decode = integrator_config["reduced_space_type"] != "full" && get_json_value(visualization_config, "gpu_decode", false);
 
+    /** libigl display stuff **/
+    igl::viewer::Viewer viewer;    
+
+    viewer.data.set_mesh(V,F);
+    igl::per_corner_normals(V,F,40,N);
+    viewer.data.set_normals(N);
+
+    viewer.core.show_lines = false;
+    viewer.core.invert_normals = true;
+    viewer.core.is_animating = false;
+    viewer.data.face_based = false;
+    viewer.core.line_width = 2;
+    viewer.core.animation_max_fps = 1000.0;
+    viewer.core.background_color = Eigen::Vector4f(1.0, 1.0, 1.0, 1.0);
+    viewer.core.shininess = 120.0;
+    viewer.data.set_colors(Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]));
+
+    viewer.launch_init(true, false);    
+    viewer.opengl.shader_mesh.free();
+
+    std::string mesh_vertex_shader_string;
+    std::string mesh_fragment_shader_string;
+
+    Eigen::Matrix< float,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> U;
+    Eigen::Matrix< float,Eigen::Dynamic,1> I = igl::LinSpaced< Eigen::Matrix< float,Eigen::Dynamic,1> >(V.rows(),0,V.rows()-1);
+    Eigen::Matrix< float,Eigen::Dynamic,3,Eigen::RowMajor> tex;
+    int n = 0;
+    int m = 0;
+    int s = 0;
+    if(do_gpu_decode) {
+        MatrixXd Ud = reduced_space->outer_jacobian();
+        U = Ud.cast <float> ();
+        // std::cout<< U << std::endl;
+        n = V.rows();
+        m = U.cols();
+        s = ceil(sqrt(n*m));
+        assert((U.rows() == V.rows()*3) && "#U should be 3*#V");
+        // I = igl::LinSpaced< Eigen::Matrix< float,Eigen::Dynamic,1> >(V.rows(),0,V.rows()-1);
+        assert(s*s > n*m);
+        printf("%d %d %d\n",n,m,s);
+        tex = Eigen::Matrix< float,Eigen::Dynamic,3,Eigen::RowMajor>::Zero(s*s,3);
+        for(int j = 0;j<m;j++) {
+            for(int i = 0;i<n;i++) {
+                for(int c = 0;c<3;c++) {
+                    tex(i*m+j,c) = U(i*3 + c, j);///U(i+c*n,j);
+                }
+            }
+        }
+    }
+
+    mesh_vertex_shader_string =
+R"(#version 150
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
+in vec3 position;
+in vec3 normal;
+out vec3 position_eye;
+out vec3 normal_eye;
+in vec4 Ka;
+in vec4 Kd;
+in vec4 Ks;
+in vec2 texcoord;
+out vec2 texcoordi;
+out vec4 Kai;
+out vec4 Kdi;
+out vec4 Ksi;
+
+in float id;
+uniform int n;
+uniform int m;
+uniform int s;
+uniform bool do_gpu_decode;
+uniform float q[512];
+uniform sampler2D tex;
+
+void main()
+{
+  vec3 displacement = vec3(0,0,0);
+  if(do_gpu_decode) {
+      for(int j = 0;j < m; j++)
+      {
+        int index = int(id)*m+j;
+        int si = index % s;
+        int sj = int((index - si)/s);
+        displacement = displacement + texelFetch(tex,ivec2(si,sj),0).xyz*q[j];
+      }
+  }
+  vec3 deformed = position + displacement;
+
+  position_eye = vec3 (view * model * vec4 (deformed, 1.0));
+  gl_Position = proj * vec4 (position_eye, 1.0);
+  Kai = Ka;
+  Kdi = Kd;
+  Ksi = Ks;
+})";
+
+    mesh_fragment_shader_string =
+R"(#version 150
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
+uniform vec4 fixed_color;
+in vec3 position_eye;
+uniform vec3 light_position_world;
+vec3 Ls = vec3 (1, 1, 1);
+vec3 Ld = vec3 (1, 1, 1);
+vec3 La = vec3 (1, 1, 1);
+in vec4 Ksi;
+in vec4 Kdi;
+in vec4 Kai;
+uniform float specular_exponent;
+uniform float lighting_factor;
+out vec4 outColor;
+void main()
+{
+  vec3 xTangent = dFdx(position_eye);
+  vec3 yTangent = dFdy(position_eye);
+  vec3 normal_eye = normalize( cross( xTangent, yTangent ) );
+
+vec3 Ia = La * vec3(Kai);    // ambient intensity
+vec3 light_position_eye = vec3 (view * vec4 (light_position_world, 1.0));
+vec3 vector_to_light_eye = light_position_eye - position_eye;
+vec3 direction_to_light_eye = normalize (vector_to_light_eye);
+float dot_prod = dot (direction_to_light_eye, normal_eye);
+float clamped_dot_prod = max (dot_prod, 0.0);
+vec3 Id = Ld * vec3(Kdi) * clamped_dot_prod;    // Diffuse intensity
+
+vec3 reflection_eye = reflect (-direction_to_light_eye, normal_eye);
+vec3 surface_to_viewer_eye = normalize (-position_eye);
+float dot_prod_specular = dot (reflection_eye, surface_to_viewer_eye);
+dot_prod_specular = float(abs(dot_prod)==dot_prod) * max (dot_prod_specular, 0.0);
+float specular_factor = pow (dot_prod_specular, specular_exponent);
+vec3 Kfi = 0.5*vec3(Ksi);
+vec3 Lf = Ls;
+float fresnel_exponent = 2*specular_exponent;
+float fresnel_factor = 0;
+{
+  float NE = max( 0., dot( normal_eye, surface_to_viewer_eye));
+  fresnel_factor = pow (max(sqrt(1. - NE*NE),0.0), fresnel_exponent);
+}
+vec3 Is = Ls * vec3(Ksi) * specular_factor;    // specular intensity
+vec3 If = Lf * vec3(Kfi) * fresnel_factor;     // fresnel intensity
+vec4 color = vec4(lighting_factor * (If + Is + Id) + Ia + 
+  (1.0-lighting_factor) * vec3(Kdi),(Kai.a+Ksi.a+Kdi.a)/3);
+outColor = color;
+if (fixed_color != vec4(0.0)) outColor = fixed_color;
+})";
+    
+    viewer.opengl.shader_mesh.init( // This needs to come after shader and before buffer setup
+          mesh_vertex_shader_string,
+          mesh_fragment_shader_string, 
+          "outColor");
+    
+    ///////////////////////////////////////////////////////////////////
+    // Send texture and vertex attributes to GPU
+    ///////////////////////////////////////////////////////////////////
+    {
+        GLuint prog_id = viewer.opengl.shader_mesh.program_shader;
+        glUseProgram(prog_id);
+        GLuint VAO = viewer.opengl.vao_mesh;
+        glBindVertexArray(VAO);
+        GLuint IBO;
+        glGenBuffers(1, &IBO);
+        glBindBuffer(GL_ARRAY_BUFFER, IBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float)*I.size(), I.data(), GL_STATIC_DRAW);
+        GLint iid = glGetAttribLocation(prog_id, "id");
+        glVertexAttribPointer(
+          iid, 1, GL_FLOAT, GL_FALSE, 1 * sizeof(GLfloat), (GLvoid*)0);
+        glEnableVertexAttribArray(iid);
+        glBindVertexArray(0);
+        glActiveTexture(GL_TEXTURE0);
+        //glGenTextures(1, &v.opengl.vbo_tex);
+        glBindTexture(GL_TEXTURE_2D, viewer.opengl.vbo_tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        // 8650×8650 texture was roughly the max I could still get 60 fps, 8700²
+        // already dropped to 1fps
+        //
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, s,s, 0, GL_RGB, GL_FLOAT, tex.data());
+    }
+
+
+    double cur_fps = 0.0;
+    double last_time = igl::get_seconds();
     viewer.callback_pre_draw = [&](igl::viewer::Viewer & viewer)
     {
-        // predefined colors
-        const Eigen::RowVector3d orange(1.0,0.7,0.2);
-        const Eigen::RowVector3d yellow(1.0,0.9,0.2);
-        const Eigen::RowVector3d blue(0.2,0.3,0.8);
-        const Eigen::RowVector3d green(0.2,0.6,0.3);
-        // const Eigen::RowVector3d sea_green(70./255.,252./255.,167./255.);
-        const Eigen::RowVector3d sea_green(229./255.,211./255.,91./255.);
+        if(do_gpu_decode) {
+            /////////////////////////////////////////////////////////
+            // Send uniforms to shader
+            /////////////////////////////////////////////////////////
+            GLuint prog_id = viewer.opengl.shader_mesh.program_shader;
+            glUseProgram(prog_id);
+            GLint n_loc = glGetUniformLocation(prog_id,"n");
+            glUniform1i(n_loc,n);
+            GLint m_loc = glGetUniformLocation(prog_id,"m");
+            glUniform1i(m_loc,m);
+            GLint s_loc = glGetUniformLocation(prog_id,"s");
+            glUniform1i(s_loc,s);
+            GLint do_gpu_decode_loc = glGetUniformLocation(prog_id,"do_gpu_decode");
+            glUniform1i(do_gpu_decode_loc, do_gpu_decode);
+        
+            VectorXd sub_qd = reduced_space->sub_decode(gplc_stepper.get_current_z());
+            VectorXf sub_q = sub_qd.cast<float>();
+            GLint q_loc = glGetUniformLocation(prog_id,"q");
+            glUniform1fv(q_loc,U.cols(),sub_q.data());
+            
+            // Do this now so that we can stop texture from being loaded by viewer
+            if (viewer.data.dirty)
+            {
+              viewer.opengl.set_data(viewer.data, viewer.core.invert_normals);
+              viewer.data.dirty = igl::viewer::ViewerData::DIRTY_NONE;
+            }
+            viewer.opengl.dirty &= ~igl::viewer::ViewerData::DIRTY_TEXTURE;
+        }
 
+        
+
+        mesh_pos = gplc_stepper.get_current_vert_pos(dragged_vert);
         if(is_dragging) {
             // Eigen::MatrixXd part_pos(1, 3);
             // part_pos(0,0) = dragged_pos[0]; // TODO why is eigen so confusing.. I just want to make a matrix from vec
@@ -892,7 +1134,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             MatrixXi E(1,2);
             E(0,0) = 0;
             E(0,1) = 1;
-            MatrixXd P(2,3);
+            MatrixXd P(2,3);using Eigen::VectorXd;
             P.row(0) = dragged_pos;
             P.row(1) = mesh_pos;
             
@@ -913,31 +1155,32 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
         if(viewer.core.is_animating)
         {   
-            auto q = mapDOFEigen(tets->getQ(), world);
-            Eigen::MatrixXd newV = gplc_stepper.get_current_V();
+            if(!do_gpu_decode) {
+                auto q = mapDOFEigen(tets->getQ(), world);
+                Eigen::MatrixXd newV = gplc_stepper.get_current_V();
 
-            if(show_tets) {
-                VectorXi tet_indices = gplc_stepper.get_current_tets();
-                T_sampled = igl::slice(T, tet_indices, 1);
-                igl::boundary_facets(T_sampled, F_sampled);
+                if(show_tets) {
+                    VectorXi tet_indices = gplc_stepper.get_current_tets();
+                    T_sampled = igl::slice(T, tet_indices, 1);
+                    igl::boundary_facets(T_sampled, F_sampled);
 
-                viewer.data.clear();
-                viewer.data.set_mesh(newV, F_sampled);
-            } else {
-                viewer.data.set_vertices(newV);
+                    viewer.data.clear();
+                    viewer.data.set_mesh(newV, F_sampled);
+                } else {
+                    viewer.data.set_vertices(newV);
+                }
+
+                if(per_vertex_normals) {
+                    igl::per_vertex_normals(V,F,N);
+                } else {
+                    igl::per_corner_normals(V,F,40,N);
+                }
+                viewer.data.set_normals(N);
             }
-
-            mesh_pos = newV.row(dragged_vert);
-
-            if(per_vertex_normals) {
-                igl::per_vertex_normals(V,F,N);
-            } else {
-                igl::per_corner_normals(V,F,40,N);
-            }
-            viewer.data.set_normals(N);
 
             // Play back mouse interaction from previous sim
             if(PLAYBACK_SIM) {
+                // Eigen::MatrixXd newV = gplc_stepper.get_current_V(); // TODO we can avoid doing this
                 json current_mouse_info = sim_playback_json["timesteps"][current_frame]["mouse_info"];
                 dragged_pos = Eigen::RowVector3d(current_mouse_info["dragged_pos"][0], current_mouse_info["dragged_pos"][1], current_mouse_info["dragged_pos"][2]);
 
@@ -945,16 +1188,15 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
                 is_dragging = current_mouse_info["is_dragging"];
 
                 if(is_dragging && !was_dragging) { // Got a click
-                    // Get closest point on mesh
-                    MatrixXd C(1,3);
-                    C.row(0) = dragged_pos;
-                    MatrixXi I;
-                    igl::snap_points(C, newV, I);
+                    dragged_vert = current_mouse_info["dragged_vert"];
+                    // // Get closest point on mesh
+                    // MatrixXd C(1,3);
+                    // C.row(0) = dragged_pos;
+                    // MatrixXi I;
+                    // igl::snap_points(C, newV, I);
 
-                    dragged_vert = I(0,0);
+                    // dragged_vert = I(0,0);
                 }
-
-                mesh_pos = newV.row(dragged_vert);
             }
             
             // Do the physics update
@@ -962,24 +1204,29 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             gplc_stepper.step(interaction_force);
 
             if(LOGGING_ENABLED) {
-                fs::path obj_filename(int_to_padded_str(current_frame) + "_surface_faces.obj");
-                igl::writeOBJ((surface_obj_dir /obj_filename).string(), newV, F);
+                // Only do this work if we are saving objs
+                if(get_json_value(config, "save_objs", false)) {
+                    Eigen::MatrixXd newV = gplc_stepper.get_current_V(); // TODO we can avoid doing this
+                    fs::path obj_filename(int_to_padded_str(current_frame) + "_surface_faces.obj");
+                    igl::writeOBJ((surface_obj_dir /obj_filename).string(), newV, F);
 
-                if(config["integrator_config"]["use_reduced_energy"]) {
-                    fs::path tet_obj_filename(int_to_padded_str(current_frame) + "_sample_tets.obj");
 
-                    // Need to recompute sample tets each time if they are changing.
-                    if(PRED_WEIGHTS_L1 == energy_method_from_integrator_config(config["integrator_config"])) {
-                        VectorXd weights;
-                        VectorXi indices;
-                        gplc_stepper.get_reduced_space()->get_cubature_indices_and_weights(gplc_stepper.get_current_z(), indices, weights);
+                    if(config["integrator_config"]["use_reduced_energy"]) {
+                        fs::path tet_obj_filename(int_to_padded_str(current_frame) + "_sample_tets.obj");
 
-                        MatrixXi sample_tets = igl::slice(T, indices, 1);
-                        igl::boundary_facets(sample_tets, F_sampled);
+                        // Need to recompute sample tets each time if they are changing.
+                        if(PRED_WEIGHTS_L1 == energy_method_from_integrator_config(config["integrator_config"])) {
+                            VectorXd weights;
+                            VectorXi indices;
+                            gplc_stepper.get_reduced_space()->get_cubature_indices_and_weights(gplc_stepper.get_current_z(), indices, weights);
 
-                        igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
-                    } else {
-                        igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
+                            MatrixXi sample_tets = igl::slice(T, indices, 1);
+                            igl::boundary_facets(sample_tets, F_sampled);
+
+                            igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
+                        } else {
+                            igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
+                        }
                     }
                 }
 
@@ -997,6 +1244,14 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
                 fs::path pointer_filename(int_to_padded_str(current_frame) + "_mouse_pointer.obj");
                 igl::writeOBJ((pointer_obj_dir / pointer_filename).string(), pointerV, pointerF);
             }
+
+            if(current_frame % print_freq == 0) {   
+                double cur_time = igl::get_seconds();
+                cur_fps = print_freq / (cur_time - last_time);
+                last_time = cur_time;
+                std::cout << "Step time + rendering(Hz): "<< cur_fps << std::endl;
+            }
+
             current_frame++;
         }
 
@@ -1085,7 +1340,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             case 'R':
             {
                 reset_world(world);
-                gplc_stepper.reset_zs_to_current_world();
+                gplc_stepper.reset_zs();
                 break;
             }
             case 's':
@@ -1166,7 +1421,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     viewer.callback_mouse_move = [&](igl::viewer::Viewer &, int,int)->bool
     {
         if(!PLAYBACK_SIM) {
-            Eigen::MatrixXd curV = gplc_stepper.get_current_V();
+            // Eigen::MatrixXd curV = gplc_stepper.get_current_V();
             if(is_dragging) {
                 Eigen::RowVector3f drag_mouse(
                     viewer.current_mouse_x,
@@ -1189,131 +1444,16 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
                     last_scene);
 
                 dragged_pos += ((drag_scene-last_scene)*4.5).cast<double>(); //TODO why do I need to fine tune this
-                mesh_pos = curV.row(dragged_vert);
                 last_mouse = drag_mouse;
             }
         }
         return false;
     };
 
-    viewer.data.set_mesh(V,F);
-    igl::per_corner_normals(V,F,40,N);
-    viewer.data.set_normals(N);
-
-    viewer.core.show_lines = false;
-    viewer.core.invert_normals = true;
-    viewer.core.is_animating = false;
-    viewer.data.face_based = false;
-    viewer.core.line_width = 2;
-
-    viewer.core.background_color = Eigen::Vector4f(1.0, 1.0, 1.0, 1.0);
-    viewer.core.shininess = 120.0;
-    viewer.data.set_colors(Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]));
-    // viewer.data.uniform_colors(
-    //   Eigen::Vector3d(igl::CYAN_AMBIENT[0], igl::CYAN_AMBIENT[1], igl::CYAN_AMBIENT[2]),
-    //   Eigen::Vector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]),
-    //   Eigen::Vector3d(igl::CYAN_SPECULAR[0], igl::CYAN_SPECULAR[1], igl::CYAN_SPECULAR[2]));
-
-    // viewer.launch();
-
-    viewer.launch_init(true, false);    
-      viewer.opengl.shader_mesh.free();
-
-  {
-    std::string mesh_vertex_shader_string =
-R"(#version 150
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 proj;
-in vec3 position;
-in vec3 normal;
-out vec3 position_eye;
-out vec3 normal_eye;
-in vec4 Ka;
-in vec4 Kd;
-in vec4 Ks;
-in vec2 texcoord;
-out vec2 texcoordi;
-out vec4 Kai;
-out vec4 Kdi;
-out vec4 Ksi;
-
-void main()
-{
-  position_eye = vec3 (view * model * vec4 (position, 1.0));
-  normal_eye = vec3 (view * model * vec4 (normal, 0.0));
-  normal_eye = normalize(normal_eye);
-  gl_Position = proj * vec4 (position_eye, 1.0); //proj * view * model * vec4(position, 1.0);
-  Kai = Ka;
-  Kdi = Kd;
-  Ksi = Ks;
-  texcoordi = texcoord;
-})";
-
-    std::string mesh_fragment_shader_string =
-R"(#version 150
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 proj;
-uniform vec4 fixed_color;
-in vec3 position_eye;
-in vec3 normal_eye;
-uniform vec3 light_position_world;
-vec3 Ls = vec3 (1, 1, 1);
-vec3 Ld = vec3 (1, 1, 1);
-vec3 La = vec3 (1, 1, 1);
-in vec4 Ksi;
-in vec4 Kdi;
-in vec4 Kai;
-in vec2 texcoordi;
-uniform sampler2D tex;
-uniform float specular_exponent;
-uniform float lighting_factor;
-uniform float texture_factor;
-out vec4 outColor;
-void main()
-{
-vec3 Ia = La * vec3(Kai);    // ambient intensity
-
-vec3 light_position_eye = vec3 (view * vec4 (light_position_world, 1.0));
-vec3 vector_to_light_eye = light_position_eye - position_eye;
-vec3 direction_to_light_eye = normalize (vector_to_light_eye);
-float dot_prod = dot (direction_to_light_eye, normal_eye);
-float clamped_dot_prod = max (dot_prod, 0.0);
-vec3 Id = Ld * vec3(Kdi) * clamped_dot_prod;    // Diffuse intensity
-
-vec3 reflection_eye = reflect (-direction_to_light_eye, normal_eye);
-vec3 surface_to_viewer_eye = normalize (-position_eye);
-float dot_prod_specular = dot (reflection_eye, surface_to_viewer_eye);
-dot_prod_specular = float(abs(dot_prod)==dot_prod) * max (dot_prod_specular, 0.0);
-float specular_factor = pow (dot_prod_specular, specular_exponent);
-vec3 Kfi = 0.5*vec3(Ksi);
-vec3 Lf = Ls;
-float fresnel_exponent = 2*specular_exponent;
-float fresnel_factor = 0;
-{
-  float NE = max( 0., dot( normal_eye, surface_to_viewer_eye));
-  fresnel_factor = pow (max(sqrt(1. - NE*NE),0.0), fresnel_exponent);
+    viewer.launch_rendering(true);
+    viewer.launch_shut();
 }
-vec3 Is = Ls * vec3(Ksi) * specular_factor;    // specular intensity
-vec3 If = Lf * vec3(Kfi) * fresnel_factor;     // fresnel intensity
-vec4 color = vec4(lighting_factor * (If + Is + Id) + Ia + 
-  (1.0-lighting_factor) * vec3(Kdi),(Kai.a+Ksi.a+Kdi.a)/3);
-outColor = mix(vec4(1,1,1,1), texture(tex, texcoordi), texture_factor) * color;
-if (fixed_color != vec4(0.0)) outColor = fixed_color;
-})";
 
-  viewer.opengl.shader_mesh.init(
-      mesh_vertex_shader_string,
-      mesh_fragment_shader_string, 
-      "outColor");
-  }
-
-
-  viewer.launch_rendering(true);
-  viewer.launch_shut();
-
-}
 
 const std::string currentDateTime() {
     time_t     now = time(0);

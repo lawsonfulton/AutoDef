@@ -5,6 +5,7 @@
 #include <Eigen/Sparse>
 
 using Eigen::VectorXd;
+using Eigen::VectorXf;
 using Eigen::Vector3d;
 using Eigen::VectorXi;
 using Eigen::MatrixXd;

@@ -7,7 +7,7 @@
     "poissons_ratio": 0.45
   },
   "integrator_config": {
-    "reduced_space_type": "linear",
+    "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
     "reduced_energy_method": "pcr",
     "use_partial_decode": true,
@@ -28,6 +28,7 @@
   "visualization_config": {
     "show_stress": false,
     "interaction_spring_stiffness": 100000.0,
-    "full_space_constrained_axis": 1
+    "full_space_constrained_axis": 1,
+    "gpu_decode": true
   }
 }
