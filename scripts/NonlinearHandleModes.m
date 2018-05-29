@@ -32,6 +32,8 @@ out_dir = configs.output_dir;
 scale = configs.scale_factor;
 only_writeout_fracture = configs.only_write_out_fracture_state;
 num_fixed_regions = configs.num_fixed_regions;
+alpha = 1;
+max_step_size = 10;
 
 if ~exist(out_dir, 'dir')
   mkdir(out_dir);
@@ -39,6 +41,7 @@ end
 copyfile("configs.json", out_dir+"/parameters.json");
 
 [V, T, F] = readMESH(mesh_path);
+%F = boundary_faces(T);
 V = V * scale;
 
 P = [];
@@ -64,6 +67,11 @@ nH = sum(H);
 [V,~,~,IM] = faces_first(V,[],handle_indices);
 F = IM(F);
 T = IM(T);
+
+
+writeDMAT([out_dir 'base_verts.dmat'], V, false);
+writeDMAT([out_dir 'base_faces.dmat'], T, false);
+writeMESH([out_dir 'object.mesh'], V, T, F)
 
 %build Mesh
 % DT = delaunayTriangulation(V(:,1), V(:,2), V(:,3));
@@ -94,17 +102,16 @@ while tot_its < num_samples
     %Build Stiffness Matrix
     fem = WorldFEM('neohookean_linear_tetrahedra', V, T);
     setMeshParameters(fem, configs.youngs, configs.poisson, configs.density);
+    
     %% Solve for Modes %%
     rng('shuffle')
     h = zeros(3*nH,1); %handle displacements
     u = zeros(numel(V),1);
-    alpha = 0.1%0.5 %0.1 %step length % set based on size of bounding box?
     
     [BB,BF] = bounding_box(V);
     maxLength2 = max(max((BB(:,1) - BB(:,1)').^2+(BB(:,2) - BB(:,2)').^2+(BB(:,3) - BB(:,3)').^2));
-    step_size = ((pi*sqrt(maxLength2))/15);
-    %step_size = 0.05 % 0.1 %0.05
-    numIter = randi([1 30],1,2);
+    step_size = ((pi*sqrt(maxLength2))/max_step_size);
+    numIter = randi([1 max_step_size],1,2);
 
     Rh = eye(3,3);
     th = zeros(3,1);
@@ -152,8 +159,8 @@ while tot_its < num_samples
             end
             oldH = V(1:nH,:) + reshape(h, 3, nH)';
             
-            
-            nSteps = ceil(step_size/(alpha*max(abs(MODE(:, modeSelect)))));
+            max_value = max(abs(MODE(:, modeSelect)));
+            nSteps = ceil(step_size/(alpha*max_value));
             h0 = h;
             for kk = 1:nSteps
                 h = h0 + s*MODE(:,modeSelect)*kk*alpha;
@@ -199,6 +206,7 @@ while tot_its < num_samples
             if(~only_writeout_fracture)
                 imwrite(img.cdata, [out_dir, 'displacements_image_', num2str(tot_its,'%05.f'),'.png']);
                 writeDMAT([out_dir, 'displacements_', num2str(tot_its,'%05.f'),'.dmat'], u1, false);
+                writeOFF([out_dir, 'meshfile', num2str(tot_its,'%05.f'),'.off'], V+u1, F);
                 tot_its = tot_its + 1;
                 %save out per tet potential energies as well. 
                 Evec = strainEnergyPerElement(fem);
@@ -217,6 +225,7 @@ while tot_its < num_samples
                 %Writing out fracture state
                 imwrite(img.cdata, [out_dir, 'displacements_image_', num2str(tot_its,'%05.f'),'.png']);
                 writeDMAT([out_dir, 'displacements_', num2str(tot_its,'%05.f'),'.dmat'], u1, false);
+                writeOFF([out_dir, 'meshfile', num2str(tot_its,'%05.f'),'.off'], V+u1, F);
                 tot_its = tot_its + 1;
                 %save out per tet potential energies as well. 
                 Evec = strainEnergyPerElement(fem);
