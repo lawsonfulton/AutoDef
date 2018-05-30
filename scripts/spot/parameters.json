@@ -1,0 +1,13 @@
+{
+     "youngs": 100000,
+     "poisson": 0.35,
+     "density": 100,
+     "yield_stress": 100000,
+     "num_handles": 5,
+     "num_samples": 500,
+     "output_dir" : "./test_x/",
+     "mesh_path" : "../meshes/spot.mesh",
+     "scale_factor": 1,
+     "num_fixed_regions": 1,
+     "only_write_out_fracture_state": false
+ }
