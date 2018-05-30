@@ -38,6 +38,13 @@ T get_json_value(const json &j, const std::string &key, T def) {
         return def;
     }
 }
+
+double approxRollingAverage (double avg, double new_sample, int N=20) {
+    avg -= avg / N;
+    avg += new_sample / N;
+
+    return avg;
+};
 // VectorXd tf_JTJ(const VectorXd &z, const VectorXd &z_v, tf::Session* m_decoder_JTJ_session) {
 //     tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, z_v.size()})); 
 //     auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();

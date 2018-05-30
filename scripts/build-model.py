@@ -123,6 +123,7 @@ def main():
     simulation_config = {
         'mesh': os.path.join(model_root, 'tets.mesh'),
         'logging_enabled': False,
+        'save_objs': False,
         'material_config': {
             'density': training_data_params['density'], # TODO these numbers should probably match whatever the training data was by default.
             'youngs_modulus': training_data_params['YM'],
@@ -132,7 +133,7 @@ def main():
         'integrator_config': {
             'reduced_space_type': 'autoencoder', # Options are one of ['autoencoder, linear, full']
             'use_reduced_energy': config['learning_config']['energy_model_config']['enabled'],
-            'use_partial_decode': true,
+            'use_partial_decode': True,
             "reduced_energy_method": "pcr", # options: an08, pcr, and not fullyimplemented: pred_weights_l1
             'use_preconditioner': True,
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
@@ -148,6 +149,7 @@ def main():
         },
 
         'visualization_config' : {
+            'gpu_decode': True,
             'show_stress': False,
             'show_energy': False,
             'interaction_spring_stiffness': 1e4,

@@ -10,7 +10,7 @@
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
     "reduced_energy_method": "pcr",
-    "use_partial_decode": true,
+    "use_partial_decode":true,
     "use_analytic_jac": true,
     "use_preconditioner": true,
     "pca_dim": 40,
@@ -28,6 +28,8 @@
   "visualization_config": {
     "show_stress": false,
     "show_energy": false,
-    "interaction_spring_stiffness": 10000.0
+    "interaction_spring_stiffness": 10000.0,
+    "full_space_constrained_axis": 0,
+    "gpu_decode": true
   }
 }

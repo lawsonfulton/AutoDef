@@ -11,7 +11,7 @@
 *.edge
 *.ele
 *.face
-*.mesh
+
 *.smesh
 *.node
 *.zip
@@ -20,6 +20,8 @@
 *.off
 *.obj
 configurations
+
+pathdef.m
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

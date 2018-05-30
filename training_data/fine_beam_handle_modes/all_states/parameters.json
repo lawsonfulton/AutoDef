@@ -1,0 +1,13 @@
+{
+     "YM": 100000,
+     "Poisson": 0.35,
+     "density": 100,
+     "yield_stress": 100000,
+     "num_handles": 1,
+     "num_samples": 500,
+     "output_dir" : "./final_states/",
+     "mesh_path" : "../meshes/Fine_beam.mesh",
+     "scale_factor": 1,
+     "num_fixed_regions": 1,
+     "only_write_out_fracture_state": false
+ }
