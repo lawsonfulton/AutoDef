@@ -101,7 +101,7 @@ while tot_its < num_samples
     
     %Build Stiffness Matrix
     fem = WorldFEM('neohookean_linear_tetrahedra', V, T);
-    setMeshParameters(fem, configs.youngs, configs.poisson, configs.density);
+    setMeshParameters(fem, configs.YM, configs.Poisson, configs.density);
     
     %% Solve for Modes %%
     rng('shuffle')
