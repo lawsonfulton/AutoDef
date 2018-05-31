@@ -1,9 +1,10 @@
 %L1 Cubature weights
 configs = jsondecode(fileread('configs.json'));
-input_dir = './bar/';
-E = readDMAT([input_dir, 'energy_', num2str(1, '%05.f'),'.dmat']);
+%'%05.f'
+input_dir = './x/training_data/';
+E = readDMAT([input_dir, 'energy_', num2str(1),'.dmat']);
 for ii=2:500
-    E_n = readDMAT([input_dir, 'energy_', num2str(ii, '%05.f'),'.dmat']);
+    E_n = readDMAT([input_dir, 'energy_', num2str(ii),'.dmat']);
     E = [E E_n];
 end
 random_ind = datasample([1:500],500,"Replace", false);
@@ -11,7 +12,6 @@ train_ind = random_ind(1:3*end/4);
 test_ind = random_ind(3*end/4+1:end);
 Etrain = E(:,train_ind);
 Etest = E(:,test_ind);
-
 
 
 %energy PCA on he training set
@@ -43,7 +43,7 @@ for ii=1:size(Etrain,2)
 end
 
 options = optimoptions('quadprog', 'Display', 'none');
-tol = 1e-4*numel(Etest); %acceptable per tet error aggregated over test set
+tol = 1e-3;
 f = ones(size(Etrain,1),1);
 S = [speye(size(Etrain,1)), -speye(size(Etrain,1))];
 fS = [f; f];
@@ -60,11 +60,13 @@ mass = [0, sum(f)];
 while (mass(2) - mass(1)) > 2
     w2 = quadprog(A'*A, -A'*alpha(:), [], [], f', 0.5*sum(mass), 0*f,  [], [], options);
     
-    w2(abs(w2) < 1e-3) = 0;
+    w2(abs(w2) < 1e-8) = 0;
     
-    norm(U'*diag(w2)*Etest - U'*Etest)
+    error = U*((U'*diag(w2)*U)\(U'*diag(w2)*Etest) - U'*Etest);
+    mag = Etest; 
+    relError = sqrt((error(:)'*error(:))./(size(Etest,2)*mag(:)'*mag(:)))
     sum(abs(w2) > 0)
-    if norm(U'*diag(w2)*Etest - U'*Etest) < tol
+    if relError < tol
         %relax, you don't need so much w
         mass(2) = 0.5*sum(mass);
     else
@@ -73,6 +75,17 @@ while (mass(2) - mass(1)) > 2
     end
 end
 
-norm(U'*diag(w2)*Etest - U'*Etest)
-cubature_weights = sum(U, 1)*U'*diag(w2);
-writeDMAT([input_dir 'cubatureweights.dmat'], cubature_weights, false);
+error = U*((U'*diag(w2)*U)\(U'*diag(w2)*Etest) - U'*Etest);
+mag = Etest; 
+relError = sqrt((error(:)'*error(:))./(size(Etest,2)*mag(:)'*mag(:)));
+cubature_weights = sum(U,1)*((U'*diag(w2)*U)\(U'*diag(w2)));
+sum(cubature_weights*Etest - sum(Etest));
+writeDMAT([input_dir 'cubatureweights.dmat'], cubature_weights, true);
+
+%COMPARE LAWSON'S An08 Results
+%cubacode_results_dir = '/home/vismay/Scrapts/cubacode/models/fine_beam_final/energy_model/an08/59_samples/';
+%indices = readDMAT([cubacode_results_dir, 'indices.dmat']);
+%cubaweights = readDMAT([cubacode_results_dir, 'weights.dmat']);
+%cw = zeros(1998,1);
+%cw(indices) = cubaweights;
+%sum(cw'*Etest - sum(Etest))
