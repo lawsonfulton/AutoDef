@@ -24,8 +24,18 @@ def convert_keras_models_to_tf(model_root):
             
             # Custom stuff
             keras.losses.energy_loss = lambda x,y: x
+            keras.losses.UTMU_loss = lambda x,y: x
             keras.regularizers.reg = lambda : (lambda x: x)
             keras.activations.my_elu = my_utils.create_my_elu()
+
+            # def make_UTMU_loss():
+            #     K_UTMU = K.constant(value=numpy.random.random((30,30)))
+            #     def UTMU_loss(y_true, y_pred):
+            #         u = y_true - y_pred
+            #         return K.mean(K.dot(u, K.dot(K_UTMU, K.transpose(u))), axis=-1) # TODO should mean be over an axis?
+
+            #     return UTMU_loss
+            # keras.losses.UTMU_loss = make_UTMU_loss()
 
             model = load_model(model_path)
             k2tf.save_keras_model_as_tf(model, os.path.join(tf_models_dir, model_name + '.pb'))

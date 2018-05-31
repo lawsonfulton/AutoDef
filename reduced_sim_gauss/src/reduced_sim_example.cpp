@@ -88,6 +88,8 @@ Eigen::MatrixXd V; // Verts
 Eigen::MatrixXd N; // Normals
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
+Eigen::MatrixXi T_sampled;
+Eigen::MatrixXi F_sampled;
 int n_dof;
 
 // Mouse/Viewer state
@@ -198,6 +200,17 @@ public:
 
         m_U = m_reduced_space->outer_jacobian();
         m_UTMU = m_U.transpose() * m_M * m_U;
+
+        // Check if m_UTMU is identity (mass pca)
+        if(integrator_config["reduced_space_type"] != "full") { // Only check for non-full (dense) spaces
+            if(MatrixXd(m_UTMU).isIdentity(1e-6)) {
+                m_UTMU_is_identity = true;
+                std::cout << "UTMU is Identity!!! Removing from calculations." << std::endl;
+            } else {
+                std::cout << "UTMU is not Identity!!!" << std::endl;
+            }
+        }
+
         std::cout << "Done." << std::endl;
 
         VectorXd g(m_M.cols());
@@ -212,7 +225,7 @@ public:
         m_interaction_force = SparseVector<double>(m_F_ext.size());
 
         m_energy_method = energy_method_from_integrator_config(integrator_config);
-        m_use_partial_decode =  (m_energy_method == PCR || m_energy_method == AN08) && get_json_value(integrator_config, "use_partial_decode", true);
+        m_use_partial_decode =  (m_energy_method == PCR || m_energy_method == AN08 || m_energy_method == NEW_PCR) && get_json_value(integrator_config, "use_partial_decode", true);
 
         if(m_energy_method == PCR){
             fs::path pca_components_path("pca_results/energy_pca_components.dmat");
@@ -250,8 +263,12 @@ public:
             m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
             std::cout << "Done. Will sample from " << m_energy_sample_tets.size() << " tets." << std::endl;
         }
-        else if(m_energy_method == AN08) {
-            fs::path energy_model_dir = model_root / "energy_model/an08/";
+        else if(m_energy_method == AN08 || m_energy_method == NEW_PCR) {
+            fs::path energy_model_dir;
+            
+            if(m_energy_method == AN08) energy_model_dir = model_root / "energy_model/an08/";
+            if(m_energy_method == NEW_PCR) energy_model_dir = model_root / "energy_model/new_pcr/";
+
             fs::path indices_path = energy_model_dir / "indices.dmat";
             fs::path weights_path = energy_model_dir / "weights.dmat";
 
@@ -271,7 +288,7 @@ public:
         }
 
         // Computing the sampled verts
-        if (m_energy_method == AN08 || m_energy_method == PCR) {
+        if (m_energy_method == AN08 || m_energy_method == PCR || m_energy_method == NEW_PCR) {
             // figure out the verts
             std::set<int> vert_set;
             int n_sample_tets = m_energy_sample_tets.size();
@@ -294,6 +311,9 @@ public:
             MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
             m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
         }
+
+        T_sampled = igl::slice(T, m_cubature_indices, 1);
+        igl::boundary_facets(T_sampled, F_sampled);
 
     }
 
@@ -456,7 +476,7 @@ public:
         VectorXd UT_internal_forces;
         double energy_forces_start_time = igl::get_seconds();
         double predict_weight_time = 0.0;
-        if(m_energy_method == PCR || m_energy_method == AN08) {
+        if(m_energy_method == PCR || m_energy_method == AN08 || m_energy_method == NEW_PCR) {
             current_reduced_energy_and_forces(energy, UT_internal_forces);
         }
         else if(m_energy_method == PRED_WEIGHTS_L1) {
@@ -538,7 +558,8 @@ private:
 
     EnergyMethod m_energy_method;
     ReducedSpaceType *m_reduced_space;
-    bool m_use_partial_decode;
+    bool m_use_partial_decode = false;
+    bool m_UTMU_is_identity = false;
 
     std::vector<int> m_energy_sample_tets;
 
@@ -848,19 +869,6 @@ template <typename ReducedSpaceType, typename MatrixType>
 void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path &model_root) {
     // -- Setting up GAUSS
     MyWorld world;
-
-    MatrixXi T_sampled;
-    MatrixXi F_sampled;
-    if(LOGGING_ENABLED) {
-        if(config["integrator_config"]["use_reduced_energy"]) {
-            fs::path sample_tets_path("pca_results/energy_indices.dmat");
-            MatrixXi tet_indices_mat;
-            igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);
-
-            T_sampled = igl::slice(T, tet_indices_mat, 1);
-            igl::boundary_facets(T_sampled, F_sampled);
-        }
-    }
 
     auto material_config = config["material_config"];
     auto integrator_config = config["integrator_config"];
@@ -1479,12 +1487,19 @@ int main(int argc, char **argv) {
     fs::path model_root(argv[1]);
     fs::path sim_config("sim_config.json");
 
-    if(argc == 3) {
+    if(argc >= 3) {
         fs::path sim_recording_path(argv[2]);
         std::ifstream recording_fin(sim_recording_path.string());
 
         recording_fin >> sim_playback_json;
         PLAYBACK_SIM = true;
+    }
+
+    std::string log_string = "";
+    if(argc == 4) {
+        log_string = argv[3];
+    } else {
+        log_string = currentDateTime();
     }
 
 
@@ -1500,7 +1515,7 @@ int main(int argc, char **argv) {
         sim_log["sim_config"] = config;
         sim_log["timesteps"] = {};
         fs::path sim_log_path("simulation_logs/");
-        log_dir = model_root / fs::path("./simulation_logs/" + currentDateTime() + "/");
+        log_dir = model_root / fs::path("./simulation_logs/" + log_string + "/");
         surface_obj_dir = log_dir / fs::path("objs/surface/");
         pointer_obj_dir = log_dir / fs::path("objs/pointer/");
         tet_obj_dir = log_dir / fs::path("objs/sampled_tets/");

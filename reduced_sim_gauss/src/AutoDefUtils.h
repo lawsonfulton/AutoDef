@@ -2,13 +2,15 @@
 #define AutoDefUtils_H
 
 #include "TypeDefs.h"
-
 #include <iostream>
 #include <string>
+#include <vector>
 
+#include <boost/filesystem.hpp>
 #include <json.hpp>
 
 using json = nlohmann::json;
+namespace fs = boost::filesystem;
 
 EnergyMethod energy_method_from_integrator_config(const json &integrator_config) {
     try {
@@ -23,6 +25,7 @@ EnergyMethod energy_method_from_integrator_config(const json &integrator_config)
         if(energy_method == "an08") return AN08;
         if(energy_method == "pred_weights_l1") return PRED_WEIGHTS_L1;
         if(energy_method == "pred_energy_direct") return PRED_DIRECT;
+        if(energy_method == "new_pcr") return NEW_PCR;
     } 
     catch (nlohmann::detail::out_of_range& e){} // Didn't exist
     std::cout << "Unkown energy method." << std::endl;
@@ -45,6 +48,24 @@ double approxRollingAverage (double avg, double new_sample, int N=20) {
 
     return avg;
 };
+
+void load_all_an08_indices_and_weights(fs::path energy_model_dir, std::vector<VectorXi> &all_indices, std::vector<VectorXd> &all_weights) {
+    for(auto & p : boost::filesystem::directory_iterator( path )) {
+        if(fs::is_directory(p)) {
+            fs::path indices_path = p / "indices.dmat";
+            fs::path weights_path = p / "weights.dmat";
+            
+            Eigen::VectorXi Is;
+            Eigen::VectorXd Ws;
+            igl::readDMAT(indices_path.string(), Is); //TODO do I need to sort this?
+            igl::readDMAT(weights_path.string(), Ws); 
+
+            all_indices.push_back(Is);
+            all_weights.push_back(Ws);
+        }
+    }
+}
+
 // VectorXd tf_JTJ(const VectorXd &z, const VectorXd &z_v, tf::Session* m_decoder_JTJ_session) {
 //     tf::Tensor z_tensor(tf_dtype, tf::TensorShape({1, z_v.size()})); 
 //     auto z_tensor_mapped = z_tensor.tensor<tf_dtype_type, 2>();
