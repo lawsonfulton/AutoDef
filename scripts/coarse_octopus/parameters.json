@@ -3,10 +3,10 @@
      "poisson": 0.35,
      "density": 100,
      "yield_stress": 100000,
-     "num_handles": 1,
+     "num_handles": 4,
      "num_samples": 500,
      "output_dir" : "./test_x/",
-     "mesh_path" : "../meshes/Fine_beam.mesh",
+     "mesh_path" : "../meshes/coarseoctopus.mesh",
      "scale_factor": 1,
      "num_fixed_regions": 1,
      "only_write_out_fracture_state": false
