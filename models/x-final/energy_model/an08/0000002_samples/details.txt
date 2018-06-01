@@ -1,0 +1,6 @@
+n_tets: 2
+relErr: 0.657543
+Selected tets: 995, 6736, 
+Weights: 2315.43, 2031.23, 
+n_nonzero: 2
+

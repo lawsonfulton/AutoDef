@@ -1,17 +1,17 @@
 {
   "mesh": "models/x-final/tets.mesh",
-  "logging_enabled": true,
-  "save_objs": true,
+  "logging_enabled": false,
+  "save_objs": false,
   "material_config": {
     "density": 1000.0,
     "youngs_modulus": 1000000.0,
     "poissons_ratio": 0.45
   },
   "integrator_config": {
-    "reduced_space_type": "autoencoder",
+    "reduced_space_type": "linear",
     "use_reduced_energy": true,
     "use_partial_decode": true,
-    "reduced_energy_method": "an08",
+    "reduced_energy_method": "an08_all",
     "use_preconditioner": true,
     "pca_dim": 30,
     "ae_encoded_dim": 6,

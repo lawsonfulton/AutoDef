@@ -3,9 +3,11 @@
 
 #include "TypeDefs.h"
 #include <iostream>
+#include <algorithm>
 #include <string>
 #include <vector>
 
+#include <igl/readDMAT.h>
 #include <boost/filesystem.hpp>
 #include <json.hpp>
 
@@ -26,6 +28,7 @@ EnergyMethod energy_method_from_integrator_config(const json &integrator_config)
         if(energy_method == "pred_weights_l1") return PRED_WEIGHTS_L1;
         if(energy_method == "pred_energy_direct") return PRED_DIRECT;
         if(energy_method == "new_pcr") return NEW_PCR;
+        if(energy_method == "an08_all") return AN08_ALL;
     } 
     catch (nlohmann::detail::out_of_range& e){} // Didn't exist
     std::cout << "Unkown energy method." << std::endl;
@@ -50,19 +53,28 @@ double approxRollingAverage (double avg, double new_sample, int N=20) {
 };
 
 void load_all_an08_indices_and_weights(fs::path energy_model_dir, std::vector<VectorXi> &all_indices, std::vector<VectorXd> &all_weights) {
-    for(auto & p : boost::filesystem::directory_iterator( path )) {
+    std::vector<std::string> paths;
+    for(auto & p : boost::filesystem::directory_iterator( energy_model_dir )) {
         if(fs::is_directory(p)) {
-            fs::path indices_path = p / "indices.dmat";
-            fs::path weights_path = p / "weights.dmat";
-            
-            Eigen::VectorXi Is;
-            Eigen::VectorXd Ws;
-            igl::readDMAT(indices_path.string(), Is); //TODO do I need to sort this?
-            igl::readDMAT(weights_path.string(), Ws); 
-
-            all_indices.push_back(Is);
-            all_weights.push_back(Ws);
+            paths.push_back(p.path().string());
         }
+    }
+
+    std::sort(paths.begin(), paths.end());
+
+    for(auto &p : paths) {
+        std::string indices_path = p + "/indices.dmat";
+        std::string weights_path = p + "/weights.dmat";
+        
+        Eigen::VectorXi Is;
+        Eigen::VectorXd Ws;
+        igl::readDMAT(indices_path, Is); //TODO do I need to sort this?
+        igl::readDMAT(weights_path, Ws); 
+
+        all_indices.push_back(Is);
+        all_weights.push_back(Ws);
+
+        std::cout << "Loaded tets from " << p << std::endl;
     }
 }
 
