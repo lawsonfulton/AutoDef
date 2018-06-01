@@ -28,7 +28,7 @@ def main():
     if len(sys.argv) > 1:
         root_dir = sys.argv[1]
     else:
-        root_dir = '/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/compare_an08_fixed'
+        root_dir = '../models/x-final/simulation_logs/an08_vs_new_pcr'
 
     chosen_vert = 19 # Top, right, front corner
 
@@ -36,7 +36,7 @@ def main():
     obj_Vs = {}
     displacements = {}
     displacement_norms = {}
-    log_dir_names = ['ae_all', 'an08_ae_152', 'pred_weights_72', 'pcr_ae_150', 'an08_ae_84'] # os.listdir(root_dir)
+    log_dir_names = ['full_energy', 'an08', 'new_pcr_neg', 'new_pcr_noneg']
     for name in log_dir_names:
         print('Loading', name)
         obj_Vs[name] = load_obj_verts(os.path.join(root_dir, name, 'objs/surface'))
@@ -47,25 +47,22 @@ def main():
     # Plot
     fig, ax = plt.subplots(figsize=(12, 5))   
 
-    names_to_style = {
-        'ae_all': '-',
-        'an08_ae_152': ':',
-        'an08_ae_84': ':',
-        'pred_weights_72': '-.',
-        'pcr_ae_150': '--',
-    }
-    for name in names_to_style:
-        # ax.plot(displacement_norms[name], label=name, linewidth=2, linestyle=names_to_style[name])
-        ax.plot(displacements[name][:,2], label=name, linewidth=2, linestyle=names_to_style[name])
+
+    styles = ['-', ':', '-.', '--']
+    for i, name in enumerate(log_dir_names):# names_to_style:
+        # ax.plot(displacement_norms[name], label=name, linewidth=2, linestyle=styles[i % len(styles)])
+        cum_error = np.cumsum(np.abs(displacements[name][:,2] - displacements['full_energy'][:,2]))
+        ax.plot(cum_error, label=name, linewidth=2, linestyle=styles[i % len(styles)])
+        # ax.plot(displacements[name][:,2], label=name, linewidth=2, linestyle=styles[i % len(styles)])
 
     ax.set_xlabel('Time')
-    ax.set_ylabel('Displacement in Z-axis of vertex 19')
+    ax.set_ylabel('Cumulative Error of Displacement in Z-axis of vertex 19')
 
-    ax.set_ylim(-6.05, 6)
+    # ax.set_ylim(-6.05, 6)
 
     # Style
     ax.legend(loc='upper left')
-    ax.spines['bottom'].set_position('center')
+    # ax.spines['bottom'].set_position('center')
     
     gridcolour = 'darkgrey'
     ax.yaxis.grid(color=gridcolour, linestyle='dashed', linewidth=1)

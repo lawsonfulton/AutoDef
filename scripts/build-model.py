@@ -91,7 +91,7 @@ def main():
     # Train model
     # TODO Record other model history, seed, etc
     if not config['learning_config']['skip_training']:
-        learn.generate_model(model_root, config['learning_config'])
+        learn.generate_model(model_root, config)
 
         # Convert to TF
         print('Converting Keras models to Tensorflow...')
@@ -134,7 +134,7 @@ def main():
             'reduced_space_type': 'autoencoder', # Options are one of ['autoencoder, linear, full']
             'use_reduced_energy': config['learning_config']['energy_model_config']['enabled'],
             'use_partial_decode': True,
-            "reduced_energy_method": "pcr", # options: an08, pcr, and not fullyimplemented: pred_weights_l1
+            'reduced_energy_method': "pcr", # options: an08, pcr, and not fullyimplemented: pred_weights_l1
             'use_preconditioner': True,
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.

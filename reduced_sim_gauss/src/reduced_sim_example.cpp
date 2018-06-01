@@ -88,6 +88,8 @@ Eigen::MatrixXd V; // Verts
 Eigen::MatrixXd N; // Normals
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
+Eigen::MatrixXi T_sampled;
+Eigen::MatrixXi F_sampled;
 int n_dof;
 
 // Mouse/Viewer state
@@ -198,6 +200,17 @@ public:
 
         m_U = m_reduced_space->outer_jacobian();
         m_UTMU = m_U.transpose() * m_M * m_U;
+
+        // Check if m_UTMU is identity (mass pca)
+        if(integrator_config["reduced_space_type"] != "full") { // Only check for non-full (dense) spaces
+            if(MatrixXd(m_UTMU).isIdentity(1e-6)) {
+                m_UTMU_is_identity = true;
+                std::cout << "UTMU is Identity!!! Removing from calculations." << std::endl;
+            } else {
+                std::cout << "UTMU is not Identity!!!" << std::endl;
+            }
+        }
+
         std::cout << "Done." << std::endl;
 
         VectorXd g(m_M.cols());
@@ -212,7 +225,7 @@ public:
         m_interaction_force = SparseVector<double>(m_F_ext.size());
 
         m_energy_method = energy_method_from_integrator_config(integrator_config);
-        m_use_partial_decode =  (m_energy_method == PCR || m_energy_method == AN08) && get_json_value(integrator_config, "use_partial_decode", true);
+        m_use_partial_decode =  (m_energy_method == PCR || m_energy_method == AN08 || m_energy_method == NEW_PCR) && get_json_value(integrator_config, "use_partial_decode", true);
 
         if(m_energy_method == PCR){
             fs::path pca_components_path("pca_results/energy_pca_components.dmat");
@@ -221,37 +234,29 @@ public:
             MatrixXd U;
             igl::readDMAT((model_root / pca_components_path).string(), U);
 
-            MatrixXi tet_indices_mat;
-            igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);
-            std::cout << "Done." << std::endl;
-
-            std::cout << "Factoring reduced energy basis..." << std::endl;
-            std::cout << "n tets: " <<  tet_indices_mat.rows() << std::endl;
-            std::cout << "n pca: " <<  U.cols() << std::endl;
-            VectorXi tet_indices = tet_indices_mat.col(0);
-            m_energy_sample_tets.resize(tet_indices.size());
-            VectorXi::Map(&m_energy_sample_tets[0], tet_indices.size()) = tet_indices;
-            std::sort(m_energy_sample_tets.begin(), m_energy_sample_tets.end());
-            for(int i=0; i < m_energy_sample_tets.size(); i++) {
-                tet_indices_mat(i, 0) = m_energy_sample_tets[i];
-            }
-            m_cubature_indices = tet_indices_mat.col(0); // TODO fix these duplicate structures
+            Eigen::VectorXi Is;
+            igl::readDMAT((model_root /sample_tets_path).string(), Is); //TODO do I need to sort this?
+            m_cubature_indices = Is;
 
             // Other stuff?
             m_energy_basis = U;
-            m_energy_sampled_basis = igl::slice(m_energy_basis, tet_indices_mat, 1);
+            m_energy_sampled_basis = igl::slice(m_energy_basis, m_cubature_indices, 1);
             m_summed_energy_basis = m_energy_basis.colwise().sum();
             MatrixXd S_barT_S_bar = m_energy_sampled_basis.transpose() * m_energy_sampled_basis;
             // m_energy_sampled_basis_qr = m_energy_sampled_basis.fullPivHouseholderQr();
             
             m_cubature_weights = m_energy_sampled_basis * S_barT_S_bar.ldlt().solve(m_summed_energy_basis); //U_bar(A^-1*u)
 
-            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_energy_sample_tets.size());
+            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
             m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
-            std::cout << "Done. Will sample from " << m_energy_sample_tets.size() << " tets." << std::endl;
+            std::cout << "Done. Will sample from " << m_cubature_indices.size() << " tets." << std::endl;
         }
-        else if(m_energy_method == AN08) {
-            fs::path energy_model_dir = model_root / "energy_model/an08/";
+        else if(m_energy_method == AN08 || m_energy_method == NEW_PCR) {
+            fs::path energy_model_dir;
+            
+            if(m_energy_method == AN08) energy_model_dir = model_root / "energy_model/an08/";
+            if(m_energy_method == NEW_PCR) energy_model_dir = model_root / "energy_model/new_pcr/";
+
             fs::path indices_path = energy_model_dir / "indices.dmat";
             fs::path weights_path = energy_model_dir / "weights.dmat";
 
@@ -261,22 +266,29 @@ public:
             igl::readDMAT(weights_path.string(), Ws); 
 
             m_cubature_weights = Ws;
-            m_cubature_indices = Is; // TODO remove duplicate structures!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            m_energy_sample_tets.resize(Is.size());
-            VectorXi::Map(&m_energy_sample_tets[0], Is.size()) = Is;
+            m_cubature_indices = Is;
 
-            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_energy_sample_tets.size());
+            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
             m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
-            std::cout << "Done. Will sample from " << m_energy_sample_tets.size() << " tets." << std::endl;
+            std::cout << "Done. Will sample from " << m_cubature_indices.size() << " tets." << std::endl;
+        } else if(m_energy_method == AN08_ALL) {
+            fs::path energy_model_dir = model_root / "energy_model/an08/";
+            load_all_an08_indices_and_weights(energy_model_dir, m_all_cubature_indices, m_all_cubature_weights);
+
+            m_cubature_weights = m_all_cubature_weights.back();
+            m_cubature_indices = m_all_cubature_indices.back();
+
+            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
+            m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
         }
 
         // Computing the sampled verts
-        if (m_energy_method == AN08 || m_energy_method == PCR) {
+        if (m_energy_method == AN08 || m_energy_method == PCR || m_energy_method == NEW_PCR) {
             // figure out the verts
             std::set<int> vert_set;
-            int n_sample_tets = m_energy_sample_tets.size();
-            for(int i = 0; i < m_energy_sample_tets.size(); i++) {
-                int tet_index = m_energy_sample_tets[i];
+            int n_sample_tets = m_cubature_indices.size();
+            for(int i = 0; i < m_cubature_indices.size(); i++) {
+                int tet_index = m_cubature_indices[i];
                 for(int j = 0; j < 4; j++) {
                     int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
                     for(int k = 0; k < 3; k++) {
@@ -294,7 +306,6 @@ public:
             MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
             m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
         }
-
     }
 
     void update_zs(const VectorXd &cur_z) {
@@ -320,7 +331,7 @@ public:
     VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
 
     double current_reduced_energy_and_forces(double &energy, VectorXd &UT_forces) {
-        int n_sample_tets = m_energy_sample_tets.size();
+        int n_sample_tets = m_cubature_indices.size();
         
         VectorXd sampled_energy(n_sample_tets);
 
@@ -330,7 +341,7 @@ public:
 
         #pragma omp parallel for num_threads(4) //schedule(static,64)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
-            int tet_index = m_energy_sample_tets[i];
+            int tet_index = m_cubature_indices[i];
 
             // Energy
             sampled_energy[i] = m_tets->getImpl().getElement(tet_index)->getStrainEnergy(m_world->getState());
@@ -344,7 +355,7 @@ public:
         // Constructing sparse matrix is not thread safe
         m_neg_energy_sample_jac.setZero(); // Doesn't clear reserved memory
         for(int i = 0; i < n_sample_tets; i++) {
-            int tet_index = m_energy_sample_tets[i];
+            int tet_index = m_cubature_indices[i];
             for(int j = 0; j < 4; j++) {
                 int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
                 for(int k = 0; k < 3; k++) {
@@ -456,7 +467,7 @@ public:
         VectorXd UT_internal_forces;
         double energy_forces_start_time = igl::get_seconds();
         double predict_weight_time = 0.0;
-        if(m_energy_method == PCR || m_energy_method == AN08) {
+        if(m_energy_method == PCR || m_energy_method == AN08 || m_energy_method == NEW_PCR || m_energy_method == AN08_ALL) {
             current_reduced_energy_and_forces(energy, UT_internal_forces);
         }
         else if(m_energy_method == PRED_WEIGHTS_L1) {
@@ -512,6 +523,16 @@ public:
         return m_cubature_indices;
     }
 
+    void switch_to_next_tets(int i) { // This is an ugly dirty hack to get extra tets working for an08
+        m_cubature_weights = m_all_cubature_weights[m_all_cubature_weights.size() - i - 1];
+        m_cubature_indices = m_all_cubature_indices[m_all_cubature_weights.size() - i - 1];
+
+        m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
+        m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
+
+        std::cout << "Now sampling from " << m_cubature_indices.size() << " tets" << std::endl;
+    }
+
 private:
     VectorXd m_cur_z;
     VectorXd m_prev_z;
@@ -538,9 +559,8 @@ private:
 
     EnergyMethod m_energy_method;
     ReducedSpaceType *m_reduced_space;
-    bool m_use_partial_decode;
-
-    std::vector<int> m_energy_sample_tets;
+    bool m_use_partial_decode = false;
+    bool m_UTMU_is_identity = false;
 
     MatrixXd m_energy_basis;
     VectorXd m_summed_energy_basis;
@@ -551,6 +571,9 @@ private:
     VectorXd m_cubature_weights;
     VectorXi m_cubature_indices;
     VectorXi m_cubature_vert_indices;
+
+    std::vector<VectorXd> m_all_cubature_weights;
+    std::vector<VectorXi> m_all_cubature_indices;
 };
 
 template <typename ReducedSpaceType, typename MatrixType>
@@ -749,6 +772,10 @@ public:
         return m_gplc_objective->get_current_tets();
     }
 
+    void switch_to_next_tets(int i) {
+        m_gplc_objective->switch_to_next_tets(i);
+    }
+
     VectorXd get_current_vert_pos(int vert_index) {
         VectorXd sub_q = m_reduced_space->sub_decode(m_cur_z);
 
@@ -848,19 +875,6 @@ template <typename ReducedSpaceType, typename MatrixType>
 void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path &model_root) {
     // -- Setting up GAUSS
     MyWorld world;
-
-    MatrixXi T_sampled;
-    MatrixXi F_sampled;
-    if(LOGGING_ENABLED) {
-        if(config["integrator_config"]["use_reduced_energy"]) {
-            fs::path sample_tets_path("pca_results/energy_indices.dmat");
-            MatrixXi tet_indices_mat;
-            igl::readDMAT((model_root / sample_tets_path).string(), tet_indices_mat);
-
-            T_sampled = igl::slice(T, tet_indices_mat, 1);
-            igl::boundary_facets(T_sampled, F_sampled);
-        }
-    }
 
     auto material_config = config["material_config"];
     auto integrator_config = config["integrator_config"];
@@ -1225,6 +1239,9 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
                             igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
                         } else {
+
+                            T_sampled = igl::slice(T, gplc_stepper.get_current_tets(), 1);
+                            igl::boundary_facets(T_sampled, F_sampled);
                             igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
                         }
                     }
@@ -1318,6 +1335,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
         return false;
     };
 
+    int index_counter = 0;
     viewer.callback_key_pressed = [&](igl::viewer::Viewer &, unsigned int key, int mod)
     {
         switch(key)
@@ -1356,6 +1374,17 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                 viewer.data.clear();
                 viewer.data.set_mesh(V, F);
                 show_tets = !show_tets;
+                break;
+            }
+            case '-':
+            {
+                gplc_stepper.switch_to_next_tets(++index_counter);
+                break;
+            }
+            case '=':
+            case '+':
+            {
+                gplc_stepper.switch_to_next_tets(++index_counter);
                 break;
             }
             case 'n':
@@ -1479,12 +1508,19 @@ int main(int argc, char **argv) {
     fs::path model_root(argv[1]);
     fs::path sim_config("sim_config.json");
 
-    if(argc == 3) {
+    if(argc >= 3) {
         fs::path sim_recording_path(argv[2]);
         std::ifstream recording_fin(sim_recording_path.string());
 
         recording_fin >> sim_playback_json;
         PLAYBACK_SIM = true;
+    }
+
+    std::string log_string = "";
+    if(argc == 4) {
+        log_string = argv[3];
+    } else {
+        log_string = currentDateTime();
     }
 
 
@@ -1500,7 +1536,7 @@ int main(int argc, char **argv) {
         sim_log["sim_config"] = config;
         sim_log["timesteps"] = {};
         fs::path sim_log_path("simulation_logs/");
-        log_dir = model_root / fs::path("./simulation_logs/" + currentDateTime() + "/");
+        log_dir = model_root / fs::path("./simulation_logs/" + log_string + "/");
         surface_obj_dir = log_dir / fs::path("objs/surface/");
         pointer_obj_dir = log_dir / fs::path("objs/pointer/");
         tet_obj_dir = log_dir / fs::path("objs/sampled_tets/");

@@ -13,6 +13,6 @@ using Eigen::MatrixXi;
 using Eigen::SparseMatrix;
 using Eigen::SparseVector;
 
-enum EnergyMethod {FULL, PCR, AN08, PRED_WEIGHTS_L1, PRED_DIRECT};
+enum EnergyMethod {FULL, PCR, AN08, PRED_WEIGHTS_L1, PRED_DIRECT, NEW_PCR, AN08_ALL};
 
 #endif

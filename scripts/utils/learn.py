@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import pyigl as igl
 from utils.iglhelpers import e2p, p2e
 from utils import my_utils
+from utils.gauss_utils import get_mass_matrix, mass_pca
 
 # Global Vars
 modes = {0: 'baseline', 1:'pca', 2:'autoencoder'}
@@ -38,6 +39,7 @@ def autoencoder_analysis(
     model_root=None,
     autoencoder_config=None,
     callback=None,
+    UTMU=None,
     ): # TODO should probably just pass in both configs here 
     """
     Returns and encoder and decoder for going into and out of the reduced latent space.
@@ -122,10 +124,22 @@ def autoencoder_analysis(
     autoencoder = Model(input, output)
     ## Set the optimization parameters
 
+    def make_UTMU_loss():
+        K_UTMU = K.constant(value=UTMU)
+        def UTMU_loss(y_true, y_pred):
+            u = y_true - y_pred
+            return K.mean(K.dot(u, K.dot(K_UTMU, K.transpose(u))), axis=-1) # TODO should mean be over an axis?
+
+        return UTMU_loss
+
+    loss_func = 'mean_squared_error'
+    if UTMU is not None:
+        loss_func = make_UTMU_loss()
+
     optimizer = keras.optimizers.Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
     autoencoder.compile(
         optimizer=optimizer,
-        loss='mean_squared_error',
+        loss=loss_func,
     )
 
     hist = History()
@@ -209,7 +223,6 @@ def pca_analysis(data, n_components, plot_explained_variance=False):
 
 def pca_no_centering(samples, pca_dim):
     from scipy import linalg
-    from sklearn.utils.extmath import svd_flip
 
     print('Doing PCA for', pca_dim, 'components...')
 
@@ -228,6 +241,20 @@ def pca_no_centering(samples, pca_dim):
         return samples @ U.T
 
     return U, explained_variance_ratio, encode, decode
+
+def mass_pca_analysis(samples, pca_dim, mesh_path, density):
+    U = mass_pca(mesh_path, density, samples, pca_dim, eng=None)  # TODO can optimize this if I'm doing multiple size at once
+
+    # TODO measure relative error?
+    def encode(samples):
+        return samples @ U
+
+    def decode(samples):
+        return samples @ U.T
+
+    return U, 0.0, encode, decode
+
+
 
 def discrete_nn_analysis(
     reduced_space_samples,
@@ -978,8 +1005,9 @@ def basis_opt(energy_model_config, model_root, basis_output_path, index_output_p
 
 def generate_model(
     model_root, # This is the root of the standard formatted directory created by build-model.py
-    learning_config, # Comes from the training config file
+    config, # Comes from the training config file
     ):
+    learning_config = config['learning_config']
     autoencoder_config = learning_config['autoencoder_config']
     energy_model_config = learning_config['energy_model_config']
     save_objs = learning_config['save_objs']
@@ -1003,6 +1031,18 @@ def generate_model(
     displacements = flatten_data(displacements)
     test_displacements = flatten_data(test_displacements)
 
+    # Set up stuff for Mass PCA
+    use_mass_pca = learning_config.get("use_mass_pca")
+    mesh_path = config['mesh']
+    density = 1.0
+    with open(os.path.join(training_data_path, 'parameters.json')) as f:
+        density = json.load(f)['density']
+
+    # Use UTMU Metric?
+    use_UTMU_metric = learning_config.get("use_UTMU_metric")
+    if use_UTMU_metric or use_mass_pca:
+        mass_matrix = get_mass_matrix(mesh_path, density)
+
     # Do the training
     pca_ae_train_dim = autoencoder_config['pca_layer_dim']
     pca_compare_dims = autoencoder_config['pca_compare_dims']
@@ -1023,7 +1063,10 @@ def generate_model(
 
     # Normal low dim pca first
     for pca_dim in pca_compare_dims:
-        U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim)
+        if use_mass_pca:
+            U, explained_var, pca_encode, pca_decode = mass_pca_analysis(displacements, pca_dim, mesh_path, density)
+        else:
+            U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim)
 
         encoded_pca_displacements = pca_encode(displacements)
         decoded_pca_displacements = pca_decode(encoded_pca_displacements)
@@ -1053,8 +1096,16 @@ def generate_model(
 
     # High dim pca to train autoencoder
     pca_start_time = time.time()
-    U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
+    if use_mass_pca:
+        U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = mass_pca_analysis(displacements, pca_ae_train_dim, mesh_path, density)        
+        displacements = (mass_matrix * displacements.T).T # todo
+    else:
+        U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
     pca_train_time = time.time() - pca_start_time
+
+    UTMU = None
+    if use_UTMU_metric:
+        UTMU = U_ae.T @ mass_matrix @ U_ae
 
     if train_in_full_space:
         high_dim_pca_encode = lambda x: x
@@ -1113,6 +1164,7 @@ def generate_model(
                                     model_root=model_root,
                                     autoencoder_config=autoencoder_config,
                                     callback=my_hist_callback,
+                                    UTMU=UTMU,
                                 )
 
     # decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
@@ -1146,7 +1198,7 @@ def generate_model(
             decoded_verts = base_verts + dec_displ.reshape((len(base_verts), 3))
             decoded_verts_eig = p2e(decoded_verts)
 
-            obj_path = os.path.join(obj_dir, "decoded_" + str(i) + ".obj")
+            obj_path = os.path.join(obj_dir, "decoded_%05d.obj" % i)
             igl.writeOBJ(obj_path, decoded_verts_eig, face_indices_eig)
     
 

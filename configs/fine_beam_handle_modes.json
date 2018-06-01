@@ -1,7 +1,7 @@
 {
   "mesh": "../meshes/Fine_beam.mesh",
 
-  "training_dataset": "../training_data/fine_beam_handle_modes/all_states",
+  "training_dataset": "../training_data/fine_beam_handle_modes/training",
   "validation_dataset": "",
 
   "learning_config": {
