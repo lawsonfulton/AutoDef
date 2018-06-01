@@ -20,7 +20,9 @@
 *.off
 *.obj
 configurations
-
+*/*/*/details.txt
+*/*/*/*/*/details.txt
+*/*/*/*/details.txt
 pathdef.m
 
 # Byte-compiled / optimized / DLL files
