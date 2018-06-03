@@ -112,7 +112,7 @@ json sim_playback_json;
 json timestep_info; // Kind of hack but this gets reset at the beginning of each timestep so that we have a global structure to log to
 fs::path log_dir;
 fs::path surface_obj_dir;
-fs::path evaluation_ply_dir;
+fs::path iteration_obj_dir;
 fs::path pointer_obj_dir;
 fs::path tet_obj_dir;
 std::ofstream log_ofstream;
@@ -239,7 +239,7 @@ public:
             m_tets(tets),
             m_reduced_space(reduced_space)
     {
-        m_save_ply_every_evaluation = get_json_value(integrator_config, "save_ply_every_evaluation", false);
+        m_save_obj_every_iteration = get_json_value(integrator_config, "save_obj_every_iteration", false);
         m_cur_sub_q = sub_dec(cur_z);
         m_prev_sub_q = sub_dec(prev_z);
 
@@ -577,7 +577,7 @@ public:
             timestep_info["iteration_info"]["timing"]["predict_weight_time"].push_back(predict_weight_time);
             timestep_info["iteration_info"]["timing"]["obj_and_grad_eval_time_s"].push_back(obj_and_grad_time);
 
-            if(m_save_ply_every_evaluation) {
+            if(cur_line_search_iteration == 0 && m_save_obj_every_iteration) {
                 VectorXd q = m_reduced_space->decode(new_z);
                 Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
 
@@ -585,9 +585,9 @@ public:
                 // fs::path ply_filename = evaluation_ply_dir / (ZeroPadNumber(cur_iteration) + "_" + ZeroPadNumber(cur_line_search_iteration, 2) + ".ply");
                 // igl::writePLY(ply_filename.string(), V + dV.transpose(), F, false);
 
-                fs::path ply_filename = evaluation_ply_dir / (ZeroPadNumber(cur_iteration) + "_" + ZeroPadNumber(cur_line_search_iteration, 2) + ".ply");
+                fs::path obj_filename = iteration_obj_dir / (ZeroPadNumber(cur_iteration) + "_" + ZeroPadNumber(cur_line_search_iteration, 2) + ".obj");
                 MatrixXd new_verts = V + dV.transpose();
-                igl::writeOBJ(ply_filename.string(), new_verts, F);
+                igl::writeOBJ(obj_filename.string(), new_verts, F);
             }
         }
 
@@ -635,7 +635,7 @@ private:
     EnergyMethod m_energy_method;
     ReducedSpaceType *m_reduced_space;
     bool m_use_partial_decode = false;
-    bool m_save_ply_every_evaluation = false;
+    bool m_save_obj_every_iteration = false;
     bool m_UTMU_is_identity = false;
 
     MatrixXd m_energy_basis;
@@ -1632,7 +1632,7 @@ int main(int argc, char **argv) {
         surface_obj_dir = log_dir / fs::path("objs/surface/");
         pointer_obj_dir = log_dir / fs::path("objs/pointer/");
         tet_obj_dir = log_dir / fs::path("objs/sampled_tets/");
-        evaluation_ply_dir = log_dir / fs::path("plys/evaluations/");
+        iteration_obj_dir = log_dir / fs::path("objs/evaluations/");
         if(!boost::filesystem::exists(model_root / sim_log_path)){
             boost::filesystem::create_directory(model_root / sim_log_path);
         }
@@ -1653,8 +1653,8 @@ int main(int argc, char **argv) {
             boost::filesystem::create_directories(tet_obj_dir);
         }
 
-        if(!boost::filesystem::exists(evaluation_ply_dir) && integrator_config["save_ply_every_evaluation"]){
-            boost::filesystem::create_directories(evaluation_ply_dir);
+        if(!boost::filesystem::exists(iteration_obj_dir) && get_json_value(integrator_config, "save_obj_every_iteration", false)){
+            boost::filesystem::create_directories(iteration_obj_dir);
         }
 
         // boost::filesystem::create_directories(log_dir);

@@ -15,6 +15,11 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 #json
 include_directories("/home/lawson/Workspace/json/src")
+# BOOST
+set(Boost_USE_STATIC_LIBS OFF) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME OFF) 
+find_package(Boost COMPONENTS filesystem REQUIRED) 
 
 #Gauss
 set(LIBIGL_INCLUDE_PATH "/home/lawson/Workspace/libigl/include") # Weird that I have to do this for GAUSS seperately
@@ -59,7 +64,7 @@ include_directories(${Gauss_INCLUDE_DIRS})
 #Example codes
 link_directories(${Gauss_LIB_DIR_RELEASE})
 add_executable(GenerateTrainingData ${GenerateTrainingData_SOURCE_DIR}/src/interactive.cpp)
-target_link_libraries(GenerateTrainingData ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer)
+target_link_libraries(GenerateTrainingData ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer Boost::filesystem)
 
 # add_executable(ViewData ${GenerateTrainingData_SOURCE_DIR}/src/cpp/viewData.cpp)
 # target_link_libraries(ViewData ${Gauss_LIBS} ${UI_LIBS})

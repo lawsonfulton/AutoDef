@@ -152,7 +152,7 @@ def main():
             },
             'gravity': -9.8,
             'start_pose_from_training_data': -1,
-            'save_ply_every_iteration': False
+            'save_obj_every_iteration': False
         },
 
         'visualization_config' : {

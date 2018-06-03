@@ -40,8 +40,12 @@ typedef World<double,
                         std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
                         std::tuple<ForceSpringFEMParticle<double> *>,
                         std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
-typedef TimeStepperEulerImplicit<double, AssemblerEigenSparseMatrix<double>, AssemblerEigenVector<double> > ImplicitStepper;
-typedef TimeStepperEulerImplicitLinear<double, AssemblerEigenSparseMatrix<double>, AssemblerEigenVector<double> > LinearImplicitStepper;
+
+typedef AssemblerParallel<double, AssemblerEigenVector<double> > MyAssembler;
+typedef AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > MyAssemblerSparse;
+
+typedef TimeStepperEulerImplicit<double, MyAssemblerSparse, MyAssembler > ImplicitStepper;
+typedef TimeStepperEulerImplicitLinear<double, MyAssemblerSparse, MyAssembler > LinearImplicitStepper;
 
 // Mesh
 Eigen::MatrixXd V; // Verts
@@ -79,7 +83,7 @@ void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, Neoho
     fs::path  displacements_file = output_dir / ("displacements_" + frame_num_string + ".dmat");
     igl::writeDMAT(displacements_file.string(), displacements, false); // Don't use ascii
 
-    AssemblerEigenVector<double> internal_force; //maybe?
+    MyAssembler internal_force; //maybe?
     getInternalForceVector(internal_force, *tets, world);
     fs::path force_file = output_dir / ("internalForces_" + frame_num_string + ".dmat");
     std::cout << (*internal_force).size() << " " << q.size() << std::endl;
@@ -137,7 +141,7 @@ void create_or_replace_dir(fs::path dir) {
 
 
 void update_twist_constraints(MyWorld &world, double timestep) {
-    double rot_t = -4.0 * current_frame * timestep; 
+    double rot_t = -2.0 * current_frame * timestep; 
     double rot_t_2 = -1.0 * current_frame * timestep; 
     double offset_t = -0.0001 * current_frame * timestep;
     
@@ -183,6 +187,8 @@ int main(int argc, char **argv) {
     bool full_implicit = config["full_implicit"];
     int fixed_axis = config["fixed_axis"];
     int its = config["implicit_its"];
+    int max_frames = config["max_frames"];
+    starting_frame_num = config["starting_frame"];
     double timestep = config["time_step"];
     double vert_select_eps = 1e-4;
     // ---
@@ -244,6 +250,9 @@ int main(int argc, char **argv) {
         }
 
         current_frame++;
+        if(max_frames != 0 and current_frame >= max_frames) {
+            exit(0);
+        }
     };
 
 

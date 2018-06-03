@@ -1,0 +1,35 @@
+{
+  "autoencoder": {
+    "training-mse": 5.916719513649438e-07,
+    "relative_percent_error": 1.7530933128719164,
+    "ae_training_time_s": 38.516032457351685,
+    "pca_training_time_s": 0.4328579902648926
+  },
+  "pca": {
+    "2-components": {
+      "training-mse": 0.0001167740433397887,
+      "explained_var": 0.920190874815361,
+      "relative_percent_error": 29.73856885975518
+    },
+    "3-components": {
+      "training-mse": 4.4635623066765935e-05,
+      "explained_var": 0.9694938196268135,
+      "relative_percent_error": 16.75586111073155
+    },
+    "5-components": {
+      "training-mse": 1.1057704182891992e-06,
+      "explained_var": 0.9992442621047049,
+      "relative_percent_error": 2.565251719324131
+    },
+    "10-components": {
+      "training-mse": 7.002349509929022e-10,
+      "explained_var": 0.9999995214249908,
+      "relative_percent_error": 0.06288825783234789
+    },
+    "20-components": {
+      "training-mse": 1.1463828423194806e-13,
+      "explained_var": 0.9999999999216506,
+      "relative_percent_error": 0.0008525393315181875
+    }
+  }
+}
