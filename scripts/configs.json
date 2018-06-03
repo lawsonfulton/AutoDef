@@ -1,13 +1,14 @@
 {
-     "youngs": 100000,
-     "poisson": 0.35,
-     "density": 100,
-     "yield_stress": 100000,
+     "YM": 5e6,
+     "Poisson": 0.45,
+     "density": 1.1,
+     "yield_stress": 6e6,
      "num_handles": 1,
      "num_samples": 500,
-     "output_dir" : "./test_x/",
+     "output_dir" : "../training_data/fine_beam_handle_modes/training/",
      "mesh_path" : "../meshes/Fine_beam.mesh",
      "scale_factor": 1,
      "num_fixed_regions": 1,
+     "use_min_and_max_verts": true,
      "only_write_out_fracture_state": false
  }

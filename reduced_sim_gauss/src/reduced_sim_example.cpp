@@ -37,6 +37,7 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 #include <igl/writeDMAT.h>
 #include <igl/readDMAT.h>
 #include <igl/writeOBJ.h>
+#include <igl/writePLY.h>
 #include <igl/viewer/Viewer.h>
 #include <igl/readMESH.h>
 #include <igl/unproject_onto_mesh.h>
@@ -111,6 +112,7 @@ json sim_playback_json;
 json timestep_info; // Kind of hack but this gets reset at the beginning of each timestep so that we have a global structure to log to
 fs::path log_dir;
 fs::path surface_obj_dir;
+fs::path evaluation_ply_dir;
 fs::path pointer_obj_dir;
 fs::path tet_obj_dir;
 std::ofstream log_ofstream;
@@ -118,12 +120,12 @@ std::ofstream log_ofstream;
 const Eigen::RowVector3d sea_green(229./255.,211./255.,91./255.);
 
 
-std::vector<unsigned int> get_min_verts(int axis, bool get_max = false, double tol = 0.01) {
+std::vector<int> get_min_verts(int axis, bool get_max = false, double tol = 0.001) {
     int dim = axis; // x
     double min_x_val = get_max ?  V.col(dim).maxCoeff() : V.col(dim).minCoeff();
-    std::vector<unsigned int> min_verts;
+    std::vector<int> min_verts;
 
-    for(unsigned int ii=0; ii<V.rows(); ++ii) {
+    for(int ii=0; ii<V.rows(); ++ii) {
         if(fabs(V(ii, dim) - min_x_val) < tol) {
             min_verts.push_back(ii);
         }
@@ -132,30 +134,73 @@ std::vector<unsigned int> get_min_verts(int axis, bool get_max = false, double t
     return min_verts;
 }
 
-SparseMatrix<double> construct_constraints_P(const MatrixXd &V, std::vector<unsigned int> &verts) {
-    // Construct constraint projection matrix
-    std::cout << "Constructing constraints..." << std::endl;
-    std::sort(verts.begin(), verts.end());
-    int q_size = V.rows() * 3; // n dof
-    int n = q_size;
-    int m = n - verts.size()*3;
-    SparseMatrix<double> P(m, n);
-    P.reserve(VectorXi::Constant(n, 1)); // Reserve enough space for 1 non-zero per column
-    int min_vert_i = 0;
-    int cur_col = 0;
-    for(int i = 0; i < m; i+=3){
-        while(verts[min_vert_i] * 3 == cur_col) { // Note * is for vert index -> flattened index
-            cur_col += 3;
-            min_vert_i++;
+// SparseMatrix<double> construct_constraints_P(const MatrixXd &V, std::vector<unsigned int> &verts) {
+//     // Construct constraint projection matrix
+//     std::cout << "Constructing constraints..." << std::endl;
+//     std::sort(verts.begin(), verts.end());
+//     int q_size = V.rows() * 3; // n dof
+//     int n = q_size;
+//     int m = n - verts.size()*3;
+//     SparseMatrix<double> P(m, n);
+//     P.reserve(VectorXi::Constant(n, 1)); // Reserve enough space for 1 non-zero per column
+//     int min_vert_i = 0;
+//     int cur_col = 0;
+//     for(int i = 0; i < m; i+=3){
+//         while(verts[min_vert_i] * 3 == cur_col) { // Note * is for vert index -> flattened index
+//             cur_col += 3;
+//             min_vert_i++;
+//         }
+//         P.insert(i, cur_col) = 1.0;
+//         P.insert(i+1, cur_col+1) = 1.0;
+//         P.insert(i+2, cur_col+2) = 1.0;
+//         cur_col += 3;
+//     }
+//     P.makeCompressed();
+//     std::cout << "Done." << std::endl;
+//     // -- Done constructing P
+//     return P;
+// }
+
+Eigen::SparseMatrix<double> construct_constraints_P(const MatrixXd &V, std::vector<int> &indices) {
+    
+    std::vector<Eigen::Triplet<double> > triplets;
+    Eigen::SparseMatrix<double> P;
+    Eigen::VectorXi sortedIndices = VectorXi::Map(indices.data(), indices.size());
+    std::sort(sortedIndices.data(), sortedIndices.data()+indices.size());
+    
+    //build a projection matrix P which projects fixed points out of a physical syste
+    int fIndex = 0;
+    
+    //total number of DOFS in system
+    
+    unsigned int n = V.rows() * 3;
+    unsigned int m = n - 3*indices.size();
+    
+    P.resize(m,n);
+    
+    //number of unconstrained DOFs
+    unsigned int rowIndex =0;
+    for(unsigned int vIndex = 0; vIndex < V.rows(); vIndex++) {
+        
+        while((vIndex < V.rows()) && (fIndex < sortedIndices.rows()) &&(vIndex == sortedIndices[fIndex])) {
+            fIndex++;
+            vIndex++;
         }
-        P.insert(i, cur_col) = 1.0;
-        P.insert(i+1, cur_col+1) = 1.0;
-        P.insert(i+2, cur_col+2) = 1.0;
-        cur_col += 3;
+        
+        if(vIndex == V.rows())
+            break;
+        
+        //add triplet into matrix
+        triplets.push_back(Eigen::Triplet<double>(rowIndex,  3*vIndex,1));
+        triplets.push_back(Eigen::Triplet<double>(rowIndex+1,  3*vIndex+1, 1));
+        triplets.push_back(Eigen::Triplet<double>(rowIndex+2,  3*vIndex+2, 1));
+        
+        rowIndex+=3;
     }
-    P.makeCompressed();
-    std::cout << "Done." << std::endl;
-    // -- Done constructing P
+    
+    P.setFromTriplets(triplets.begin(), triplets.end());
+    
+    //build the matrix and  return
     return P;
 }
 
@@ -165,6 +210,12 @@ void reset_world (MyWorld &world) {
         q.setZero();
 }
 
+void exit_gracefully() {
+    log_ofstream.seekp(0);
+    log_ofstream << std::setw(2) << sim_log;
+    log_ofstream.close();
+    exit(0);
+}
 
 // -- My integrator
 
@@ -188,6 +239,7 @@ public:
             m_tets(tets),
             m_reduced_space(reduced_space)
     {
+        m_save_ply_every_evaluation = get_json_value(integrator_config, "save_ply_every_evaluation", false);
         m_cur_sub_q = sub_dec(cur_z);
         m_prev_sub_q = sub_dec(prev_z);
 
@@ -221,6 +273,7 @@ public:
         }
 
         m_F_ext = m_M * g;
+
         m_UT_F_ext = m_U.transpose() * m_F_ext;
         m_interaction_force = SparseVector<double>(m_F_ext.size());
 
@@ -428,7 +481,7 @@ public:
     }
 
 
-    double operator()(const VectorXd& new_z, VectorXd& grad)
+    double operator()(const VectorXd& new_z, VectorXd& grad, const int cur_iteration, const int cur_line_search_iteration)
     {
         // Update the tets with candidate configuration
         double obj_start_time = igl::get_seconds();
@@ -449,12 +502,12 @@ public:
         } 
 
         // TWISTING
-        // auto max_verts = get_min_verts(1, true);
-        // Eigen::AngleAxis<double> rot(0.05 * current_frame, Eigen::Vector3d(0.0,1.0,0.0));
+        // auto max_verts = get_min_verts(0, true);
+        // Eigen::AngleAxis<double> rot(0.05 * current_frame, Eigen::Vector3d(1.0,0.0,0.0));
         // for(int i = 0; i < max_verts.size(); i++) {
         //     int vi = max_verts[i];
         //     Eigen::Vector3d v = V.row(vi);
-        //     Eigen::Vector3d new_q = rot * v - v + Eigen::Vector3d(0.0,1.0,0.0) * current_frame / 300.0;
+        //     Eigen::Vector3d new_q = rot * v - v;// + Eigen::Vector3d(1.0,0.0,0.0) * current_frame / 300.0;
         //     for(int j = 0; j < 3; j++) {
         //         q[vi * 3 + j] = new_q[j];
         //     }
@@ -488,25 +541,34 @@ public:
 
         VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
         VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
-        // Old
-        double obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
-                            + m_h * m_h * energy
+        // Full
+        // double obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
+        //                     + m_h * m_h * energy
+        //                     - sub_q_tilde.transpose() * h_2_UT_external_forces;
+
+        // grad = jtvp(new_z, UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+
+        // No momentum
+        double obj_val =   + m_h * m_h * energy
                             - sub_q_tilde.transpose() * h_2_UT_external_forces;
+        grad = jtvp(new_z, - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
 
         // Compute gradient
         // **** TODO
         // Can I further reduce the force calculations by carrying through U?
 
-        if(m_energy_method == PRED_DIRECT) {
-            grad = jtvp(new_z,UTMU_sub_q_tilde - h_2_UT_external_forces) - m_h * m_h * m_reduced_space->get_energy_gradient(new_z);
-        } else {
-            grad = jtvp(new_z,UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
-        }
+        // if(m_energy_method == PRED_DIRECT) {
+        //     grad = jtvp(new_z,UTMU_sub_q_tilde - h_2_UT_external_forces) - m_h * m_h * m_reduced_space->get_energy_gradient(new_z);
+        // } else {
+        //     grad = jtvp(new_z,UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+        // }
 
         double obj_and_grad_time = igl::get_seconds() - obj_and_grad_time_start;
         double obj_time = igl::get_seconds() - obj_start_time;
 
         if(LOGGING_ENABLED) {
+            timestep_info["iteration_info"]["lbfgs_iteration"].push_back(cur_iteration);
+            timestep_info["iteration_info"]["lbfgs_line_iteration"].push_back(cur_line_search_iteration);
             timestep_info["iteration_info"]["lbfgs_obj_vals"].push_back(obj_val);
             timestep_info["iteration_info"]["timing"]["tot_obj_time_s"].push_back(obj_time);
             timestep_info["iteration_info"]["timing"]["tf_time_s"].push_back(tf_time);
@@ -514,6 +576,19 @@ public:
             timestep_info["iteration_info"]["timing"]["energy_forces_time_s"].push_back(energy_forces_time);
             timestep_info["iteration_info"]["timing"]["predict_weight_time"].push_back(predict_weight_time);
             timestep_info["iteration_info"]["timing"]["obj_and_grad_eval_time_s"].push_back(obj_and_grad_time);
+
+            if(m_save_ply_every_evaluation) {
+                VectorXd q = m_reduced_space->decode(new_z);
+                Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
+
+                // PLY
+                // fs::path ply_filename = evaluation_ply_dir / (ZeroPadNumber(cur_iteration) + "_" + ZeroPadNumber(cur_line_search_iteration, 2) + ".ply");
+                // igl::writePLY(ply_filename.string(), V + dV.transpose(), F, false);
+
+                fs::path ply_filename = evaluation_ply_dir / (ZeroPadNumber(cur_iteration) + "_" + ZeroPadNumber(cur_line_search_iteration, 2) + ".ply");
+                MatrixXd new_verts = V + dV.transpose();
+                igl::writeOBJ(ply_filename.string(), new_verts, F);
+            }
         }
 
         return obj_val;
@@ -560,6 +635,7 @@ private:
     EnergyMethod m_energy_method;
     ReducedSpaceType *m_reduced_space;
     bool m_use_partial_decode = false;
+    bool m_save_ply_every_evaluation = false;
     bool m_UTMU_is_identity = false;
 
     MatrixXd m_energy_basis;
@@ -582,34 +658,44 @@ public:
     GPLCTimeStepper(fs::path model_root, json integrator_config, MyWorld *world, NeohookeanTets *tets, ReducedSpaceType *reduced_space) :
         m_world(world), m_tets(tets), m_reduced_space(reduced_space) {
 
+        // Get parameters
+        m_energy_method = energy_method_from_integrator_config(integrator_config);
         m_use_preconditioner = integrator_config["use_preconditioner"];
         m_is_full_space = integrator_config["reduced_space_type"] == "full";
-       // LBFGSpp::LBFGSParam<DataType> param;
+        m_h = integrator_config["timestep"];
+        m_U = reduced_space->outer_jacobian();
+
+
+        // Set up lbfgs params
+        json lbfgs_config = integrator_config["lbfgs_config"];
+        m_lbfgs_param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
+        m_lbfgs_param.m = lbfgs_config["lbfgs_m"];
+        m_lbfgs_param.epsilon = lbfgs_config["lbfgs_epsilon"]; //1e-8// TODO replace convergence test with abs difference
+        m_lbfgs_param.max_iterations = lbfgs_config["lbfgs_max_iterations"];//500;//300;
        // param.epsilon = 1e-4;
        // param.max_iterations = 1000;
        // param.past = 1;
        // param.m = 5;
        // param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
-        m_lbfgs_param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
-
-        // Set up lbfgs params
-        json lbfgs_config = integrator_config["lbfgs_config"];
-        m_lbfgs_param.m = lbfgs_config["lbfgs_m"];
-        m_lbfgs_param.epsilon = lbfgs_config["lbfgs_epsilon"]; //1e-8// TODO replace convergence test with abs difference
-        m_lbfgs_param.max_iterations = lbfgs_config["lbfgs_max_iterations"];//500;//300;
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
 
+
+        // Load start pose if needed
+        int start_pose_from_training_data = get_json_value(integrator_config, "start_pose_from_training_data", -1);
+        if(start_pose_from_training_data != -1) {
+            MatrixXd starting_data;
+            igl::readDMAT((model_root / ("training_data/training/displacements_" + std::to_string(start_pose_from_training_data) + ".dmat")).string(), starting_data);
+            starting_data.transposeInPlace();
+            m_starting_pose = Eigen::Map<VectorXd>(starting_data.data(), starting_data.size());
+        } else {
+            m_starting_pose = VectorXd::Zero(V.size());
+        }
         reset_zs();
-        m_gplc_objective = new GPLCObjective<ReducedSpaceType, MatrixType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
 
-        m_h = integrator_config["timestep"];
-        m_U = reduced_space->outer_jacobian();
-        MatrixType J = reduced_space->inner_jacobian(m_cur_z);
 
-        
-        m_energy_method = energy_method_from_integrator_config(integrator_config);
-
+        // Set up preconditioner
         if(m_use_preconditioner) {
+            MatrixType J = reduced_space->inner_jacobian(m_cur_z);
             std::cout << "Constructing reduced mass and stiffness matrix..." << std::endl;
             double start_time = igl::get_seconds();
             getMassMatrix(m_M_asm, *m_world);
@@ -620,7 +706,9 @@ public:
             m_H_llt.compute(m_H);
             std::cout << "Took " << (igl::get_seconds() - start_time) << "s" << std::endl;
         }
-        // m_H_llt = MatrixXd::Identity(m_H.rows(), m_H.cols()).llt();
+
+        // Finally initialize the BFGS objective
+        m_gplc_objective = new GPLCObjective<ReducedSpaceType, MatrixType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
     }
 
     ~GPLCTimeStepper() {
@@ -744,8 +832,7 @@ public:
     }
 
     void reset_zs() {
-        Eigen::VectorXd rest = VectorXd::Zero(V.size());
-        m_prev_z = m_reduced_space->encode(rest);
+        m_prev_z = m_reduced_space->encode(m_starting_pose);
         m_cur_z = m_prev_z;
         update_world_with_current_configuration();
     }
@@ -789,6 +876,8 @@ private:
     LBFGSParam<double> m_lbfgs_param;
     LBFGSSolver<double> *m_solver;
     GPLCObjective<ReducedSpaceType, MatrixType> *m_gplc_objective;
+
+    VectorXd m_starting_pose;
 
     VectorXd m_prev_z;
     VectorXd m_cur_z;
@@ -914,6 +1003,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     }
 
     bool do_gpu_decode = integrator_config["reduced_space_type"] != "full" && get_json_value(visualization_config, "gpu_decode", false);
+    int max_frames = get_json_value(visualization_config, "max_frames", 0);
 
     /** libigl display stuff **/
     igl::viewer::Viewer viewer;    
@@ -1269,6 +1359,9 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                 std::cout << "Step time + rendering(Hz): "<< cur_fps << std::endl;
             }
 
+            if(max_frames != 0 && current_frame + 1 >= max_frames) {
+                exit_gracefully();
+            }
             current_frame++;
         }
 
@@ -1342,10 +1435,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
         {
             case 'q':
             {
-                log_ofstream.seekp(0);
-                log_ofstream << std::setw(2) << sim_log;
-                log_ofstream.close();
-                exit(0);
+                exit_gracefully();
                 break;
             }
             case 'P':
@@ -1531,6 +1621,8 @@ int main(int argc, char **argv) {
     auto integrator_config = config["integrator_config"];
     std::string reduced_space_string = integrator_config["reduced_space_type"];
 
+    print_freq = get_json_value(config["visualization_config"], "print_every_n_frames", print_freq);
+
     LOGGING_ENABLED = config["logging_enabled"];
     if(LOGGING_ENABLED) {
         sim_log["sim_config"] = config;
@@ -1540,6 +1632,7 @@ int main(int argc, char **argv) {
         surface_obj_dir = log_dir / fs::path("objs/surface/");
         pointer_obj_dir = log_dir / fs::path("objs/pointer/");
         tet_obj_dir = log_dir / fs::path("objs/sampled_tets/");
+        evaluation_ply_dir = log_dir / fs::path("plys/evaluations/");
         if(!boost::filesystem::exists(model_root / sim_log_path)){
             boost::filesystem::create_directory(model_root / sim_log_path);
         }
@@ -1560,6 +1653,10 @@ int main(int argc, char **argv) {
             boost::filesystem::create_directories(tet_obj_dir);
         }
 
+        if(!boost::filesystem::exists(evaluation_ply_dir) && integrator_config["save_ply_every_evaluation"]){
+            boost::filesystem::create_directories(evaluation_ply_dir);
+        }
+
         // boost::filesystem::create_directories(log_dir);
         fs::path log_file("sim_stats.json");
 
@@ -1567,8 +1664,15 @@ int main(int argc, char **argv) {
     }
 
     // Load the mesh here
-    igl::readMESH((model_root / "tets.mesh").string(), V, T, F);
+    std::string alternative_mesh_path = get_json_value(config, "alternative_full_space_mesh", std::string(""));
+    if(alternative_mesh_path != "") {
+        igl::readMESH((model_root / alternative_mesh_path).string(), V, T, F);
+    } else {
+        igl::readMESH((model_root / "tets.mesh").string(), V, T, F);
+    }
+
     igl::boundary_facets(T,F);
+
     // Center mesh
     Eigen::RowVector3d centroid;
     igl::centroid(V, F, centroid);
@@ -1601,6 +1705,7 @@ int main(int argc, char **argv) {
         }
 
         auto min_verts = get_min_verts(fixed_axis);
+
         // For twisting
         // auto max_verts = get_min_verts(fixed_axis, true);
         // min_verts.insert(min_verts.end(), max_verts.begin(), max_verts.end());

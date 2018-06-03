@@ -19,6 +19,7 @@
 *.hdf5
 *.off
 *.obj
+*.ply
 configurations
 */*/*/details.txt
 */*/*/*/*/details.txt

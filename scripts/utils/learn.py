@@ -1002,6 +1002,8 @@ def basis_opt(energy_model_config, model_root, basis_output_path, index_output_p
             json.dump(training_log, f, indent=2)
 
 
+def compute_relative_percent_error(pred, actual):
+    return 100.0 * numpy.sum(numpy.abs(actual - pred)) / numpy.sum(numpy.abs(actual))
 
 def generate_model(
     model_root, # This is the root of the standard formatted directory created by build-model.py
@@ -1033,7 +1035,7 @@ def generate_model(
 
     # Set up stuff for Mass PCA
     use_mass_pca = learning_config.get("use_mass_pca")
-    mesh_path = config['mesh']
+    mesh_path = os.path.join(model_root, 'tets.mesh')
     density = 1.0
     with open(os.path.join(training_data_path, 'parameters.json')) as f:
         density = json.load(f)['density']
@@ -1081,16 +1083,24 @@ def generate_model(
             my_utils.save_numpy_mat_to_dmat(pca_results_filename, numpy.ascontiguousarray(U))
 
             training_mse = mean_squared_error(flatten_data(decoded_pca_displacements), flatten_data(displacements))
+
+            actual = flatten_data(displacements)
+            pred = flatten_data(decoded_pca_displacements)
+            relative_error = compute_relative_percent_error(pred, actual)
+            
+
             if test_displacements is not None:
                 validation_mse = mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements))
             training_results['pca'][str(pca_dim) + '-components'] = {}
             training_results['pca'][str(pca_dim) + '-components']['training-mse'] = training_mse
             training_results['pca'][str(pca_dim) + '-components']['explained_var'] = numpy.sum(explained_var)
+            training_results['pca'][str(pca_dim) + '-components']['relative_percent_error'] = relative_error
             if test_displacements is not None:
                 training_results['pca'][str(pca_dim) + '-components']['validation-mse'] = validation_mse
 
             print(str(pca_dim) + ' training MSE: ', training_mse)
             print(str(pca_dim) + ' explained variance: ', numpy.sum(explained_var))
+            print(str(pca_dim) + ' relative percent error: ', relative_error)
             print()
 
 
@@ -1173,11 +1183,16 @@ def generate_model(
     if test_displacements is not None:
         decoded_autoencoder_test_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(test_displacements))))
     ae_training_mse = mean_squared_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
+    ae_relative_percent_error = compute_relative_percent_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
+
     training_results['autoencoder']['training-mse'] = ae_training_mse
+    training_results['autoencoder']['relative_percent_error'] = ae_relative_percent_error
     if test_displacements is not None:
         training_results['autoencoder']['validation-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements))
 
     print('Finale ae training MSE:', ae_training_mse)
+    print('Finale ae relative percent error:', ae_relative_percent_error)
+
     training_results['autoencoder']['ae_training_time_s'] = ae_train_time
     training_results['autoencoder']['pca_training_time_s'] = pca_train_time
     # TODO output energy loss as well

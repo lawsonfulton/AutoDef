@@ -1,0 +1,14 @@
+
+{
+     "YM": 1000000,
+     "Poisson": 0.47,
+     "density": 1000,
+     "output_dir" : "../../training_data/new_25cm_bar_11k_twist_and_bend",
+     "mesh_path" : "../../meshes/25cm_bar_11k_tets.mesh",
+     "spring_strength": 0.10,
+     "time_step": 0.005,
+     "full_implicit": false,
+     "implicit_its": 100000,
+     "fixed_axis": 0,
+     "do_twist": true
+ }

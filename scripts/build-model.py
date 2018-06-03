@@ -37,7 +37,11 @@ def get_config(path):
 
 def copy_files_into_out_dir(config_path, config, config_dir, model_root):
     # -- Mesh
-    mesh_in = os.path.join(config_dir, config['mesh'])
+    if 'mesh' in config:
+        mesh_in = os.path.join(config_dir, config['mesh'])
+    else:
+        mesh_in = os.path.join(config_dir, config['training_dataset'], 'tets.mesh')
+
     mesh_out = os.path.join(model_root, 'tets.mesh')
     shutil.copy(mesh_in, mesh_out)
 
@@ -84,6 +88,10 @@ def main():
     config = get_config(config_path)
     config_dir = os.path.dirname(config_path) # All paths in the config are relative to the config location
 
+    training_params_path = os.path.join(config_dir, config['training_dataset'], 'parameters.json')
+    with open(training_params_path, 'r') as f:
+        training_data_params = json.load(f)
+
     # Copy the needed files into the output dir
     print('Copying files into output directory...')
     copy_files_into_out_dir(config_path, config, config_dir, model_root)
@@ -114,16 +122,13 @@ def main():
     if energy_model_config['enabled']:
         learn.build_energy_model(model_root, energy_model_config)
 
-    training_params_path = os.path.join(config_dir, config['training_dataset'], 'parameters.json')
-    with open(training_params_path, 'r') as f:
-        training_data_params = json.load(f)
-
     # Output simulation config
     print('\nGenerating simulation config file...')
     simulation_config = {
         'mesh': os.path.join(model_root, 'tets.mesh'),
         'logging_enabled': False,
         'save_objs': False,
+        "alternative_full_space_mesh": "",
         'material_config': {
             'density': training_data_params['density'], # TODO these numbers should probably match whatever the training data was by default.
             'youngs_modulus': training_data_params['YM'],
@@ -141,11 +146,13 @@ def main():
             'ae_decoded_dim': config['learning_config']['autoencoder_config']['pca_layer_dim'], # Shouldn't be change. Kind of a hack.
             'timestep': 1/30.0,
             'lbfgs_config': {
-                'lbfgs_max_iterations': 150,
-                'lbfgs_epsilon': 1e-4,
+                'lbfgs_max_iterations': 1000,
+                'lbfgs_epsilon': 1e-8, # Should this be smaller?
                 'lbfgs_m': 8,
             },
             'gravity': -9.8,
+            'start_pose_from_training_data': -1,
+            'save_ply_every_iteration': False
         },
 
         'visualization_config' : {
@@ -153,7 +160,9 @@ def main():
             'show_stress': False,
             'show_energy': False,
             'interaction_spring_stiffness': 1e4,
-            'full_space_constrained_axis': 1,
+            'full_space_constrained_axis': 0,
+            'print_every_n_frames': 10,
+            'max_frames': 0,
         },
     }
     with open(os.path.join(model_root, 'sim_config.json'), 'w') as f:

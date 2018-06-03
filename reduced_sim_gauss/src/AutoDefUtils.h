@@ -35,7 +35,7 @@ EnergyMethod energy_method_from_integrator_config(const json &integrator_config)
     exit(1);
 }
 
-template<class T>
+template<typename T>
 T get_json_value(const json &j, const std::string &key, T def) {
     try {
         return j.at(key);
@@ -43,6 +43,13 @@ T get_json_value(const json &j, const std::string &key, T def) {
     catch (nlohmann::detail::out_of_range& e){
         return def;
     }
+}
+
+std::string ZeroPadNumber(int num, int N = 5)
+{
+    std::ostringstream ss;
+    ss << std::setw( N ) << std::setfill( '0' ) << num;
+    return ss.str();
 }
 
 double approxRollingAverage (double avg, double new_sample, int N=20) {

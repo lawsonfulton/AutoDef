@@ -1,5 +1,5 @@
 #include <vector>
-
+#include <boost/filesystem.hpp>
 //#include <Qt3DIncludes.h>
 #include <GaussIncludes.h>
 #include <ForceSpring.h>
@@ -24,6 +24,7 @@
 
 #include <json.hpp>
 
+namespace fs = boost::filesystem;
 using json = nlohmann::json;
 using namespace Gauss;
 using namespace FEM;
@@ -39,13 +40,16 @@ typedef World<double,
                         std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
                         std::tuple<ForceSpringFEMParticle<double> *>,
                         std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
-typedef TimeStepperEulerImplicitLinear<double, AssemblerEigenSparseMatrix<double>,
- AssemblerEigenVector<double> > MyTimeStepper;
+typedef TimeStepperEulerImplicit<double, AssemblerEigenSparseMatrix<double>, AssemblerEigenVector<double> > ImplicitStepper;
+typedef TimeStepperEulerImplicitLinear<double, AssemblerEigenSparseMatrix<double>, AssemblerEigenVector<double> > LinearImplicitStepper;
 
 // Mesh
 Eigen::MatrixXd V; // Verts
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
+
+std::vector<ConstraintFixedPoint<double> *> movingConstraints;
+Eigen::VectorXi movingVerts;
 
 // Mouse/Viewer state
 Eigen::RowVector3f last_mouse;
@@ -53,51 +57,51 @@ Eigen::RowVector3d dragged_pos;
 bool is_dragging = false;
 int dragged_vert = 0;
 int current_frame = 0;
+int starting_frame_num = 0;
 
 // Parameters
 bool saving_training_data = true;
-std::string output_dir = "output_data/";
 json mouse_json;
 
-void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, NeohookeanTets *tets, json mouse_json) { // TODO: Add mouse position data to ouput
+std::string ZeroPadNumber(int num)
+{
+    std::ostringstream ss;
+    ss << std::setw( 7 ) << std::setfill( '0' ) << num;
+    return ss.str();
+}
+
+void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, NeohookeanTets *tets, json mouse_json, fs::path output_dir) { // TODO: Add mouse position data to ouput
+    std::string frame_num_string = std::to_string(current_frame + starting_frame_num);
     auto q = mapDOFEigen(tets->getQ(), world);
     Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
     Eigen::MatrixXd displacements = dV.transpose();
 
-    std::stringstream displacements_filename;
-    displacements_filename << output_dir << "displacements_" << current_frame << ".dmat";
-    igl::writeDMAT(displacements_filename.str(), displacements, false); // Don't use ascii
+    fs::path  displacements_file = output_dir / ("displacements_" + frame_num_string + ".dmat");
+    igl::writeDMAT(displacements_file.string(), displacements, false); // Don't use ascii
 
     AssemblerEigenVector<double> internal_force; //maybe?
     getInternalForceVector(internal_force, *tets, world);
-    std::stringstream force_filename;
-    force_filename<<output_dir<<"internalForces_"<<current_frame<<".dmat";
+    fs::path force_file = output_dir / ("internalForces_" + frame_num_string + ".dmat");
     std::cout << (*internal_force).size() << " " << q.size() << std::endl;
-    igl::writeDMAT(force_filename.str(), *internal_force, false);
+    igl::writeDMAT(force_file.string(), *internal_force, false);
 
 
-    std::stringstream energy_filename;
-    energy_filename << output_dir << "energy_" << current_frame << ".dmat";
+    fs::path energy_file = output_dir / ("energy_" + frame_num_string + ".dmat");
     Eigen::MatrixXd energy_vec = tets->getStrainEnergyPerElement(world.getState());
-    std::cout<<"here"<<std::endl;
-    igl::writeDMAT(energy_filename.str(), energy_vec, false); // Don't use ascii
-    // std::cout<<energy_vec<<std::endl;
-    std::ofstream fout(output_dir + "mouse.json");
+    igl::writeDMAT(energy_file.string(), energy_vec, false); // Don't use ascii
+
+    std::ofstream fout((output_dir / "mouse.json").string());
     fout << mouse_json;
     fout.close();
 
-    std::cout << "Saved " << displacements_filename.str() << std::endl;
-    std::cout << "Saved " << energy_filename.str() << std::endl;
+    std::cout << "Saved " << displacements_file.string() << std::endl;
+    std::cout << "Saved " << energy_file.string() << std::endl;
     // std::cout << "Saved " << force_filename.str() << std::endl;
 }
 
-void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F) {
-    std::stringstream verts_filename, faces_filename;
-    verts_filename << output_dir << "base_verts.dmat";
-    faces_filename << output_dir << "base_faces.dmat";
-
-    igl::writeDMAT(verts_filename.str(), V, false); // Don't use ascii
-    igl::writeDMAT(faces_filename.str(), F, false); // Don't use ascii
+void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F, fs::path output_dir) {
+    igl::writeDMAT((output_dir / "base_verts.dmat").string(), V, false); // Don't use ascii
+    igl::writeDMAT((output_dir / "base_faces.dmat").string(), F, false); // Don't use ascii
 }
 
 
@@ -116,46 +120,138 @@ void reset_world (MyWorld &world) {
         q.setZero();
 }
 
-int main(int argc, char **argv) {
-    std::cout<<"Test Neohookean FEM \n";
+void create_or_replace_dir(fs::path dir) {
+    if(fs::exists(dir)){
+        std::cout << "Are you sure you want to delete " << dir << "? Y/n: ";
+        std::string input;
+        input = std::cin.get();
+        if(input == "Y" || input == "y" || input == "\n") {
+            fs::remove_all(dir);
+        } else {
+            exit(1);
+        }
+    }
+    fs::create_directory(dir);
+}
 
-    //Setup Physics
+
+
+void update_twist_constraints(MyWorld &world, double timestep) {
+    double rot_t = -4.0 * current_frame * timestep; 
+    double rot_t_2 = -1.0 * current_frame * timestep; 
+    double offset_t = -0.0001 * current_frame * timestep;
+    
+    Eigen::AngleAxis<double> rot(rot_t, Eigen::Vector3d(1.0,0.0,0.0));
+    Eigen::AngleAxis<double> rot2(-rot_t_2 * 0.3, Eigen::Vector3d(0.0,1.0,1.0));
+    Eigen::Vector3d offset = offset_t * Eigen::Vector3d(-0.7,-0.5,1.5);
+
+    for(unsigned int jj=0; jj<movingConstraints.size(); ++jj) {
+        Eigen::Vector3d current_u = mapDOFEigen(movingConstraints[jj]->getDOF(0), world.getState());
+        Eigen::Vector3d v = V.row(movingVerts[jj]);
+        Eigen::Vector3d new_v = rot2 * rot * v + offset;
+
+        Eigen::Vector3d delta_u = (new_v - v) - current_u;
+        movingConstraints[jj]->getImpl().setFixedPoint(new_v, delta_u/timestep);
+    }
+}
+
+
+
+int main(int argc, char **argv) {
     MyWorld world;
 
-    igl::readMESH(argv[1], V, T, F);
+    // --- Read in config
+    fs::path config_path(argv[1]);
+    fs::path config_dir(config_path.parent_path());
+    std::ifstream fin(config_path.string());
+    json config;
+    fin >> config;
+
+    std::string output_dir_string = config["output_dir"];
+    std::string mesh_path_string = config["mesh_path"];
+    fs::path output_dir = config_dir / output_dir_string;
+    fs::path mesh_path = config_dir / mesh_path_string;
+
+    create_or_replace_dir(output_dir);
+    fs::copy_file(config_path, output_dir/ "parameters.json" );
+    fs::copy_file(mesh_path, output_dir/ "tets.mesh" );
+    // ----
+
+
+    // --- Config vars
+    bool do_twist = config["do_twist"];
+    bool full_implicit = config["full_implicit"];
+    int fixed_axis = config["fixed_axis"];
+    int its = config["implicit_its"];
+    double timestep = config["time_step"];
+    double vert_select_eps = 1e-4;
+    // ---
+
+
+    // --- Setup tet mesh
+    igl::readMESH(mesh_path.string(), V, T, F);
     NeohookeanTets *tets = new NeohookeanTets(V,T);
     for(auto element: tets->getImpl().getElements()) {
-        element->setDensity(1000.0);//1000.0);
-        element->setParameters(1000000, 0.45);
+        element->setDensity(config["density"]);//1000.0);
+        element->setParameters(config["YM"], config["Poisson"]);
     }
+    world.addSystem(tets);
+    fixDisplacementMin(world, tets, fixed_axis, vert_select_eps);
 
-    mouse_json["mouse_state_per_frame"] = json::array();
-    // // Pinned particle to attach spring for dragging
+    if(do_twist) {
+        movingVerts = maxVertices(tets, fixed_axis); //indices for moving parts
+        for(unsigned int ii=0; ii<movingVerts.rows(); ++ii) {
+            movingConstraints.push_back(new ConstraintFixedPoint<double>(&tets->getQ()[movingVerts[ii]], Eigen::Vector3d(0,0,0)));
+            world.addConstraint(movingConstraints[ii]);
+        }
+    }
+    // ---
+
+
+    // --- Set up mouse interaction
     PhysicalSystemParticleSingle<double> *pinned_point = new PhysicalSystemParticleSingle<double>();
     pinned_point->getImpl().setMass(100000000); //10000000
     auto fem_attached_pos = PosFEM<double>(&tets->getQ()[0],0, &tets->getImpl().getV());
-
-    double spring_stiffness = 150.0;
-    double spring_rest_length = 0.1;
+    double spring_stiffness = config["spring_strength"];
+    double spring_rest_length = 0.01;
     ForceSpringFEMParticle<double> *forceSpring = new ForceSpringFEMParticle<double>(fem_attached_pos, // TODO compare getV to V. Get rid of double use of index
                                                                                      PosParticle<double>(&pinned_point->getQ()),
                                                                                      spring_rest_length, 0.0);
-
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
-    world.addSystem(tets);
+    // --- 
 
-    fixDisplacementMin(world, tets, argc > 2 ? std::stoi(argv[2]) : 0, 0.1);
+
+    // --- Finalize world and time stepper
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
-
     reset_world(world);
 
-    MyTimeStepper stepper(0.05);//, 10);
-    stepper.step(world);
+    ImplicitStepper implicit_stepper(timestep, its);
+    LinearImplicitStepper linear_stepper(timestep, its);
+    // --- 
+
+
+    // This is where we update state
+    auto do_timestep = [&] () {
+        if(do_twist) {
+            update_twist_constraints(world, timestep);
+        }
+        
+        if(full_implicit) {
+            implicit_stepper.step(world);
+        } else {
+            linear_stepper.step(world);
+        }
+
+        current_frame++;
+    };
+
 
     if(saving_training_data) {
-        save_base_configurations_DMAT(V, F);
+        save_base_configurations_DMAT(V, F, output_dir.string());
     }
+
+    mouse_json["mouse_state_per_frame"] = json::array();
 
     /** libigl display stuff **/
     igl::viewer::Viewer viewer;
@@ -191,10 +287,10 @@ int main(int argc, char **argv) {
             //     std::cout << "Index mismatch!" << std::endl;
             // }
             if(saving_training_data) {
-                save_displacements_DMAT_and_energy(current_frame, world, tets, mouse_json);
+                save_displacements_DMAT_and_energy(current_frame, world, tets, mouse_json, output_dir.string());
             }
             double start = igl::get_seconds();
-            stepper.step(world);
+            do_timestep();
             tot_time += igl::get_seconds() - start;
 
 
@@ -203,8 +299,6 @@ int main(int argc, char **argv) {
             // std::cout<< newV.block(0,0,10,3) << std::endl;
             viewer.data.set_vertices(newV);
             viewer.data.compute_normals();
-
-            current_frame++;
             std::cout << "Average timestep: " << (tot_time / current_frame) << std::endl;
         }
         return false;
