@@ -10,6 +10,6 @@
      "implicit_its": 100000,
      "fixed_axis": 0,
      "do_twist": true,
-     "max_frames": 400,
-     "starting_frame": 400
+     "max_frames": 0,
+     "starting_frame": 356
  }

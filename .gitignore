@@ -11,7 +11,7 @@
 *.edge
 *.ele
 *.face
-
+training_data/
 *.smesh
 *.node
 *.zip

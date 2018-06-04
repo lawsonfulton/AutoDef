@@ -1,6 +1,6 @@
 {
-  "mesh": "models/new_25cm_bar_11k_twist_and_bend_1d/tets.mesh",
-  "logging_enabled": true,
+  "mesh": "models/new_25cm_bar_11k_twist_and_bend_1d_v2/tets.mesh",
+  "logging_enabled": false,
   "save_objs": false,
   "alternative_full_space_mesh": "",
   "material_config": {
@@ -13,19 +13,19 @@
     "use_reduced_energy": false,
     "use_partial_decode": true,
     "reduced_energy_method": "pcr",
-    "use_preconditioner": true,
-    "pca_dim": 2,
+    "use_preconditioner": false,
+    "pca_dim": 20,
     "ae_encoded_dim": 1,
     "ae_decoded_dim": 20,
     "timestep": 0.003333333333333333,
     "lbfgs_config": {
       "lbfgs_max_iterations": 0,
-      "lbfgs_epsilon": 1e-06,
+      "lbfgs_epsilon": 1e-07,
       "lbfgs_m": 8
     },
-    "gravity": -9.8,
+    "gravity": 0,
     "start_pose_from_training_data": 300,
-    "save_obj_every_iteration": true
+    "save_obj_every_iteration": false
   },
   "visualization_config": {
     "gpu_decode": true,

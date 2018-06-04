@@ -141,9 +141,9 @@ void create_or_replace_dir(fs::path dir) {
 
 
 void update_twist_constraints(MyWorld &world, double timestep) {
-    double rot_t = -2.0 * current_frame * timestep; 
-    double rot_t_2 = -1.0 * current_frame * timestep; 
-    double offset_t = -0.0001 * current_frame * timestep;
+    double rot_t = -2.0 * current_frame * timestep * 0.0; 
+    double rot_t_2 = -1.0 * current_frame * timestep * 0.0; 
+    double offset_t = -0.0001 * current_frame * timestep * 0.0;
     
     Eigen::AngleAxis<double> rot(rot_t, Eigen::Vector3d(1.0,0.0,0.0));
     Eigen::AngleAxis<double> rot2(-rot_t_2 * 0.3, Eigen::Vector3d(0.0,1.0,1.0));

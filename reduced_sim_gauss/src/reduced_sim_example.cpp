@@ -577,7 +577,7 @@ public:
             timestep_info["iteration_info"]["timing"]["predict_weight_time"].push_back(predict_weight_time);
             timestep_info["iteration_info"]["timing"]["obj_and_grad_eval_time_s"].push_back(obj_and_grad_time);
 
-            if(cur_line_search_iteration == 0 && m_save_obj_every_iteration) {
+            if(m_save_obj_every_iteration) {
                 VectorXd q = m_reduced_space->decode(new_z);
                 Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
 

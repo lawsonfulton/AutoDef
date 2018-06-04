@@ -1,6 +1,6 @@
 {
   "mesh": "models/new_25cm_bar_11k_twist_and_bend_2d_v2/tets.mesh",
-  "logging_enabled": true,
+  "logging_enabled": false,
   "save_objs": false,
   "alternative_full_space_mesh": "",
   "material_config": {
@@ -23,9 +23,9 @@
       "lbfgs_epsilon": 1e-06,
       "lbfgs_m": 8
     },
-    "gravity": -9.8,
+    "gravity": 0,
     "start_pose_from_training_data": 300,
-    "save_obj_every_iteration": true
+    "save_obj_every_iteration": false
   },
   "visualization_config": {
     "gpu_decode": true,
