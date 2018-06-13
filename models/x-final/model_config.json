@@ -8,6 +8,8 @@
     "save_objs": false,
     "skip_training": false,
     "skip_jacobian": false,
+    "use_mass_pca": false,
+    "use_UTMU_metric": false,
     "autoencoder_config": {
       "pca_compare_dims": [6, 30],
 

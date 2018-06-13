@@ -1018,8 +1018,10 @@ def generate_model(
 
     training_data_path = os.path.join(model_root, 'training_data/training')
     validation_data_path = os.path.join(model_root, 'training_data/validation')
+    mesh_path = os.path.join(model_root, 'tets.mesh')
+
     # Loading the rest pose
-    base_verts, face_indices = my_utils.load_base_vert_and_face_dmat_to_numpy(training_data_path)
+    base_verts, face_indices = my_utils.load_base_vert_and_face_dmat_to_numpy(mesh_path)
     base_verts_eig = p2e(base_verts)
     face_indices_eig = p2e(face_indices)
 
@@ -1035,7 +1037,6 @@ def generate_model(
 
     # Set up stuff for Mass PCA
     use_mass_pca = learning_config.get("use_mass_pca")
-    mesh_path = os.path.join(model_root, 'tets.mesh')
     density = 1.0
     with open(os.path.join(training_data_path, 'parameters.json')) as f:
         density = json.load(f)['density']

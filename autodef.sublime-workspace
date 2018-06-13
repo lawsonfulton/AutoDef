@@ -4,6 +4,238 @@
 		"selected_items":
 		[
 			[
+				"mesh",
+				"mesh_path"
+			],
+			[
+				"My",
+				"MyAssembler"
+			],
+			[
+				"MyAss",
+				"MyAssemblerSparse"
+			],
+			[
+				"start",
+				"starting_frame_num"
+			],
+			[
+				"rela",
+				"relative_percent_error"
+			],
+			[
+				"act",
+				"actual"
+			],
+			[
+				"re",
+				"relative"
+			],
+			[
+				"rel",
+				"relative_error"
+			],
+			[
+				"ac",
+				"actual"
+			],
+			[
+				"Ze",
+				"ZeroPadNumber"
+			],
+			[
+				"exit",
+				"exit_gracefully"
+			],
+			[
+				"max",
+				"max_frames"
+			],
+			[
+				"json",
+				"get_json_value"
+			],
+			[
+				"eva",
+				"evaluation_ply_dir"
+			],
+			[
+				"write",
+				"writePLY"
+			],
+			[
+				"Matrix",
+				"MatrixXd"
+			],
+			[
+				"displ",
+				"displacements"
+			],
+			[
+				"star",
+				"start_pose_from_training_data"
+			],
+			[
+				"integra",
+				"integrator_config"
+			],
+			[
+				"st",
+				"starting_frame_num"
+			],
+			[
+				"time",
+				"timestep"
+			],
+			[
+				"offs",
+				"offset_t"
+			],
+			[
+				"new",
+				"new_v"
+			],
+			[
+				"curr",
+				"current_u"
+			],
+			[
+				"Vector",
+				"Vector3d"
+			],
+			[
+				"training_par",
+				"training_data_params"
+			],
+			[
+				"displac",
+				"displacements_"
+			],
+			[
+				"do_",
+				"do_twist"
+			],
+			[
+				"confi",
+				"config_path"
+			],
+			[
+				"conf",
+				"config_path"
+			],
+			[
+				"out",
+				"output_dir"
+			],
+			[
+				"vu",
+				"visualization_config"
+			],
+			[
+				"Vecto",
+				"VectorXf"
+			],
+			[
+				"inde",
+				"index_counter"
+			],
+			[
+				"sw",
+				"switch_to_next_tets"
+			],
+			[
+				"m_",
+				"m_cubature_weights"
+			],
+			[
+				"AN",
+				"AN08_ALL"
+			],
+			[
+				"m_al",
+				"m_all_cubature_weights"
+			],
+			[
+				"ener",
+				"energy_model_dir"
+			],
+			[
+				"all",
+				"all_weights"
+			],
+			[
+				"Matr",
+				"MatrixXd"
+			],
+			[
+				"mak",
+				"make_UTMU_loss"
+			],
+			[
+				"mea",
+				"mean_squared_error"
+			],
+			[
+				"U",
+				"U_ae"
+			],
+			[
+				"use",
+				"use_UTMU_metric"
+			],
+			[
+				"log",
+				"log_string"
+			],
+			[
+				"energy_me",
+				"m_energy_method"
+			],
+			[
+				"en",
+				"eng"
+			],
+			[
+				"dis",
+				"displacements"
+			],
+			[
+				"d",
+				"displacements"
+			],
+			[
+				"get_",
+				"get_mass_matrix"
+			],
+			[
+				"gau",
+				"gauss_utils"
+			],
+			[
+				"de",
+				"density"
+			],
+			[
+				"use_",
+				"use_mass_pca"
+			],
+			[
+				"sample",
+				"samples_path"
+			],
+			[
+				"wor",
+				"workspace"
+			],
+			[
+				"pca",
+				"pca_dim"
+			],
+			[
+				"row",
+				"row_d"
+			],
+			[
 				"mes",
 				"mesh_path"
 			],
@@ -76,14 +308,6 @@
 				"avg_fps"
 			],
 			[
-				"time",
-				"time_since_last"
-			],
-			[
-				"Vector",
-				"VectorXd"
-			],
-			[
 				"red",
 				"reduced_space"
 			],
@@ -104,20 +328,8 @@
 				"end_date"
 			],
 			[
-				"star",
-				"start_date"
-			],
-			[
 				"dates",
 				"dates_per_half_hour"
-			],
-			[
-				"out",
-				"outer_jacobian"
-			],
-			[
-				"re",
-				"return"
 			],
 			[
 				"load",
@@ -164,10 +376,6 @@
 				"pointerF"
 			],
 			[
-				"mesh",
-				"mesh_pos"
-			],
-			[
 				"Matri",
 				"MatrixXi"
 			],
@@ -188,14 +396,6 @@
 				"current_frame"
 			],
 			[
-				"new",
-				"new_q"
-			],
-			[
-				"max",
-				"max_verts"
-			],
-			[
 				"min",
 				"min_verts"
 			],
@@ -206,10 +406,6 @@
 			[
 				"vo",
 				"volumes"
-			],
-			[
-				"act",
-				"activity_regularizer"
 			],
 			[
 				"mu",
@@ -224,20 +420,8 @@
 				"m_total_tets"
 			],
 			[
-				"ac",
-				"activated_tets"
-			],
-			[
 				"total",
 				"m_total_tets"
-			],
-			[
-				"ener",
-				"energy_samples"
-			],
-			[
-				"use",
-				"use_binary_gates"
 			],
 			[
 				"Veco",
@@ -258,14 +442,6 @@
 			[
 				"encod",
 				"encoded_displacements"
-			],
-			[
-				"dis",
-				"displacements_path"
-			],
-			[
-				"use_",
-				"use_extra_samples"
 			],
 			[
 				"extra_",
@@ -292,16 +468,8 @@
 				"n_chunks"
 			],
 			[
-				"st",
-				"start"
-			],
-			[
 				"Mat",
 				"MatrixXd"
-			],
-			[
-				"Matr",
-				"MatrixXi"
 			],
 			[
 				"dec",
@@ -346,174 +514,6 @@
 			[
 				"arg",
 				"argv"
-			],
-			[
-				"goa",
-				"goal_tet_count"
-			],
-			[
-				"model",
-				"model_root"
-			],
-			[
-				"mod",
-				"model_root"
-			],
-			[
-				"is_",
-				"is_saving"
-			],
-			[
-				"Vec",
-				"RowVector3d"
-			],
-			[
-				"fix",
-				"fixed_axis"
-			],
-			[
-				"ou",
-				"output_dir"
-			],
-			[
-				"arap",
-				"arap_data_igl"
-			],
-			[
-				"ara",
-				"arap_data_igl"
-			],
-			[
-				"set_",
-				"set_cubature_indices_and_weights"
-			],
-			[
-				"Energy",
-				"EnergyMethod"
-			],
-			[
-				"m_en",
-				"m_energy_sample_tets"
-			],
-			[
-				"m_cubat",
-				"m_cubature_indices"
-			],
-			[
-				"VectorX",
-				"VectorXi"
-			],
-			[
-				"cop",
-				"copy_time"
-			],
-			[
-				"pred",
-				"predict_weight_time"
-			],
-			[
-				"obj_a",
-				"obj_and_grad_time_start"
-			],
-			[
-				"pu",
-				"push_back"
-			],
-			[
-				"iter",
-				"iteration_info"
-			],
-			[
-				"show",
-				"show_tets"
-			],
-			[
-				"F",
-				"F_sampled"
-			],
-			[
-				"sa",
-				"sample_faces"
-			],
-			[
-				"get_",
-				"get_cubature_indices_and_weights"
-			],
-			[
-				"ing",
-				"integrator_config"
-			],
-			[
-				"m_cur",
-				"m_cur_z"
-			],
-			[
-				"reduc",
-				"reduced_space"
-			],
-			[
-				"en",
-				"energy_weight_i"
-			],
-			[
-				"indice",
-				"indices_vec"
-			],
-			[
-				"n_tet",
-				"n_tets_used"
-			],
-			[
-				"m_ener",
-				"m_energy_method"
-			],
-			[
-				"Ener",
-				"EnergyMethod"
-			],
-			[
-				"integrat",
-				"integrator_config"
-			],
-			[
-				"energy_mt",
-				"energy_method"
-			],
-			[
-				"get_e",
-				"get_energy_discrete"
-			],
-			[
-				"non",
-				"nonzeros"
-			],
-			[
-				"wei",
-				"weights"
-			],
-			[
-				"y_",
-				"y_true"
-			],
-			[
-				"base",
-				"base_path"
-			],
-			[
-				"spa",
-				"sparse_learn"
-			],
-			[
-				"energy_per",
-				"energy_per_element"
-			],
-			[
-				"pad",
-				"padding-bottom"
-			],
-			[
-				"marg",
-				"margin-top"
 			]
 		]
 	},
@@ -523,43 +523,128 @@
 			"file": "reduced_sim_gauss/src/reduced_sim_example.cpp",
 			"settings":
 			{
-				"buffer_size": 60448,
+				"buffer_size": 66442,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "scripts/utils/gauss_utils.py",
+			"file": "/home/lawson/Workspace/LBFGSpp/include/LBFGS.h",
 			"settings":
 			{
-				"buffer_size": 664,
+				"buffer_size": 9916,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"contents": "```% old version\n[U,C,~] = svd(samples,'econ');\nU = U(:,1:pca_dim);\nmax(max(abs(U'*U - eye(pca_dim))))```\n\n```% new version\nL = chol(M);\n[LU,C,~] = svd(L\\samples,'econ');\nU = L\\LU(:,1:pca_dim);\nmax(max(abs(U'*M*U - eye(pca_dim))))```",
+			"file": "/home/lawson/Workspace/LBFGSpp/include/LBFGS/LineSearch.h",
 			"settings":
 			{
-				"buffer_size": 233,
-				"line_ending": "Unix",
-				"name": "```% old version"
-			}
-		},
-		{
-			"file": "scripts/NonlinearHandleModes.m",
-			"settings":
-			{
-				"buffer_size": 8526,
+				"buffer_size": 3880,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "/home/lawson/Workspace/GAUSS/src/MATLAB/WorldFEM.m",
+			"file": "/home/lawson/Workspace/LBFGSpp/include/LBFGS/Param.h",
 			"settings":
 			{
-				"buffer_size": 3565,
-				"line_ending": "Windows"
+				"buffer_size": 7738,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "generate_training/src/interactive.cpp",
+			"settings":
+			{
+				"buffer_size": 15097,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/utils/learn.py",
+			"settings":
+			{
+				"buffer_size": 50637,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/utils/my_utils.py",
+			"settings":
+			{
+				"buffer_size": 7369,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/generate_energy_models.py",
+			"settings":
+			{
+				"buffer_size": 1270,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/augment_training_data.py",
+			"settings":
+			{
+				"buffer_size": 5526,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "generate_training/CMakeLists.txt",
+			"settings":
+			{
+				"buffer_size": 3107,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/lawson/Workspace/cubacode/src/main.cpp",
+			"settings":
+			{
+				"buffer_size": 14851,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/build-model.py",
+			"settings":
+			{
+				"buffer_size": 6901,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reduced_sim_gauss/src/AutoDefUtils.h",
+			"settings":
+			{
+				"buffer_size": 7192,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "reduced_sim_gauss/src/TypeDefs.h",
+			"settings":
+			{
+				"buffer_size": 373,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/utils/convert_keras_models_to_tf.py",
+			"settings":
+			{
+				"buffer_size": 1649,
+				"line_ending": "Unix"
 			}
 		}
 	],
@@ -659,28 +744,47 @@
 	],
 	"file_history":
 	[
+		"/home/lawson/Workspace/AutoDef/figure data/bfgs_convergence/sc.sh",
+		"/home/lawson/Documents/build_mode.py.bak",
+		"/home/lawson/Workspace/AutoDef/scripts/utils/learn.py",
+		"/home/lawson/Documents/learn.py.bak",
+		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/CMakeLists.txt",
+		"/home/lawson/Documents/interactive.cpp.bak",
+		"/home/lawson/Workspace/LBFGSpp/include/LBFGS/Param.h",
+		"/home/lawson/Workspace/LBFGSpp/include/LBFGS/LineSearch.h",
+		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/LinearSpace.cpp",
+		"/home/lawson/Workspace/libigl/include/igl/writePLY.cpp",
+		"/home/lawson/Workspace/libigl/include/igl/writePLY.h",
+		"/home/lawson/Documents/reduced_sim.cpp.bak",
 		"/home/lawson/Workspace/AutoDef/.gitignore",
+		"/home/lawson/Workspace/AutoDef/training_data/new_25cm_bar_11k_twist_and_bend/twist_bar.json",
+		"/home/lawson/Workspace/AutoDef/configs/generation_configs/twist_bar.json",
+		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/GaussSystemWrapper.h",
+		"/home/lawson/Workspace/AutoDef/generate_training/CMakeLists.txt",
+		"/home/lawson/Workspace/cubacode/src/main.cpp",
+		"/home/lawson/Workspace/AutoDef/meshes/X.1.mesh",
+		"/home/lawson/Workspace/AutoDef/training_data/x-with-forces/training/parameters.json",
+		"/home/lawson/Workspace/AutoDef/scripts/configs.json",
+		"/home/lawson/Workspace/AutoDef/scripts/build-model.py",
+		"/home/lawson/Workspace/AutoDef/scripts/utils/my_utils.py",
+		"/home/lawson/Workspace/AutoDef/scripts/NonlinearHandleModes.m",
+		"/home/lawson/Workspace/AutoDef/scripts/utils/gauss_utils.py",
+		"/home/lawson/Workspace/cubacode/models/fine_beam_final/energy_model/an08/390_samples/details.txt",
 		"/home/lawson/Workspace/GAUSS/src/MATLAB/WorldFEM.m",
+		"/home/lawson/Workspace/AutoDef/meshes/31kdragon.mesh",
 		"/home/lawson/Workspace/scf-site/www/2018.html",
 		"/home/lawson/Workspace/tycowiz13_code/PnSubsetHardThresholdingPursuit.java",
 		"/home/lawson/Workspace/tycowiz13_code/PnIterativeHardThresholding.java",
-		"/home/lawson/Workspace/AutoDef/scripts/NonlinearHandleModes.m",
 		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/TypeDefs.h",
 		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/AutoDefUtils.h",
-		"/home/lawson/Workspace/AutoDef/scripts/utils/learn.py",
 		"/home/lawson/Workspace/libigl/python/CMakeLists.txt",
-		"/home/lawson/Workspace/AutoDef/scripts/utils/my_utils.py",
-		"/home/lawson/Workspace/AutoDef/scripts/build-model.py",
 		"/home/lawson/Workspace/AutoDef/scripts/generate_energy_models.py",
 		"/home/lawson/Workspace/GAUSS/CMakeLists.txt",
 		"/home/lawson/Workspace/GAUSS/cmake/FindMATLAB.cmake",
 		"/home/lawson/Workspace/AutoDef/scripts/augment_training_data.py",
 		"/home/lawson/Workspace/GAUSS/src/MATLAB/CMakeLists.txt",
 		"/home/lawson/Workspace/AutoDef/meshes/Fine_beam.mesh",
-		"/home/lawson/Workspace/AutoDef/meshes/31kdragon.mesh",
-		"/home/lawson/Workspace/AutoDef/meshes/X.1.mesh",
 		"/home/lawson/Workspace/AutoDef/training_data/fine_beam_handle_modes/all_states/parameters.json",
-		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/CMakeLists.txt",
 		"/home/lawson/Workspace/AutoDef/configs/fine_beam_handle_modes.json",
 		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/AutoEncoderSpace.cpp",
 		"/home/lawson/Dropbox/untitled.py",
@@ -694,7 +798,6 @@
 		"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.cpp",
 		"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/ReducedCubatureTrainingOptimization.cpp",
 		"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/ReducedCubatureTraining.h",
-		"/home/lawson/Workspace/cubacode/src/main.cpp",
 		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/reduced_sim_example.cpp",
 		"/home/lawson/Workspace/blender_scripts/import_autodef_sequence.py",
 		"/home/lawson/Downloads/test.py",
@@ -768,29 +871,11 @@
 		"/home/lawson/Downloads/wxWidgets-2.9.4/wx-config.in",
 		"/home/lawson/Downloads/wxWidgets-2.9.4/docs/gtk/install.txt",
 		"/home/lawson/Workspace/VegaFEM-v3.1/Makefile-headers/Makefile-header",
-		"/home/lawson/Workspace/VegaFEM-v3.1/libraries/include/sparseSolverAvailability.h",
-		"/home/lawson/Workspace/VegaFEM-v3.1/libraries/sparseSolver/PardisoSolver.cpp",
-		"/home/lawson/Workspace/VegaFEM-v3.1/utilities/largeModalDeformationFactory/nonlinearModes.cpp",
-		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/6_arm_comb.veg",
-		"/home/lawson/Workspace/for_oded/CMakeLists.txt",
-		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/6_arm_comb.1.ele",
-		"/home/lawson/Workspace/arpackpp/INSTALL.md",
-		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/X.1.mesh",
-		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/6_arm_comb.1.mesh",
-		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/2_arm_comb.1.mesh",
-		"/home/lawson/Workspace/VegaFEM-v3.1/models/turtle/turtle-volumetric.bou",
-		"/home/lawson/Workspace/VegaFEM-v3.1/models/turtle/turtle-volumetric.obj",
-		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/combs/3_arm_comb.1.ele",
-		"/home/lawson/Workspace/VegaFEM-v3.1/libraries/sparseSolver/sparseSolverAvailability.h",
-		"/home/lawson/ARPACK/ARmake.inc",
-		"/home/lawson/Downloads/ARPACK/README",
-		"/home/lawson/arpack++/Makefile.inc",
-		"/home/lawson/Downloads/ARPACK/ARmake.inc",
-		"/home/lawson/Workspace/VegaFEM-v3.1/documentation/VegaUsersManual.pdf"
+		"/home/lawson/Workspace/VegaFEM-v3.1/libraries/include/sparseSolverAvailability.h"
 	],
 	"find":
 	{
-		"height": 40.0
+		"height": 27.0
 	},
 	"find_in_files":
 	{
@@ -810,134 +895,134 @@
 		"case_sensitive": false,
 		"find_history":
 		[
-			"sparseve",
-			"mel k",
-			"mel king",
-			"mass",
-			"param",
-			"matlab_mex_l",
-			"mex",
-			"debug",
-			"matlab",
-			"num_sam",
-			"num__sa",
-			"load_displacement_dmats_to_numpy",
-			"_read_dmat_helper",
-			"massMat",
-			"true",
-			"vert_set",
-			"m_cubature_vert_indices",
-			"m_U_sampled",
-			"an08",
-			"blue",
-			"yellow",
-			"orange",
-			"mesh_pos =",
-			"curV",
-			"mesh_pos =",
-			"mesh_pos",
+			"load_base_vert_and_face_dmat_to_numpy",
+			"face_indices_eig",
+			"face_indices",
+			"timestep",
+			".obj",
+			"iteration_obj_dir",
+			"evaluation_ply_dir",
+			"ply",
+			"evaluation_ply_dir",
+			"ply",
+			"ply_filename",
+			"save_ply_every_evaluation",
+			"m_save_ply_every_evaluation",
+			".ply",
+			"startin",
+			"startin_",
+			"evaluation_ply_dir",
+			"sim_log",
+			"main(",
 			"logging",
-			"get_current_vert_pos",
-			"pca",
-			"newV",
-			"dragged_pos",
-			"compute_interaction_force",
-			"dragged_pos",
-			"\"dragged_pos\"",
-			"dragged_vert",
-			"dragged_pos",
-			"get_current_vert_pos",
-			"gplc_stepper",
-			"grabbed",
-			"grabbed_",
-			"LOGGING_ENABLED",
-			"shader_mes",
-			"dirty",
-			"const",
-			"=",
-			"const",
-			"update_wor",
-			"update_z",
-			"update_zs",
-			"m_cur_sub_q",
-			"new_sub_q",
-			"m_cur_sub_q",
-			"reset_zs",
-			"update_zs",
-			"gauss_map_q",
-			"reset_zs_to_current_world",
-			"new_sub_q",
-			"update_zs",
-			"m_interaction_force",
-			"Step",
-			"step",
-			"curV",
-			"dragged_vert",
-			"curV",
-			"do_gpu_d",
-			"activated_tets",
-			"m_avg_sim_fps",
-			"activat",
-			"cout",
-			"vector",
-			"int m",
-			"v.",
-			"gpu_deco",
-			"{",
-			"v.",
-			"v.opengl",
-			"v.",
-			"v.opengl",
-			"v.",
-			"std::stri",
-			"string",
-			"tets",
-			"discrete_nn_analysis",
-			"dragged_ver",
-			"grab",
-			"Pool",
+			"AssemblerParallel",
+			"logging",
+			"ply",
+			"compute_relative_percent_error",
+			"compute_relative_error",
+			"relative_error2",
+			"ou are hitting H0 ",
+			"H0",
+			"u are hitting H0",
+			"m_drt *= (ys / yy);",
+			"Recursive",
+			"filename",
+			"m_save_ply_every_evaluation",
+			"evaluation_ply_dir",
+			"writepl",
 			"tet_obj_dir",
-			"tet_obj_filename",
-			"sampled",
-			"loadSequenceFromFile",
-			"importFunc",
-			"loadSequenceFromData",
-			"context",
-			"skin_frames",
-			"initSequenceController",
-			"u",
-			"persi",
-			"persistent",
-			"initSequenceController",
-			"persistent",
-			"updateFrame",
-			"updateStartFrame",
+			"o",
+			"surface_obj_dir",
+			"obj",
+			"ply",
+			"lbfgs_obj_vals",
+			"b",
+			"f(x, m_gr",
+			"max",
+			"f(",
+			"reset_zs",
+			"= f",
 			"f",
-			"F",
-			"updateFrame",
-			"persistent",
-			"i",
-			"MSC",
-			"parent_obj",
-			"_obj",
-			"load_mesh_sequence",
-			"load_mesh",
-			"newMeshSequence",
-			"objSettings",
-			"dirPath",
-			"add_mesh_sequence",
-			"userpath",
-			"filename_ext",
-			"filter_glob",
-			"type",
-			"import_test",
-			"ImportSomeData",
-			"pointerV",
-			"current_mouse_x",
-			"surface_obj_dir",
-			"pointer_obj_dir",
-			"surface_obj_dir",
-			"surface"
+			"f(x",
+			"f(",
+			"f",
+			"m_grad",
+			"objec",
+			"step",
+			"rest",
+			"reset_zs",
+			"encode",
+			"to_string",
+			"current_frame",
+			"spring",
+			"rest",
+			"vert_select_eps",
+			"rate",
+			"update_twist_constraints",
+			"v_init",
+			"v",
+			"v ",
+			" v",
+			"v",
+			"new_u",
+			"current_frame",
+			"ZeroPadNumber",
+			"mesh_path",
+			"\"",
+			"training_dataset\"],",
+			"\"",
+			"\"], ",
+			"training_dataset\"],",
+			"\"",
+			"training_data_params",
+			"paramet",
+			"<<",
+			"output_dir",
+			"str",
+			".str()",
+			"displacements_filename",
+			"std::string output_dir",
+			"save_base_configurations_DMAT",
+			"output_dir",
+			"ImplicitStepper",
+			"MyTimeStepper",
+			"getStrainEnergyPerElement",
+			"implic",
+			"m_m_asm",
+			"getMassMatrix",
+			"setden",
+			"massmat",
+			"config_path",
+			"save_base_configurations_DMAT",
+			"save_displacements_DMAT_and_energy",
+			"output_dir",
+			"fs::path",
+			"fin",
+			"boost",
+			"boost::filesystem",
+			"fs::pa",
+			"boost",
+			"get_min_verts",
+			"twist",
+			"twistin",
+			"class",
+			"readmesh",
+			"get_min_verts",
+			"unsigned int",
+			"int",
+			"Eigen::Map",
+			"unsigned int",
+			"system.getQ().getGlobalId() +",
+			"indices.rows",
+			"rows",
+			"indices",
+			"DataType",
+			"indices",
+			"construct_constraints_P",
+			"min_ve",
+			"verts",
+			"full_space_constrained_axis",
+			"string"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -956,7 +1041,7 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 0,
 			"sheets":
 			[
 				{
@@ -965,15 +1050,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 60448,
+						"buffer_size": 66442,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								4258,
-								4258
+								21347,
+								21347
 							]
 						],
 						"settings":
@@ -983,118 +1068,212 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 2764.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
-					"file": "scripts/utils/gauss_utils.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 664,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								234,
-								234
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 9412.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
+					"buffer": 1,
+					"file": "/home/lawson/Workspace/LBFGSpp/include/LBFGS.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 233,
+						"buffer_size": 9916,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								106,
-								106
+								3001,
+								3001
 							]
 						],
 						"settings":
 						{
-							"auto_name": "```% old version",
-							"syntax": "Packages/Text/Plain text.tmLanguage"
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 1191.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
-					"file": "scripts/NonlinearHandleModes.m",
+					"buffer": 2,
+					"file": "/home/lawson/Workspace/LBFGSpp/include/LBFGS/LineSearch.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 8526,
+						"buffer_size": 3880,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								2548,
-								2548
+								2251,
+								2251
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Objective-C/Objective-C.sublime-syntax",
+							"syntax": "Packages/C++/C++.sublime-syntax",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1080.0,
+						"translation.y": 540.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 2,
 					"type": "text"
 				},
 				{
-					"buffer": 4,
-					"file": "/home/lawson/Workspace/GAUSS/src/MATLAB/WorldFEM.m",
+					"buffer": 3,
+					"file": "/home/lawson/Workspace/LBFGSpp/include/LBFGS/Param.h",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3565,
+						"buffer_size": 7738,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								791,
-								791
+								2786,
+								2786
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Objective-C/Objective-C.sublime-syntax",
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1188.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "generate_training/src/interactive.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 15097,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3919,
+								3919
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 748.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "scripts/utils/learn.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 50637,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								39610,
+								39610
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 17938.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "scripts/utils/my_utils.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7369,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1432,
+								1432
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 201.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "scripts/generate_energy_models.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1270,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								318,
+								318
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
@@ -1102,7 +1281,213 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "scripts/augment_training_data.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5526,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1641,
+								1641
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "generate_training/CMakeLists.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3107,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								903,
+								903
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "/home/lawson/Workspace/cubacode/src/main.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 14851,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1420,
+								1420
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 316.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 14,
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "scripts/build-model.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 6901,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1869,
+								1869
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 540.0,
+						"zoom_level": 1.0
+					},
 					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 12,
+					"file": "reduced_sim_gauss/src/AutoDefUtils.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7192,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								225,
+								225
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 11,
+					"type": "text"
+				},
+				{
+					"buffer": 13,
+					"file": "reduced_sim_gauss/src/TypeDefs.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 373,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								363,
+								363
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 14,
+					"file": "scripts/utils/convert_keras_models_to_tf.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1649,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								669,
+								669
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 13,
 					"type": "text"
 				}
 			]
@@ -1161,7 +1546,35 @@
 		"selected_items":
 		[
 			[
-				"buil",
+				"build",
+				"scripts/build-model.py"
+			],
+			[
+				"lea",
+				"scripts/utils/learn.py"
+			],
+			[
+				"bui",
+				"scripts/build-model.py"
+			],
+			[
+				"au",
+				"reduced_sim_gauss/src/AutoDefUtils.h"
+			],
+			[
+				"cmak",
+				"generate_training/CMakeLists.txt"
+			],
+			[
+				"inter",
+				"generate_training/src/interactive.cpp"
+			],
+			[
+				"lbf",
+				"~/Workspace/LBFGSpp/include/LBFGS.h"
+			],
+			[
+				"bu",
 				"scripts/build-model.py"
 			],
 			[
@@ -1169,12 +1582,28 @@
 				"scripts/utils/learn.py"
 			],
 			[
-				"cm",
-				"reduced_sim_gauss/CMakeLists.txt"
+				"redu",
+				"reduced_sim_gauss/src/reduced_sim_example.cpp"
 			],
 			[
-				"bui",
+				"autode",
+				"reduced_sim_gauss/src/AutoDefUtils.h"
+			],
+			[
+				"main",
+				"~/Workspace/cubacode/src/main.cpp"
+			],
+			[
+				"learn",
+				"scripts/utils/learn.py"
+			],
+			[
+				"buil",
 				"scripts/build-model.py"
+			],
+			[
+				"cm",
+				"reduced_sim_gauss/CMakeLists.txt"
 			],
 			[
 				"red",
@@ -1189,28 +1618,12 @@
 				"scripts/utils/my_utils.py"
 			],
 			[
-				"inter",
-				"generate_training/src/interactive.cpp"
-			],
-			[
 				"gene",
 				"generate_energy_models.py"
 			],
 			[
-				"main",
-				"~/Workspace/cubacode/src/main.cpp"
-			],
-			[
-				"redu",
-				"reduced_sim_gauss/src/reduced_sim_example.cpp"
-			],
-			[
 				"jaco",
 				"utils/compute_tf_jacobian_models.py"
-			],
-			[
-				"lea",
-				"utils/learn.py"
 			],
 			[
 				"c",
@@ -1227,10 +1640,6 @@
 			[
 				"lean",
 				"utils/learn.py"
-			],
-			[
-				"cmak",
-				"generate_training/CMakeLists.txt"
 			],
 			[
 				"int",

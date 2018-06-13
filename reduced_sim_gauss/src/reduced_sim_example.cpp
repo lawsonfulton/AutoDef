@@ -542,16 +542,16 @@ public:
         VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
         VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
         // Full
-        // double obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
-        //                     + m_h * m_h * energy
-        //                     - sub_q_tilde.transpose() * h_2_UT_external_forces;
-
-        // grad = jtvp(new_z, UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
-
-        // No momentum
-        double obj_val =   + m_h * m_h * energy
+        double obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
+                            + m_h * m_h * energy
                             - sub_q_tilde.transpose() * h_2_UT_external_forces;
-        grad = jtvp(new_z, - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+
+        grad = jtvp(new_z, UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+
+        // quasi-static
+        // double obj_val =   + m_h * m_h * energy
+        //                     - sub_q_tilde.transpose() * h_2_UT_external_forces;
+        // grad = jtvp(new_z, - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
 
         // Compute gradient
         // **** TODO

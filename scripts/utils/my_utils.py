@@ -55,17 +55,11 @@ def read_MESH_to_numpy(path):
     igl.readMESH(path, V, T, F);
     return e2p(V), e2p(T), e2p(F)
 
-def load_base_vert_and_face_dmat_to_numpy(base_path):
+def load_base_vert_and_face_dmat_to_numpy(mesh_path):
     """ Returns a tuple (verts, faces) """
-    verts_filename = os.path.join(base_path, 'base_verts.dmat')
-    faces_filename = os.path.join(base_path, 'base_faces.dmat')
+    V, T, F = read_MESH_to_numpy(mesh_path)
 
-    verts = igl.eigen.MatrixXd()
-    faces = igl.eigen.MatrixXi()
-    igl.readDMAT(verts_filename, verts)
-    igl.readDMAT(faces_filename, faces)
-
-    return e2p(verts), e2p(faces)
+    return V, F
 
 def _read_dmat_helper(args):
     i, filename = args
