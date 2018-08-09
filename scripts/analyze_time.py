@@ -2,6 +2,7 @@ import json
 import numpy
 from pprint import pprint
 from collections import defaultdict
+import sys
 
 import matplotlib.pyplot as plt
 fig, ax = plt.subplots(figsize=(12, 5))
@@ -10,7 +11,10 @@ def smooth(x, N=10):
     return numpy.convolve(x, numpy.ones((N,))/N, mode='valid')
 
 def main():
-    log_path = 'sim_stats_old.json'
+    if len(sys.argv) > 1:
+        log_path = sys.argv[1]
+    else:
+        log_path = 'sim_stats_old.json'
 
     with open(log_path) as f:
         sim_stats = json.load(f)
@@ -43,7 +47,7 @@ def main():
     ax.set_xlabel('Time')
     # ax.set_ylabel('Displacement in Z-axis of vertex 19')
 
-    ax.set_ylim(0, 0.05)
+    # ax.set_ylim(0, 0.05)
 
     # Style
     ax.legend(loc='upper left')

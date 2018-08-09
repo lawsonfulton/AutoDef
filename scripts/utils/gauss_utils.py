@@ -14,7 +14,10 @@ def create_or_connect_to_matlab_engine(eng=None):
         else:
             print("Starting matlab...")
             eng = matlab.engine.start_matlab()
+            eng.cd('../')
             # shared_name = eng.matlab.engine.shareEngine('MATLAB_Engine%d' % int(time.time()), nargout=0)
+    
+    print("MATLAB started in directory:", eng.pwd())
 
     return eng
 
@@ -25,6 +28,7 @@ def get_mass_matrix(mesh_path, density, eng=None):
     eng = create_or_connect_to_matlab_engine(eng)
 
     print("Setting up mesh")
+
     eng.evalc(
         "[V, T, F]  = readMESH('%s');\
          fem = WorldFEM('neohookean_linear_tetrahedra', V, T);\

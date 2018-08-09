@@ -29,7 +29,7 @@
     "show_stress": false,
     "show_energy": false,
     "interaction_spring_stiffness": 10000.0,
-    "full_space_constrained_axis": 0,
+    "full_space_constrained_axis": 1,
     "gpu_decode": true
   }
 }

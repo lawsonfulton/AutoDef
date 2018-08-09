@@ -194,12 +194,12 @@ int main(int argc, char **argv) {
     world.addSystem(pinned_point);
     world.addForce(forceSpring);
     world.addSystem(tets);
-    fixDisplacementMin(world, tets, sim_params["displacement_axis"], sim_params["displacement_tol"]);
+    // fixDisplacementMin(world, tets, sim_params["fixed_axis"], sim_params["displacement_tol"]);
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
 
     reset_world(world);
 
-    MyTimeStepper stepper(sim_params["timestep"], (int)sim_params["solver_Iterations"]);
+    MyTimeStepper stepper(sim_params["time_step"], (int)sim_params["implicit_its"]);
     // stepper.step(world);
 
     if(saving_training_data) {

@@ -11,7 +11,7 @@
   "integrator_config": {
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
-    "use_partial_decode": true,
+    "use_partial_decode": false,
     "reduced_energy_method": "pcr",
     "use_preconditioner": true,
     "pca_dim": 6,
@@ -28,11 +28,11 @@
     "save_obj_every_iteration": false
   },
   "visualization_config": {
-    "gpu_decode": true,
+    "gpu_decode": false,
     "show_stress": false,
     "show_energy": false,
     "interaction_spring_stiffness": 10000.0,
-    "full_space_constrained_axis": 0,
+    "full_space_constrained_axis": 1,
     "print_every_n_frames": 10,
     "max_frames": 0
   }

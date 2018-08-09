@@ -186,11 +186,13 @@ int main(int argc, char **argv) {
     bool do_twist = config["do_twist"];
     bool full_implicit = config["full_implicit"];
     int fixed_axis = config["fixed_axis"];
+    bool flip_fixed_axis = config["flip_fixed_axis"];
     int its = config["implicit_its"];
     int max_frames = config["max_frames"];
     starting_frame_num = config["starting_frame"];
     double timestep = config["time_step"];
     double vert_select_eps = 1e-4;
+    saving_training_data = config["save_training_data"];
     // ---
 
 
@@ -202,7 +204,11 @@ int main(int argc, char **argv) {
         element->setParameters(config["YM"], config["Poisson"]);
     }
     world.addSystem(tets);
-    fixDisplacementMin(world, tets, fixed_axis, vert_select_eps);
+    if(flip_fixed_axis) {
+        fixDisplacementMax(world, tets, fixed_axis, vert_select_eps);
+    } else {
+        fixDisplacementMin(world, tets, fixed_axis, vert_select_eps);
+    }
 
     if(do_twist) {
         movingVerts = maxVertices(tets, fixed_axis); //indices for moving parts

@@ -1,0 +1,17 @@
+{
+     "YM": 40000,
+     "Poisson": 0.47,
+     "density": 1000,
+     "output_dir" : "../../training_data/experimental/human",
+     "mesh_path" : "../../meshes/human.mesh",
+     "spring_strength": 0.10,
+     "time_step": 0.005,
+     "full_implicit": true,
+     "implicit_its": 100000,
+     "fixed_axis": 0,
+     "flip_fixed_axis": false,
+     "do_twist": false,
+     "max_frames": 0,
+     "starting_frame": 0,
+     "save_training_data": true
+ }

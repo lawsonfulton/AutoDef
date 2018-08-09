@@ -9,7 +9,9 @@
      "full_implicit": false,
      "implicit_its": 100000,
      "fixed_axis": 0,
+     "flip_fixed_axis": false,
      "do_twist": true,
      "max_frames": 0,
-     "starting_frame": 356
+     "starting_frame": 356,
+     "save_training_data": true
  }

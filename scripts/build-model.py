@@ -144,13 +144,14 @@ def main():
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
             'ae_decoded_dim': config['learning_config']['autoencoder_config']['pca_layer_dim'], # Shouldn't be change. Kind of a hack.
-            'timestep': 1/30.0,
+            'timestep': training_data_params['time_step'],
             'lbfgs_config': {
                 'lbfgs_max_iterations': 1000,
                 'lbfgs_epsilon': 1e-8, # Should this be smaller?
                 'lbfgs_m': 8,
             },
             'gravity': -9.8,
+            'gravity_axis': 1,
             'start_pose_from_training_data': -1,
             'save_obj_every_iteration': False
         },
@@ -159,8 +160,9 @@ def main():
             'gpu_decode': True,
             'show_stress': False,
             'show_energy': False,
-            'interaction_spring_stiffness': 1e4,
-            'full_space_constrained_axis': 0,
+            'interaction_spring_stiffness': 100,#training_data_params['spring_strength'],
+            'full_space_constrained_axis': training_data_params['fixed_axis'],
+            'flip_constrained_axis': training_data_params['flip_fixed_axis'],
             'print_every_n_frames': 10,
             'max_frames': 0,
         },

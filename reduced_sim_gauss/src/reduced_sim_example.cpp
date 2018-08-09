@@ -120,9 +120,9 @@ std::ofstream log_ofstream;
 const Eigen::RowVector3d sea_green(229./255.,211./255.,91./255.);
 
 
-std::vector<int> get_min_verts(int axis, bool get_max = false, double tol = 0.001) {
+std::vector<int> get_min_verts(int axis, bool flip_axis = false, double tol = 0.001) {
     int dim = axis; // x
-    double min_x_val = get_max ?  V.col(dim).maxCoeff() : V.col(dim).minCoeff();
+    double min_x_val = flip_axis ?  V.col(dim).maxCoeff() : V.col(dim).minCoeff();
     std::vector<int> min_verts;
 
     for(int ii=0; ii<V.rows(); ++ii) {
@@ -266,10 +266,12 @@ public:
         std::cout << "Done." << std::endl;
 
         VectorXd g(m_M.cols());
+        int gravity_axis = get_json_value(integrator_config, "gravity_axis", 1);
         for(int i=0; i < g.size(); i += 3) {
             g[i] = 0.0;
-            g[i+1] = integrator_config["gravity"];
+            g[i+1] = 0.0;
             g[i+2] = 0.0;
+            g[i + gravity_axis] = integrator_config["gravity"];
         }
 
         m_F_ext = m_M * g;
@@ -690,16 +692,16 @@ public:
         } else {
             m_starting_pose = VectorXd::Zero(V.size());
         }
-        reset_zs();
+        getMassMatrix(m_M_asm, *m_world);
+        getStiffnessMatrix(m_K_asm, *m_world);
 
+        reset_zs();
 
         // Set up preconditioner
         if(m_use_preconditioner) {
             MatrixType J = reduced_space->inner_jacobian(m_cur_z);
             std::cout << "Constructing reduced mass and stiffness matrix..." << std::endl;
             double start_time = igl::get_seconds();
-            getMassMatrix(m_M_asm, *m_world);
-            getStiffnessMatrix(m_K_asm, *m_world);
             m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
             m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
             m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
@@ -1703,8 +1705,9 @@ int main(int argc, char **argv) {
             std::cout << "full_space_constrained_axis field not found in visualization_config" << std::endl;
             exit(1);
         }
+        bool flip_axis = get_json_value(config["visualization_config"], "flip_constrained_axis", false);
 
-        auto min_verts = get_min_verts(fixed_axis);
+        auto min_verts = get_min_verts(fixed_axis, flip_axis);
 
         // For twisting
         // auto max_verts = get_min_verts(fixed_axis, true);
