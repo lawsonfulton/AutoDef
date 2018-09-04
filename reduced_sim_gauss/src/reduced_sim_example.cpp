@@ -282,6 +282,8 @@ public:
         m_energy_method = energy_method_from_integrator_config(integrator_config);
         m_use_partial_decode =  (m_energy_method == PCR || m_energy_method == AN08 || m_energy_method == NEW_PCR) && get_json_value(integrator_config, "use_partial_decode", true);
 
+        m_do_quasi_static = get_json_value(integrator_config, "quasi_static", false);
+
         if(m_energy_method == PCR){
             fs::path pca_components_path("pca_results/energy_pca_components.dmat");
             fs::path sample_tets_path("pca_results/energy_indices.dmat");
@@ -544,16 +546,20 @@ public:
         VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
         VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
         // Full
-        double obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
+        double obj_val;
+
+        if(m_do_quasi_static) {
+            // quasi-static
+            obj_val = m_h * m_h * energy - sub_q_tilde.transpose() * h_2_UT_external_forces;
+            grad = jtvp(new_z, - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+            
+        } else { 
+            obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
                             + m_h * m_h * energy
                             - sub_q_tilde.transpose() * h_2_UT_external_forces;
 
-        grad = jtvp(new_z, UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
-
-        // quasi-static
-        // double obj_val =   + m_h * m_h * energy
-        //                     - sub_q_tilde.transpose() * h_2_UT_external_forces;
-        // grad = jtvp(new_z, - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+            grad = jtvp(new_z, UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+        }
 
         // Compute gradient
         // **** TODO
@@ -639,6 +645,7 @@ private:
     bool m_use_partial_decode = false;
     bool m_save_obj_every_iteration = false;
     bool m_UTMU_is_identity = false;
+    bool m_do_quasi_static = false;
 
     MatrixXd m_energy_basis;
     VectorXd m_summed_energy_basis;

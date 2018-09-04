@@ -1,0 +1,17 @@
+{
+     "YM": 50000,
+     "Poisson": 0.47,
+     "density": 1000,
+     "output_dir" : "../../training_data/11k_25cm_beam_mouse_interaction",
+     "mesh_path" : "../../meshes/5k_25cm_bar_shorter.mesh",
+     "spring_strength": 0.005,
+     "time_step": 0.005,
+     "full_implicit": false,
+     "implicit_its": 100000,
+     "fixed_axis": 0,
+     "flip_fixed_axis": false,
+     "do_twist": false,
+     "max_frames": 0,
+     "starting_frame": 0,
+     "save_training_data": true
+ }

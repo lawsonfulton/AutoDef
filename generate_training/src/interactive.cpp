@@ -100,7 +100,7 @@ void save_displacements_DMAT_and_energy(int current_frame, MyWorld &world, Neoho
 
     std::cout << "Saved " << displacements_file.string() << std::endl;
     std::cout << "Saved " << energy_file.string() << std::endl;
-    // std::cout << "Saved " << force_filename.str() << std::endl;
+    std::cout << "Saved " << force_file.string() << std::endl;
 }
 
 void save_base_configurations_DMAT(Eigen::MatrixXd &V, Eigen::MatrixXi &F, fs::path output_dir) {
@@ -225,7 +225,7 @@ int main(int argc, char **argv) {
     pinned_point->getImpl().setMass(100000000); //10000000
     auto fem_attached_pos = PosFEM<double>(&tets->getQ()[0],0, &tets->getImpl().getV());
     double spring_stiffness = config["spring_strength"];
-    double spring_rest_length = 0.01;
+    double spring_rest_length = 0.0001;
     ForceSpringFEMParticle<double> *forceSpring = new ForceSpringFEMParticle<double>(fem_attached_pos, // TODO compare getV to V. Get rid of double use of index
                                                                                      PosParticle<double>(&pinned_point->getQ()),
                                                                                      spring_rest_length, 0.0);

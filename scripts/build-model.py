@@ -99,7 +99,7 @@ def main():
     # Train model
     # TODO Record other model history, seed, etc
     if not config['learning_config']['skip_training']:
-        learn.generate_model(model_root, config)
+        outer_layer_dim = learn.generate_model(model_root, config)
 
         # Convert to TF
         print('Converting Keras models to Tensorflow...')
@@ -143,7 +143,7 @@ def main():
             'use_preconditioner': True,
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
-            'ae_decoded_dim': config['learning_config']['autoencoder_config']['pca_layer_dim'], # Shouldn't be change. Kind of a hack.
+            'ae_decoded_dim': outer_layer_dim, # Shouldn't be change. Kind of a hack.
             'timestep': training_data_params['time_step'],
             'lbfgs_config': {
                 'lbfgs_max_iterations': 1000,
@@ -153,6 +153,7 @@ def main():
             'gravity': -9.8,
             'gravity_axis': 1,
             'start_pose_from_training_data': -1,
+            'quasi_static': False,
             'save_obj_every_iteration': False
         },
 

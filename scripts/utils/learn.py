@@ -137,6 +137,7 @@ def autoencoder_analysis(
         loss_func = make_UTMU_loss()
 
     optimizer = keras.optimizers.Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
+    #optimizer = keras.optimizers.Adadelta()
     autoencoder.compile(
         optimizer=optimizer,
         loss=loss_func,
@@ -241,6 +242,38 @@ def pca_no_centering(samples, pca_dim):
         return samples @ U.T
 
     return U, explained_variance_ratio, encode, decode
+
+def pca_with_error_cutoff(samples, max_allowable_error):
+    from scipy import linalg
+
+    print('Doing SVD on', len(samples), 'samples')
+
+    _, S, components = linalg.svd(samples, full_matrices=False)
+    
+    for pca_dim in range(1, len(samples[0])):
+        U = components[:pca_dim].T
+
+        explained_variance_ = (S ** 2) / (len(samples) - 1)
+        total_var = explained_variance_.sum()
+        explained_variance_ratio = (explained_variance_ / total_var)[:pca_dim]
+
+        def encode(samples):
+            return samples @ U
+
+        def decode(samples):
+            return samples @ U.T
+
+        per_vert_error_vec = (samples - decode(encode(samples))).reshape(len(samples[0])//3*len(samples),3)
+        dist_errors = numpy.sum(numpy.abs(per_vert_error_vec)**2,axis=-1)**(1./2)
+        avg_error = numpy.max(dist_errors)
+        # print(numpy.mean(dist_errors))
+        if avg_error < max_allowable_error:
+            print("PCA basis of size", pca_dim, " has max distance error of", avg_error, "<", max_allowable_error)
+            return U, explained_variance_ratio, encode, decode
+
+    print("Couldn't find a basis that meets error cutoff")
+    return None
+
 
 def mass_pca_analysis(samples, pca_dim, mesh_path, density):
     U = mass_pca(mesh_path, density, samples, pca_dim, eng=None)  # TODO can optimize this if I'm doing multiple size at once
@@ -833,7 +866,7 @@ def basis_opt(energy_model_config, model_root, basis_output_path, index_output_p
     start = time.time()
     n_tets_sampled = num_tets
     # energy_pca, pca_encode, pca_decode, expl_var, mse = pca_analysis(samples, pca_dim)
-    U, explained_variance_ratio, encode, decode = pca_no_centering(samples, pca_dim)
+    U, explained_variance_ratio, encode, decode = pca_no_centering(samples, _with_error_cutoffpca_dim)
 
     if do_save:
         my_utils.save_numpy_mat_to_dmat(basis_output_path, numpy.ascontiguousarray(U))
@@ -1014,7 +1047,7 @@ def generate_model(
     energy_model_config = learning_config['energy_model_config']
     save_objs = learning_config['save_objs']
     train_in_full_space = False
-    record_full_mse_each_epoch = False
+    record_full_mse_each_epoch = True
 
     training_data_path = os.path.join(model_root, 'training_data/training')
     validation_data_path = os.path.join(model_root, 'training_data/validation')
@@ -1035,6 +1068,10 @@ def generate_model(
     displacements = flatten_data(displacements)
     test_displacements = flatten_data(test_displacements)
 
+    numpy.random.shuffle(displacements)
+    test_displacements = displacements[:25]
+    displacements = displacements[25:]
+
     # Set up stuff for Mass PCA
     use_mass_pca = learning_config.get("use_mass_pca")
     density = 1.0
@@ -1047,7 +1084,8 @@ def generate_model(
         mass_matrix = get_mass_matrix(mesh_path, density)
 
     # Do the training
-    pca_ae_train_dim = autoencoder_config['pca_layer_dim']
+    #pca_ae_train_dim = autoencoder_config['pca_layer_dim']
+    pca_ae_train_err = autoencoder_config['pca_layer_err']
     pca_compare_dims = autoencoder_config['pca_compare_dims']
     ae_dim = autoencoder_config['ae_encoded_dim']
     ae_epochs = autoencoder_config['training_epochs']
@@ -1064,9 +1102,25 @@ def generate_model(
         'pca': {},
     }
 
+    # High dim pca to train autoencoder
+    pca_start_time = time.time()
+    if use_mass_pca:
+        raise("This needs to be debugged")
+        #U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = mass_pca_analysis(displacements, pca_ae_train_dim, mesh_path, density)        
+        displacements = (mass_matrix * displacements.T).T # todo
+    else:
+        #U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
+        U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_with_error_cutoff(displacements, pca_ae_train_err)
+    pca_train_time = time.time() - pca_start_time
+
+    # Add this dim to our list of compare_dims if it's not there already
+    if len(U_ae) not in pca_compare_dims:
+        pca_compare_dims.append(len(U_ae[0]))
+
     # Normal low dim pca first
     for pca_dim in pca_compare_dims:
         if use_mass_pca:
+            raise("This needs to be debugged")
             U, explained_var, pca_encode, pca_decode = mass_pca_analysis(displacements, pca_dim, mesh_path, density)
         else:
             U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim)
@@ -1100,28 +1154,24 @@ def generate_model(
                 training_results['pca'][str(pca_dim) + '-components']['validation-mse'] = validation_mse
 
             print(str(pca_dim) + ' training MSE: ', training_mse)
-            print(str(pca_dim) + ' explained variance: ', numpy.sum(explained_var))
-            print(str(pca_dim) + ' relative percent error: ', relative_error)
+            # print(str(pca_dim) + ' explained variance: ', numpy.sum(explained_var))
+            # print(str(pca_dim) + ' relative percent error: ', relative_error)
             print()
 
 
-    # High dim pca to train autoencoder
-    pca_start_time = time.time()
-    if use_mass_pca:
-        U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = mass_pca_analysis(displacements, pca_ae_train_dim, mesh_path, density)        
-        displacements = (mass_matrix * displacements.T).T # todo
-    else:
-        U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
-    pca_train_time = time.time() - pca_start_time
+
 
     UTMU = None
     if use_UTMU_metric:
         UTMU = U_ae.T @ mass_matrix @ U_ae
 
+
     if train_in_full_space:
         high_dim_pca_encode = lambda x: x
         high_dim_pca_decode = lambda x: x
+    
     encoded_high_dim_pca_displacements = high_dim_pca_encode(displacements)
+
     if test_displacements is not None:
         encoded_high_dim_pca_test_displacements = high_dim_pca_encode(test_displacements)
     else:
@@ -1170,7 +1220,7 @@ def generate_model(
                                     batch_size=batch_size,
                                     learning_rate=learning_rate,
                                     layers=layers, # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
-                                    # pca_basis=U_ae,
+                                    #pca_basis=U_ae,
                                     do_fine_tuning=do_fine_tuning,
                                     model_root=model_root,
                                     autoencoder_config=autoencoder_config,
@@ -1216,6 +1266,8 @@ def generate_model(
 
             obj_path = os.path.join(obj_dir, "decoded_%05d.obj" % i)
             igl.writeOBJ(obj_path, decoded_verts_eig, face_indices_eig)
+
+    return len(U_ae[0])
     
 
 if __name__ == "__main__":
