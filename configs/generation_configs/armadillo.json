@@ -1,0 +1,17 @@
+{
+     "YM": 50000,
+     "Poisson": 0.47,
+     "density": 1000,
+     "output_dir" : "../../training_data/new_armadillo_interaction",
+     "mesh_path" : "../../meshes/25cm_armadillo_very_low.mesh",
+     "spring_strength": 0.000001,
+     "time_step": 0.005,
+     "full_implicit": false,
+     "implicit_its": 100000,
+     "fixed_axis": 0,
+     "flip_fixed_axis": false,
+     "do_twist": false,
+     "max_frames": 0,
+     "starting_frame": 0,
+     "save_training_data": false
+ }

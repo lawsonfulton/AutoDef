@@ -3,21 +3,24 @@
   "validation_dataset": "",
 
   "learning_config": {
-    "save_objs": false,
+    "save_objs": true,
     "skip_training": false,
     "skip_jacobian": false,
     "use_mass_pca": false,
+    "record_full_loss": true,
     "autoencoder_config": {
       "pca_compare_dims": [5, 10],
       "pca_layer_err": 0.01,
+      "train_in_full_space": true,
+      "pca_init": false,
       "non_pca_layer_sizes": [200, 200],
       "ae_encoded_dim": 5,
       "activation": "elu",
 
       "learning_rate": 0.001,
       "batch_size": 128,
-      "training_epochs": 1000,
-      "do_fine_tuning": false,
+      "training_epochs": 2000,
+      "do_fine_tuning": true,
       "loss_weight": 1.0
     },
     "energy_model_config": {

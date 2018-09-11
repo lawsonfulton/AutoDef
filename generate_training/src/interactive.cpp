@@ -198,6 +198,7 @@ int main(int argc, char **argv) {
 
     // --- Setup tet mesh
     igl::readMESH(mesh_path.string(), V, T, F);
+    igl::boundary_facets(T,F);
     NeohookeanTets *tets = new NeohookeanTets(V,T);
     for(auto element: tets->getImpl().getElements()) {
         element->setDensity(config["density"]);//1000.0);

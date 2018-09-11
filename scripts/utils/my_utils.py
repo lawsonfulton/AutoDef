@@ -76,9 +76,11 @@ def load_dmats(base_path, dmat_prefix):
     filenames = [f for f in os.listdir(base_path) if os.path.isfile(os.path.join(base_path, f))]
     fnames_w_prefix = [f for f in filenames if f.startswith(dmat_prefix)]
     numbers_strings = [re.findall('\d+', f) for f in fnames_w_prefix]
+    numbers_strings = [n_str[0] for n_str in numbers_strings if n_str]
+    numbers_strings = list(set(numbers_strings)) # remove dupes
+    numbers_strings = map(str, sorted(int(s) for s in numbers_strings)) #convert to int, sort, back to string
 
-    final_filenames = [os.path.join(base_path, (dmat_prefix + n_str[0] + '.dmat')) for n_str in numbers_strings if n_str]
-    final_filenames = list(set(final_filenames)) #remove dupes hack
+    final_filenames = [os.path.join(base_path, (dmat_prefix + n_str + '.dmat')) for n_str in numbers_strings]
 
     print('Loading', len(final_filenames), 'samples...', end='', flush=True)
     p = Pool(16)

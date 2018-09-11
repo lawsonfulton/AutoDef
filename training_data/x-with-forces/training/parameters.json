@@ -8,5 +8,10 @@
 "spring_RestLength":0.1,
 "spring_Stiffness":10000.0,
 "spring_point_Mass":1000000.0,
-"timestep":0.05
+
+"spring_strength": 10000.0,
+"time_step": 0.05,
+"fixed_axis": 0,
+"flip_fixed_axis": false
+
 }

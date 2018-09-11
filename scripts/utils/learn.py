@@ -47,6 +47,12 @@ def autoencoder_analysis(
     """
     assert not((pca_weights is not None) and (pca_basis is not None))  # pca_weights incompatible with pca_object
 
+    # import tensorflow as tf
+    # from keras.backend.tensorflow_backend import set_session
+    # config = tf.ConfigProto()
+    # config.gpu_options.per_process_gpu_memory_fraction = 0.1
+    # set_session(tf.Session(config=config))
+
     import keras
     import keras.backend as K
     from keras.layers import Input, Dense, Lambda
@@ -265,10 +271,10 @@ def pca_with_error_cutoff(samples, max_allowable_error):
 
         per_vert_error_vec = (samples - decode(encode(samples))).reshape(len(samples[0])//3*len(samples),3)
         dist_errors = numpy.sum(numpy.abs(per_vert_error_vec)**2,axis=-1)**(1./2)
-        avg_error = numpy.max(dist_errors)
+        avg_error = numpy.mean(dist_errors)
         # print(numpy.mean(dist_errors))
         if avg_error < max_allowable_error:
-            print("PCA basis of size", pca_dim, " has max distance error of", avg_error, "<", max_allowable_error)
+            print("PCA basis of size", pca_dim, " has mean distance error of", avg_error, "<", max_allowable_error)
             return U, explained_variance_ratio, encode, decode
 
     print("Couldn't find a basis that meets error cutoff")
@@ -1046,8 +1052,10 @@ def generate_model(
     autoencoder_config = learning_config['autoencoder_config']
     energy_model_config = learning_config['energy_model_config']
     save_objs = learning_config['save_objs']
-    train_in_full_space = False
-    record_full_mse_each_epoch = True
+    train_in_full_space = autoencoder_config['train_in_full_space']
+    use_pca_init = autoencoder_config['pca_init']
+    record_full_mse_each_epoch = learning_config['record_full_loss']
+    assert train_in_full_space if not use_pca_init else True # Can't train in pca space if pca_init is false....
 
     training_data_path = os.path.join(model_root, 'training_data/training')
     validation_data_path = os.path.join(model_root, 'training_data/validation')
@@ -1068,9 +1076,10 @@ def generate_model(
     displacements = flatten_data(displacements)
     test_displacements = flatten_data(test_displacements)
 
-    numpy.random.shuffle(displacements)
-    test_displacements = displacements[:25]
-    displacements = displacements[25:]
+    # Can use this to select a subset to use as validation set
+    # numpy.random.shuffle(displacements)
+    # test_displacements = displacements[:25]
+    # displacements = displacements[25:]
 
     # Set up stuff for Mass PCA
     use_mass_pca = learning_config.get("use_mass_pca")
@@ -1192,7 +1201,10 @@ def generate_model(
         def on_epoch_end(self, epoch, logs=None):
             if record_full_mse_each_epoch:
                 mse = mean_squared_error(high_dim_pca_decode(self.model.predict(encoded_high_dim_pca_displacements)), displacements)
-                val_mse = mean_squared_error(high_dim_pca_decode(self.model.predict(encoded_high_dim_pca_test_displacements)), test_displacements)
+                if test_displacements is not None:
+                    val_mse = mean_squared_error(high_dim_pca_decode(self.model.predict(encoded_high_dim_pca_test_displacements)), test_displacements)
+                else:
+                    val_mse = 0
                 self.history.setdefault('mse', []).append(mse)
                 self.history.setdefault('val_mse', []).append(val_mse)
                 print()
@@ -1209,6 +1221,7 @@ def generate_model(
     ae_pca_basis_path = os.path.join(model_root, 'pca_results/ae_pca_components.dmat')
     print('Saving pca results to', ae_pca_basis_path)
     my_utils.save_numpy_mat_to_dmat(ae_pca_basis_path, numpy.ascontiguousarray(U_ae))
+    pca_basis_init = U_ae if train_in_full_space and use_pca_init else None
     ae_encode, ae_decode, ae_train_time = autoencoder_analysis(
                                     # displacements, # Uncomment to train in full space
                                     # test_displacements, 
@@ -1220,7 +1233,7 @@ def generate_model(
                                     batch_size=batch_size,
                                     learning_rate=learning_rate,
                                     layers=layers, # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
-                                    #pca_basis=U_ae,
+                                    pca_basis=pca_basis_init,
                                     do_fine_tuning=do_fine_tuning,
                                     model_root=model_root,
                                     autoencoder_config=autoencoder_config,

@@ -1,6 +1,6 @@
 {
   "mesh": "models/30k-armadillo-waist/tets.mesh",
-  "logging_enabled": true,
+  "logging_enabled": false,
   "material_config": {
     "density": 100.0,
     "youngs_modulus": 1000000.0,

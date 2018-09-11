@@ -1,0 +1,20 @@
+{
+  "autoencoder": {
+    "training-mse": 1.926802782147341e-06,
+    "relative_percent_error": 3.110044458458667,
+    "ae_training_time_s": 675.485592842102,
+    "pca_training_time_s": 0.8717691898345947
+  },
+  "pca": {
+    "5-components": {
+      "training-mse": 7.857523246634094e-06,
+      "explained_var": 0.9969934239051373,
+      "relative_percent_error": 5.528841528701796
+    },
+    "10-components": {
+      "training-mse": 5.109524318359753e-07,
+      "explained_var": 0.9998044908912199,
+      "relative_percent_error": 1.4102019243964001
+    }
+  }
+}

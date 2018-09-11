@@ -100,6 +100,7 @@ Eigen::RowVector3d mesh_pos;
 bool is_dragging = false;
 bool per_vertex_normals = false;
 int dragged_vert = 0;
+int dragged_face = 0;
 int current_frame = 0;
 
 // Parameters
@@ -127,6 +128,18 @@ std::vector<int> get_min_verts(int axis, bool flip_axis = false, double tol = 0.
 
     for(int ii=0; ii<V.rows(); ++ii) {
         if(fabs(V(ii, dim) - min_x_val) < tol) {
+            min_verts.push_back(ii);
+        }
+    }
+
+    return min_verts;
+}
+
+std::vector<int> get_verts_in_sphere(const VectorXd &c, double r) {
+    std::vector<int> min_verts;
+
+    for(int ii=0; ii<V.rows(); ++ii) {
+        if((V.row(ii) - c.transpose()).squaredNorm() < r * r) {
             min_verts.push_back(ii);
         }
     }
@@ -680,6 +693,8 @@ public:
         m_lbfgs_param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
         m_lbfgs_param.m = lbfgs_config["lbfgs_m"];
         m_lbfgs_param.epsilon = lbfgs_config["lbfgs_epsilon"]; //1e-8// TODO replace convergence test with abs difference
+        m_lbfgs_param.delta = get_json_value(lbfgs_config, "lbfgs_delta", 0.0);
+        m_lbfgs_param.past = get_json_value(lbfgs_config, "lbfgs_delta_past", 0);
         m_lbfgs_param.max_iterations = lbfgs_config["lbfgs_max_iterations"];//500;//300;
        // param.epsilon = 1e-4;
        // param.max_iterations = 1000;
@@ -922,13 +937,17 @@ private:
 
 SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, int dragged_vert, bool is_dragging, double spring_stiffness, NeohookeanTets *tets, const MyWorld &world) {
     SparseVector<double> force(n_dof);// = VectorXd::Zero(n_dof); // TODO make this a sparse vector?
-    force.reserve(3);
+    force.reserve(3 * 3);
     if(is_dragging) {
-        Vector3d fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert], dragged_vert, &tets->getImpl().getV())(world.getState());
-        Vector3d local_force = spring_stiffness * (dragged_pos - fem_attached_pos);
+        for(int f = 0; f < 3; f++) {
+            int dragged_vert_local = F(dragged_face, f);
 
-        for(int i=0; i < 3; i++) {
-            force.insert(dragged_vert * 3 + i) = local_force[i];    
+            Vector3d fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert_local], dragged_vert_local, &tets->getImpl().getV())(world.getState());
+            Vector3d local_force = spring_stiffness * (dragged_pos - fem_attached_pos) / 3;
+
+            for(int i=0; i < 3; i++) {
+                force.insert(dragged_vert_local * 3 + i) = local_force[i];    
+            }
         }
     } 
 
@@ -1517,9 +1536,12 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             {
                 long c;
                 bary.maxCoeff(&c);
-                dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.001,0.0,0.0); //Epsilon offset so we don't div by 0
+                dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.00001,0.0,0.0); //Epsilon offset so we don't div by 0
                 mesh_pos = curV.row(F(fid,c));
                 dragged_vert = F(fid,c);
+
+                dragged_face = fid;
+
                 std::cout << "Grabbed vertex: " << dragged_vert << std::endl;
                 is_dragging = true;
 
@@ -1529,6 +1551,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                 // pinned_q = dragged_pos;//(dragged_pos).cast<double>(); // necessary?
 
                 // fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl().getV());
+                // fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl()faceV());
                 // forceSpring->getImpl().setPosition0(fem_attached_pos);
 
                 return true;
@@ -1615,13 +1638,6 @@ int main(int argc, char **argv) {
         PLAYBACK_SIM = true;
     }
 
-    std::string log_string = "";
-    if(argc == 4) {
-        log_string = argv[3];
-    } else {
-        log_string = currentDateTime();
-    }
-
 
     std::ifstream fin((model_root / sim_config).string());
     json config;
@@ -1631,6 +1647,13 @@ int main(int argc, char **argv) {
     std::string reduced_space_string = integrator_config["reduced_space_type"];
 
     print_freq = get_json_value(config["visualization_config"], "print_every_n_frames", print_freq);
+
+    std::string log_string = "";
+    if(argc == 4) {
+        log_string = argv[3];
+    } else {
+        log_string = currentDateTime() + "_" + reduced_space_string;
+    }
 
     LOGGING_ENABLED = config["logging_enabled"];
     if(LOGGING_ENABLED) {
@@ -1704,7 +1727,7 @@ int main(int argc, char **argv) {
         run_sim<AutoencoderSpace, MatrixXd>(&reduced_space, config, model_root);  
     }
     else if(reduced_space_string == "full") {
-        int fixed_axis = 1;
+        int fixed_axis = -1;
         try {
             fixed_axis = config["visualization_config"].at("full_space_constrained_axis");
         } 
@@ -1713,9 +1736,17 @@ int main(int argc, char **argv) {
             exit(1);
         }
         bool flip_axis = get_json_value(config["visualization_config"], "flip_constrained_axis", false);
+        std::vector<double> fixed_vert_c = get_json_value(config["visualization_config"], "fixed_point_constraint", std::vector<double>());
+        double fixed_vert_r = get_json_value(config["visualization_config"], "fixed_point_radius", 0.0);
 
-        auto min_verts = get_min_verts(fixed_axis, flip_axis);
+        std::vector<int> min_verts;
+        if(fixed_axis != -1) {
+            min_verts = get_min_verts(fixed_axis, flip_axis);
+        } else if (fixed_vert_r != -1) {
+            min_verts = get_verts_in_sphere(Eigen::Map<VectorXd>(fixed_vert_c.data(), 3), fixed_vert_r);
+        }
 
+        std::cout << "Constraining " << min_verts.size() << " verts" << std::endl;
         // For twisting
         // auto max_verts = get_min_verts(fixed_axis, true);
         // min_verts.insert(min_verts.end(), max_verts.begin(), max_verts.end());

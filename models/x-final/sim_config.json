@@ -1,6 +1,6 @@
 {
   "mesh": "./models/x-final/tets.mesh",
-  "logging_enabled": false,
+  "logging_enabled": true,
   "save_objs": false,
   "alternative_full_space_mesh": "",
   "material_config": {
@@ -10,7 +10,7 @@
   },
   "integrator_config": {
     "reduced_space_type": "autoencoder",
-    "use_reduced_energy": true,
+    "use_reduced_energy": false,
     "use_partial_decode": false,
     "reduced_energy_method": "pcr",
     "use_preconditioner": true,
@@ -31,7 +31,7 @@
     "gpu_decode": false,
     "show_stress": false,
     "show_energy": false,
-    "interaction_spring_stiffness": 10000.0,
+    "interaction_spring_stiffness": 100000.0,
     "full_space_constrained_axis": 1,
     "print_every_n_frames": 10,
     "max_frames": 0

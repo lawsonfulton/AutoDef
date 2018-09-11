@@ -19,11 +19,14 @@ from utils.compute_tf_jacobian_models import generate_jacobian_for_tf_model, gen
 # - Compute vjp during build
 # - Run an08 cubature optimization (if enabled), create energy_model directory
 
-def make_output_dir(path):
+def make_output_dir(path, force=False):
     if os.path.exists(path):
-        overwrite = my_utils.query_yes_no(
-            'The model output directory "'+ path + '" already exists. Would you like to overwrite it?'
-        )
+        if force:
+            overwrite = True
+        else:
+            overwrite = my_utils.query_yes_no(
+                'The model output directory "'+ path + '" already exists. Would you like to overwrite it?'
+            )
         if not overwrite:
             exit()
     else:
@@ -71,10 +74,13 @@ def main():
                   help='Training config file')
     config_parser.add_option('-o', '--out_dir', dest='out_dir',
                   help='Directory where model will be written')
+    config_parser.add_option('-f', '--force', dest='force',
+                  help='Automatically overwrite', default=False)
 
     options, args = config_parser.parse_args()
     config_path = options.config_path
     model_root = options.out_dir
+    force = options.force
 
     if not config_path:
         print('A configuration file must be supplied.')
@@ -84,7 +90,7 @@ def main():
         exit()
 
     # Make the output directory and load the config file
-    make_output_dir(model_root)
+    make_output_dir(model_root, force)
     config = get_config(config_path)
     config_dir = os.path.dirname(config_path) # All paths in the config are relative to the config location
 
@@ -164,6 +170,8 @@ def main():
             'interaction_spring_stiffness': 100,#training_data_params['spring_strength'],
             'full_space_constrained_axis': training_data_params['fixed_axis'],
             'flip_constrained_axis': training_data_params['flip_fixed_axis'],
+            'fixed_point_constraint': [0, 0, 0],
+            'fixed_point_radius': -1,
             'print_every_n_frames': 10,
             'max_frames': 0,
         },

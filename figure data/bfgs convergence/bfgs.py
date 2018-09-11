@@ -20,6 +20,7 @@ def main():
     n_frames = 50
     timesteps = sim_stats['timesteps'][:n_frames]
 
+    print(timesteps[0])
     tot_time_per_step = [t['tot_step_time_s'] for t in timesteps]
     its_per_step = [t['lbfgs_iterations'] for t in timesteps]
     timing_info_per_step = [t['iteration_info']['timing'] for t in timesteps]
