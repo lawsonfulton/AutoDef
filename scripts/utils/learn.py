@@ -152,14 +152,19 @@ def autoencoder_analysis(
     hist = History()
     model_start_time = time.time()
 
-    autoencoder.fit(
-        train_data, train_data,
-        epochs=epochs,
-        batch_size=batch_size,
-        shuffle=True,
-        validation_data=(test_data, test_data),
-        callbacks=[hist, callback]
-        )
+    n_batch_steps = 5
+    max_batch_size = len(train_data)
+    min_batch_size = batch_size
+    batch_sizes = numpy.linspace(min_batch_size, max_batch_size, n_batch_steps, dtype=int)
+    for bs in batch_sizes: 
+        autoencoder.fit(
+            train_data, train_data,
+            epochs=epochs // n_batch_steps,
+            batch_size=bs,
+            shuffle=True,
+            validation_data=(test_data, test_data),
+            callbacks=[hist, callback]
+            )
 
     training_time = time.time() - model_start_time
     print("Total training time: ", training_time)
@@ -271,7 +276,7 @@ def pca_with_error_cutoff(samples, max_allowable_error):
 
         per_vert_error_vec = (samples - decode(encode(samples))).reshape(len(samples[0])//3*len(samples),3)
         dist_errors = numpy.sum(numpy.abs(per_vert_error_vec)**2,axis=-1)**(1./2)
-        avg_error = numpy.mean(dist_errors)
+        avg_error = numpy.max(dist_errors)
         # print(numpy.mean(dist_errors))
         if avg_error < max_allowable_error:
             print("PCA basis of size", pca_dim, " has mean distance error of", avg_error, "<", max_allowable_error)

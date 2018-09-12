@@ -1,0 +1,30 @@
+{
+  "autoencoder": {
+    "training-mse": 1.6177466871311144e-08,
+    "relative_percent_error": 0.9285095631054573,
+    "ae_training_time_s": 207.37836575508118,
+    "pca_training_time_s": 14.867919683456421
+  },
+  "pca": {
+    "5-components": {
+      "training-mse": 2.0198448329717445e-05,
+      "explained_var": 0.9170228935697385,
+      "relative_percent_error": 26.44898950843068
+    },
+    "10-components": {
+      "training-mse": 4.774758953818005e-06,
+      "explained_var": 0.9803848456365388,
+      "relative_percent_error": 14.029840361474383
+    },
+    "30-components": {
+      "training-mse": 1.1845637297005894e-07,
+      "explained_var": 0.9995133701902825,
+      "relative_percent_error": 2.3408752143065548
+    },
+    "83-components": {
+      "training-mse": 6.522052351326441e-10,
+      "explained_var": 0.9999973206801667,
+      "relative_percent_error": 0.1829927565826665
+    }
+  }
+}

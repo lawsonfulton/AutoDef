@@ -1,8 +1,10 @@
 {
   "mesh": "models/generate_training/tets.mesh",
-  "logging_enabled": true,
+  "logging_enabled": false,
   "save_objs": false,
-  "alternative_full_space_mesh": "../../meshes/25cm_armadillo_very_low.mesh",
+  "save_training_data": true,
+  "save_training_data_path": "../../training_data/25cm_armadillo_high_limb_interaction",
+  "alternative_full_space_mesh": "../../meshes/25cm_armadillo_high.mesh",
   "material_config": {
     "density": 1000,
     "youngs_modulus": 30000,

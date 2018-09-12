@@ -47,6 +47,8 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 #include <igl/slice.h>
 #include <igl/per_corner_normals.h>
 #include <igl/per_vertex_normals.h>
+#include <igl/point_mesh_squared_distance.h>
+
 #include <igl/material_colors.h>
 #include <igl/snap_points.h>
 #include <igl/centroid.h>
@@ -96,17 +98,19 @@ int n_dof;
 // Mouse/Viewer state
 Eigen::RowVector3f last_mouse;
 Eigen::RowVector3d dragged_pos;
-Eigen::RowVector3d mesh_pos;
+Eigen::RowVector3d dragged_mesh_pos;
+int vis_vert_id = 0;
+double drag_radius = 0.03;
 bool is_dragging = false;
 bool per_vertex_normals = false;
-int dragged_vert = 0;
-int dragged_face = 0;
+std::vector<int> dragged_verts;
 int current_frame = 0;
 
 // Parameters
 int print_freq = 40;
 bool LOGGING_ENABLED = false;
 bool PLAYBACK_SIM = false;
+bool SAVE_TRAINING_DATA = false;
 int log_save_freq = 5;
 json sim_log;
 json sim_playback_json;
@@ -116,6 +120,7 @@ fs::path surface_obj_dir;
 fs::path iteration_obj_dir;
 fs::path pointer_obj_dir;
 fs::path tet_obj_dir;
+fs::path save_training_data_dir;
 std::ofstream log_ofstream;
 
 const Eigen::RowVector3d sea_green(229./255.,211./255.,91./255.);
@@ -135,44 +140,17 @@ std::vector<int> get_min_verts(int axis, bool flip_axis = false, double tol = 0.
     return min_verts;
 }
 
-std::vector<int> get_verts_in_sphere(const VectorXd &c, double r) {
+std::vector<int> get_verts_in_sphere(const VectorXd &c, double r, const MatrixXd &verts) {
     std::vector<int> min_verts;
 
-    for(int ii=0; ii<V.rows(); ++ii) {
-        if((V.row(ii) - c.transpose()).squaredNorm() < r * r) {
+    for(int ii=0; ii<verts.rows(); ++ii) {
+        if((verts.row(ii) - c.transpose()).squaredNorm() < r * r) {
             min_verts.push_back(ii);
         }
     }
 
     return min_verts;
 }
-
-// SparseMatrix<double> construct_constraints_P(const MatrixXd &V, std::vector<unsigned int> &verts) {
-//     // Construct constraint projection matrix
-//     std::cout << "Constructing constraints..." << std::endl;
-//     std::sort(verts.begin(), verts.end());
-//     int q_size = V.rows() * 3; // n dof
-//     int n = q_size;
-//     int m = n - verts.size()*3;
-//     SparseMatrix<double> P(m, n);
-//     P.reserve(VectorXi::Constant(n, 1)); // Reserve enough space for 1 non-zero per column
-//     int min_vert_i = 0;
-//     int cur_col = 0;
-//     for(int i = 0; i < m; i+=3){
-//         while(verts[min_vert_i] * 3 == cur_col) { // Note * is for vert index -> flattened index
-//             cur_col += 3;
-//             min_vert_i++;
-//         }
-//         P.insert(i, cur_col) = 1.0;
-//         P.insert(i+1, cur_col+1) = 1.0;
-//         P.insert(i+2, cur_col+2) = 1.0;
-//         cur_col += 3;
-//     }
-//     P.makeCompressed();
-//     std::cout << "Done." << std::endl;
-//     // -- Done constructing P
-//     return P;
-// }
 
 Eigen::SparseMatrix<double> construct_constraints_P(const MatrixXd &V, std::vector<int> &indices) {
     
@@ -217,6 +195,19 @@ Eigen::SparseMatrix<double> construct_constraints_P(const MatrixXd &V, std::vect
     return P;
 }
 
+void create_or_replace_dir(fs::path dir) {
+    if(fs::exists(dir)){
+        std::cout << "Are you sure you want to delete " << dir << "? Y/n: ";
+        std::string input;
+        input = std::cin.get();
+        if(input == "Y" || input == "y" || input == "\n") {
+            fs::remove_all(dir);
+        } else {
+            exit(1);
+        }
+    }
+    fs::create_directory(dir);
+}
 
 void reset_world (MyWorld &world) {
         auto q = mapStateEigen(world); // TODO is this necessary?
@@ -227,6 +218,11 @@ void exit_gracefully() {
     log_ofstream.seekp(0);
     log_ofstream << std::setw(2) << sim_log;
     log_ofstream.close();
+
+    if(SAVE_TRAINING_DATA) {
+        fs::copy_file(log_dir / "sim_stats.json", save_training_data_dir / "sim_stats.json");
+    }
+
     exit(0);
 }
 
@@ -684,6 +680,7 @@ public:
         m_energy_method = energy_method_from_integrator_config(integrator_config);
         m_use_preconditioner = integrator_config["use_preconditioner"];
         m_is_full_space = integrator_config["reduced_space_type"] == "full";
+        m_is_linear_space = integrator_config["reduced_space_type"] == "linear";
         m_h = integrator_config["timestep"];
         m_U = reduced_space->outer_jacobian();
 
@@ -768,8 +765,7 @@ public:
         double precondition_compute_time = 0.0;
         if(m_use_preconditioner) {
             double precondition_start_time = igl::get_seconds();
-            // TODO shouldn't do this for any linear space
-            if(!m_is_full_space) { // Only update the hessian each time for nonlinear space. 
+            if(!m_is_full_space && !m_is_linear_space) { // Only update the hessian each time for nonlinear space. 
                 MatrixType J = m_reduced_space->inner_jacobian(m_cur_z);
                 m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
                 m_H_llt.compute(m_H);//m_H.ldlt();
@@ -832,7 +828,7 @@ public:
             // timestep_info["avg_activated_tets"] = m_total_tets / (double) current_frame;
 
             timestep_info["mouse_info"]["dragged_pos"] = {dragged_pos[0], dragged_pos[1], dragged_pos[2]};
-            timestep_info["mouse_info"]["dragged_vert"] = dragged_vert;
+            timestep_info["mouse_info"]["dragged_mesh_pos"] = {dragged_mesh_pos[0], dragged_mesh_pos[1], dragged_mesh_pos[2]};
             timestep_info["mouse_info"]["is_dragging"] = is_dragging;
 
             sim_log["timesteps"].push_back(timestep_info);
@@ -896,6 +892,7 @@ public:
 private:
     bool m_use_preconditioner;
     bool m_is_full_space;
+    bool m_is_linear_space;
 
     LBFGSParam<double> m_lbfgs_param;
     LBFGSSolver<double> *m_solver;
@@ -935,15 +932,15 @@ private:
 
 
 
-SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, int dragged_vert, bool is_dragging, double spring_stiffness, NeohookeanTets *tets, const MyWorld &world) {
+SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, const std::vector<int> &dragged_verts, bool is_dragging, double spring_stiffness, NeohookeanTets *tets, const MyWorld &world) {
     SparseVector<double> force(n_dof);// = VectorXd::Zero(n_dof); // TODO make this a sparse vector?
-    force.reserve(3 * 3);
     if(is_dragging) {
-        for(int f = 0; f < 3; f++) {
-            int dragged_vert_local = F(dragged_face, f);
+        force.reserve(3 * dragged_verts.size());
+        for(int vi = 0; vi < dragged_verts.size(); vi++) {
+            int dragged_vert_local = dragged_verts[vi];
 
             Vector3d fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert_local], dragged_vert_local, &tets->getImpl().getV())(world.getState());
-            Vector3d local_force = spring_stiffness * (dragged_pos - fem_attached_pos) / 3;
+            Vector3d local_force = spring_stiffness * (dragged_pos - fem_attached_pos) / dragged_verts.size();
 
             for(int i=0; i < 3; i++) {
                 force.insert(dragged_vert_local * 3 + i) = local_force[i];    
@@ -1254,8 +1251,8 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
         
 
-        mesh_pos = gplc_stepper.get_current_vert_pos(dragged_vert);
         if(is_dragging) {
+            dragged_mesh_pos = gplc_stepper.get_current_vert_pos(vis_vert_id);
             // Eigen::MatrixXd part_pos(1, 3);
             // part_pos(0,0) = dragged_pos[0]; // TODO why is eigen so confusing.. I just want to make a matrix from vec
             // part_pos(0,1) = dragged_pos[1];
@@ -1268,7 +1265,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             E(0,1) = 1;
             MatrixXd P(2,3);using Eigen::VectorXd;
             P.row(0) = dragged_pos;
-            P.row(1) = mesh_pos;
+            P.row(1) = dragged_mesh_pos;
             
             viewer.data.set_edges(P, E, sea_green);
         } else {
@@ -1313,26 +1310,39 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             // Play back mouse interaction from previous sim
             if(PLAYBACK_SIM) {
                 // Eigen::MatrixXd newV = gplc_stepper.get_current_V(); // TODO we can avoid doing this
+                if(current_frame >= sim_playback_json["timesteps"].size()) {
+                    exit_gracefully();
+                }
+
                 json current_mouse_info = sim_playback_json["timesteps"][current_frame]["mouse_info"];
                 dragged_pos = Eigen::RowVector3d(current_mouse_info["dragged_pos"][0], current_mouse_info["dragged_pos"][1], current_mouse_info["dragged_pos"][2]);
+                dragged_mesh_pos = Eigen::RowVector3d(current_mouse_info["dragged_mesh_pos"][0], current_mouse_info["dragged_mesh_pos"][1], current_mouse_info["dragged_mesh_pos"][2]);
 
                 bool was_dragging = is_dragging;
                 is_dragging = current_mouse_info["is_dragging"];
 
                 if(is_dragging && !was_dragging) { // Got a click
-                    dragged_vert = current_mouse_info["dragged_vert"];
-                    // // Get closest point on mesh
-                    // MatrixXd C(1,3);
-                    // C.row(0) = dragged_pos;
-                    // MatrixXi I;
-                    // igl::snap_points(C, newV, I);
+                    Eigen::MatrixXd curV = gplc_stepper.get_current_V();
+                    dragged_verts = get_verts_in_sphere(dragged_mesh_pos, drag_radius, curV);
+                    // vis_vert_id = get closest point on mesh for dragged_mesh_pos using snap to
+                    // dragged_face = current_mouse_info["dragged_face"];
+                    // dragged_vert = current_mouse_info["dragged_vert"];
 
-                    // dragged_vert = I(0,0);
+                    // MatrixXd P = 
+                    // igl::point_mesh_squared_distance(P, V, F, sqrD, I, C);
+                    // // Get closest point on mesh
+                    MatrixXd C(1,3);
+                    C.row(0) = dragged_mesh_pos;
+                    MatrixXi I;
+                    igl::snap_points(C, curV, I);
+
+                    vis_vert_id = I(0,0);
+
                 }
             }
             
             // Do the physics update
-            interaction_force = compute_interaction_force(dragged_pos, dragged_vert, is_dragging, spring_stiffness, tets, world);
+            interaction_force = compute_interaction_force(dragged_pos, dragged_verts, is_dragging, spring_stiffness, tets, world);
             gplc_stepper.step(interaction_force);
 
             if(LOGGING_ENABLED) {
@@ -1365,12 +1375,22 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     }
                 }
 
+                if(SAVE_TRAINING_DATA) {
+                    std::string frame_num_string = std::to_string(current_frame);// + starting_frame_num);
+                    auto q = gplc_stepper.get_current_q();
+                    Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
+                    Eigen::MatrixXd displacements = dV.transpose();
+
+                    fs::path  displacements_file = save_training_data_dir / ("displacements_" + frame_num_string + ".dmat");
+                    igl::writeDMAT(displacements_file.string(), displacements, false); // Don't use ascii
+                }
+
                 // Export the pointer line
                 MatrixXi pointerF(1, 2);
                 pointerF << 0, 1;
                 MatrixXd pointerV(2,3);
                 if(is_dragging) {
-                    pointerV.row(0) = mesh_pos;
+                    pointerV.row(0) = dragged_mesh_pos;
                     pointerV.row(1) = dragged_pos;
                 } else {
                     pointerV << 10000, 10000, 10000, 10001, 10001, 10001; // Fix this and make it work
@@ -1523,9 +1543,9 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             Eigen::MatrixXd curV = gplc_stepper.get_current_V(); 
             last_mouse = Eigen::RowVector3f(viewer.current_mouse_x,viewer.core.viewport(3)-viewer.current_mouse_y,0);
             
-            // Find closest point on mesh to mouse position
             int fid;
             Eigen::Vector3f bary;
+            // Find closest point on mesh to mouse position
             if(igl::unproject_onto_mesh(
                 last_mouse.head(2),
                 viewer.core.view * viewer.core.model,
@@ -1536,23 +1556,14 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             {
                 long c;
                 bary.maxCoeff(&c);
-                dragged_pos = curV.row(F(fid,c)) + Eigen::RowVector3d(0.00001,0.0,0.0); //Epsilon offset so we don't div by 0
-                mesh_pos = curV.row(F(fid,c));
-                dragged_vert = F(fid,c);
+                vis_vert_id = F(fid,c);
 
-                dragged_face = fid;
+                dragged_pos = curV.row(vis_vert_id);
+                dragged_mesh_pos = dragged_pos; // Just using closest vert for now
+                dragged_verts = get_verts_in_sphere(dragged_mesh_pos, drag_radius, curV);get_verts_in_sphere(dragged_mesh_pos, drag_radius, curV);
 
-                std::cout << "Grabbed vertex: " << dragged_vert << std::endl;
+                std::cout << "Grabbed " << dragged_verts.size() << " verts" << std::endl;
                 is_dragging = true;
-
-
-                // forceSpring->getImpl().setStiffness(spring_stiffness);
-                // auto pinned_q = mapDOFEigen(pinned_point->getQ(), world);
-                // pinned_q = dragged_pos;//(dragged_pos).cast<double>(); // necessary?
-
-                // fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl().getV());
-                // fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert],dragged_vert, &tets->getImpl()faceV());
-                // forceSpring->getImpl().setPosition0(fem_attached_pos);
 
                 return true;
             }
@@ -1644,6 +1655,8 @@ int main(int argc, char **argv) {
     fin >> config;
 
     auto integrator_config = config["integrator_config"];
+    auto material_config = config["material_config"];
+    auto viz_config = config["visualization_config"];
     std::string reduced_space_string = integrator_config["reduced_space_type"];
 
     print_freq = get_json_value(config["visualization_config"], "print_every_n_frames", print_freq);
@@ -1695,8 +1708,35 @@ int main(int argc, char **argv) {
         log_ofstream = std::ofstream((log_dir / log_file).string());
     }
 
-    // Load the mesh here
     std::string alternative_mesh_path = get_json_value(config, "alternative_full_space_mesh", std::string(""));
+
+    // Now do the set up for stuff if we are saving training data
+    SAVE_TRAINING_DATA = get_json_value(config, "save_training_data", false);
+    if(SAVE_TRAINING_DATA) {
+        std::string save_training_data_path_string = get_json_value(config, "save_training_data_path", std::string());
+        save_training_data_dir = fs::path(save_training_data_path_string);
+        create_or_replace_dir(save_training_data_dir);
+
+        // Save the training params
+        json training_data_params;
+        training_data_params["density"] = material_config["density"];
+        training_data_params["YM"] = material_config["youngs_modulus"];
+        training_data_params["Poisson"] = material_config["poissons_ratio"];
+        training_data_params["time_step"] = integrator_config["timestep"];
+        training_data_params["spring_strength"] = viz_config["interaction_spring_stiffness"];
+        training_data_params["fixed_axis"] = viz_config["full_space_constrained_axis"];
+        training_data_params["flip_fixed_axis"] = viz_config["flip_constrained_axis"];
+        training_data_params["fixed_point_constraint"] = viz_config["fixed_point_constraint"];
+        training_data_params["fixed_point_radius"] = viz_config["fixed_point_radius"];
+
+        std::ofstream fout((save_training_data_dir / "parameters.json").string());
+        fout << training_data_params;
+        fout.close();
+
+        fs::copy_file(alternative_mesh_path, save_training_data_dir / "tets.mesh" );
+    }
+
+    // Load the mesh here
     if(alternative_mesh_path != "") {
         igl::readMESH((model_root / alternative_mesh_path).string(), V, T, F);
     } else {
@@ -1743,7 +1783,7 @@ int main(int argc, char **argv) {
         if(fixed_axis != -1) {
             min_verts = get_min_verts(fixed_axis, flip_axis);
         } else if (fixed_vert_r != -1) {
-            min_verts = get_verts_in_sphere(Eigen::Map<VectorXd>(fixed_vert_c.data(), 3), fixed_vert_r);
+            min_verts = get_verts_in_sphere(Eigen::Map<VectorXd>(fixed_vert_c.data(), 3), fixed_vert_r, V);
         }
 
         std::cout << "Constraining " << min_verts.size() << " verts" << std::endl;

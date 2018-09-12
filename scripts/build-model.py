@@ -134,7 +134,8 @@ def main():
         'mesh': os.path.join(model_root, 'tets.mesh'),
         'logging_enabled': False,
         'save_objs': False,
-        "alternative_full_space_mesh": "",
+        'save_training_data_path': '', # If this path is filled in, then displacements, mouse, params, will be recorded.
+        'alternative_full_space_mesh': '',
         'material_config': {
             'density': training_data_params['density'], # TODO these numbers should probably match whatever the training data was by default.
             'youngs_modulus': training_data_params['YM'],
@@ -145,7 +146,7 @@ def main():
             'reduced_space_type': 'autoencoder', # Options are one of ['autoencoder, linear, full']
             'use_reduced_energy': config['learning_config']['energy_model_config']['enabled'],
             'use_partial_decode': True,
-            'reduced_energy_method': "pcr", # options: an08, pcr, and not fullyimplemented: pred_weights_l1
+            'reduced_energy_method': "an08", # options: an08, pcr, and not fullyimplemented: pred_weights_l1
             'use_preconditioner': True,
             'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
             'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
@@ -167,11 +168,11 @@ def main():
             'gpu_decode': True,
             'show_stress': False,
             'show_energy': False,
-            'interaction_spring_stiffness': 100,#training_data_params['spring_strength'],
+            'interaction_spring_stiffness': training_data_params.get('spring_strength', 100),
             'full_space_constrained_axis': training_data_params['fixed_axis'],
             'flip_constrained_axis': training_data_params['flip_fixed_axis'],
-            'fixed_point_constraint': [0, 0, 0],
-            'fixed_point_radius': -1,
+            'fixed_point_constraint': training_data_params.get('fixed_point_constraint', [0,0,0]),
+            'fixed_point_radius': training_data_params.get('fixed_point_radius', -1),
             'print_every_n_frames': 10,
             'max_frames': 0,
         },
