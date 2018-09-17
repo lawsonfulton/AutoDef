@@ -13,7 +13,13 @@ set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib )
 #grab important packages
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+#MKL
+include_directories($ENV{MKLROOT}/include)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
+
 find_package(Eigen3 REQUIRED)
+
 #Tensorflow
 find_package(TensorflowCC REQUIRED)
 
@@ -62,11 +68,6 @@ option(LIBIGL_WITH_XML              "Use XML"            OFF)
 find_package(LIBIGL REQUIRED QUIET)
 
 
-
-#get the source code files
-#file(GLOB HEADER_CODE ${ReduceSimExample_SOURCE_DIR}/src/*.h)
-#file(GLOB SRC_CODE ${ReduceSimExample_SOURCE_DIR}/src/*.cpp)
-
 file(GLOB SRC_CODE
     ${ReduceSimExample_SOURCE_DIR}/src/*.h
     ${ReduceSimExample_SOURCE_DIR}/src/*.cpp
@@ -74,17 +75,8 @@ file(GLOB SRC_CODE
 
 include_directories(${Gauss_INCLUDE_DIRS})
 
-#this call is necessary if any targets are GUI applications
-#initUI()  #Is this important????
-
 #Example codes
 link_directories(${Gauss_LIB_DIR_RELEASE})
 add_executable(ReduceSimExample ${SRC_CODE})
-target_link_libraries(ReduceSimExample ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer TensorflowCC::Static Boost::filesystem -lgomp)
+target_link_libraries(ReduceSimExample ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer TensorflowCC::Static Boost::filesystem -lgomp -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lm -ldl)
 
-# add_executable(ViewData ${ReduceSimExample_SOURCE_DIR}/src/cpp/viewData.cpp)
-# target_link_libraries(ViewData ${Gauss_LIBS} ${UI_LIBS})
-
-#include_directories(${ReduceSimExample_SOURCE_DIR}/src/)
-#add_executable(Simulation ${ReduceSimExample_SOURCE_DIR}/src/cpp/simulation.cpp ${ReduceSimExample_SOURCE_DIR}/src/include/simulation.h)
-#target_link_libraries(Simulation ${Gauss_LIBS} ${UI_LIBS})

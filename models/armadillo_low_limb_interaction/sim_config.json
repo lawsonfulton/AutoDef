@@ -1,6 +1,6 @@
 {
   "mesh": "models/armadillo_low_limb_interaction/tets.mesh",
-  "logging_enabled": false,
+  "logging_enabled": true,
   "save_objs": false,
   "save_training_data_path": "",
   "alternative_full_space_mesh": "",
@@ -43,7 +43,7 @@
       -0.1
     ],
     "fixed_point_radius": 0.11,
-    "print_every_n_frames": 10,
+    "print_every_n_frames": 100,
     "max_frames": 0
   }
 }

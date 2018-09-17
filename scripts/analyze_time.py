@@ -11,8 +11,11 @@ def smooth(x, N=10):
     return numpy.convolve(x, numpy.ones((N,))/N, mode='valid')
 
 def main():
+    ylim = None
     if len(sys.argv) > 1:
         log_path = sys.argv[1]
+        if len(sys.argv) > 2:
+            ylim = float(sys.argv[2])
     else:
         log_path = 'sim_stats_old.json'
 
@@ -47,7 +50,8 @@ def main():
     ax.set_xlabel('Time')
     # ax.set_ylabel('Displacement in Z-axis of vertex 19')
 
-    # ax.set_ylim(0, 0.05)
+    if ylim:
+        ax.set_ylim(0, ylim)
 
     # Style
     ax.legend(loc='upper left')

@@ -1,3 +1,9 @@
+#define EIGEN_USE_MKL_ALL
+// #define MKL_DIRECT_CALL
+// #ifdef EIGEN_PARDISO_SUPPORT
+#include <Eigen/PardisoSupport>
+// #endif
+
 #include <vector>
 #include <set>
 
@@ -24,7 +30,7 @@ using namespace ParticleSystem; //For Force Spring
 
 //typedef physical entities I need
 
-typedef PhysicalSystemFEM<double, NeohookeanTet> NeohookeanTets;
+typedef PhysicalSystemFEM<double, NeohookeanHFixedTet> NeohookeanTets;
 
 typedef World<double, 
                         std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
@@ -100,7 +106,7 @@ Eigen::RowVector3f last_mouse;
 Eigen::RowVector3d dragged_pos;
 Eigen::RowVector3d dragged_mesh_pos;
 int vis_vert_id = 0;
-double drag_radius = 0.03;
+double drag_radius = 0.03; 
 bool is_dragging = false;
 bool per_vertex_normals = false;
 std::vector<int> dragged_verts;
@@ -256,10 +262,10 @@ public:
         // Construct mass matrix and external forces
         getMassMatrix(m_M_asm, *m_world);
 
-        std::cout << "Constructing reduced mass matrix..." << std::endl;
         m_M = *m_M_asm;
 
         m_U = m_reduced_space->outer_jacobian();
+        std::cout << "Constructing reduced mass matrix..." << std::endl;
         m_UTMU = m_U.transpose() * m_M * m_U;
 
         // Check if m_UTMU is identity (mass pca)
@@ -369,8 +375,27 @@ public:
                 m_cubature_vert_indices[i++] = vi;
                 // std::cout << vi << ", " << std::endl;
             }
+            std::sort(m_cubature_vert_indices.data(), m_cubature_vert_indices.data()+m_cubature_vert_indices.size());
             MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
             m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
+
+
+            // Get the element references ahead of time
+            for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+                int tet_index = m_cubature_indices[i];  
+                auto elem = m_tets->getImpl().getElement(tet_index);
+                m_cubature_elements.push_back(elem);
+            }
+
+            // Get the rows of U ahead of time
+            m_U_cubature_sampled.resize(n_sample_tets * 12, m_U.cols());
+            for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+                for(int k = 0; k < 4; k++) {
+                    for(int j = 0; j < 3; j++) {    
+                        m_U_cubature_sampled.row(i * 12 + k * 3 + j) = m_cubature_weights(i) * denseU.row(m_cubature_elements[i]->getQDOFList()[k]->getGlobalId() + j);
+                    }
+                }
+            }
         }
     }
 
@@ -396,102 +421,45 @@ public:
     VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
     VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
 
-    double current_reduced_energy_and_forces(double &energy, VectorXd &UT_forces) {
-        int n_sample_tets = m_cubature_indices.size();
-        
-        VectorXd sampled_energy(n_sample_tets);
 
-        int n_force_per_element = T.cols() * 3;
-        MatrixXd element_forces(n_sample_tets, n_force_per_element);
-        
 
-        #pragma omp parallel for num_threads(4) //schedule(static,64)// TODO how to optimize this
+    double parallel_current_reduced_energy_and_forces(double &energy, VectorXd &UT_forces) {
+        #pragma omp single 
+        {
+            UT_forces = VectorXd::Zero(m_U.cols());
+            energy = 0;
+        }
+
+        const int n_sample_tets = m_cubature_indices.size();
+        const int n_force_per_element = T.cols() * 3;
+        const int d = m_U.cols();
+
+        VectorXd sampled_force(n_force_per_element); // Holds the force for a single tet
+        VectorXd element_reduced_force(d);
+        element_reduced_force.setZero();
+
+        double sub_energy = 0.0;
+
+        #pragma omp for //schedule(static)// firstprivate(sampled_force, element_reduced_force) // schedule(static,512)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
             int tet_index = m_cubature_indices[i];
+            auto elem = m_cubature_elements[i];
 
-            // Energy
-            sampled_energy[i] = m_tets->getImpl().getElement(tet_index)->getStrainEnergy(m_world->getState());
+            // Energy and forces
+            double tet_energy = elem->getStrainEnergy(m_world->getState());
+            elem->getInternalForce(sampled_force, m_world->getState());
 
-            //Forces
-            VectorXd sampled_force(n_force_per_element);
-            m_tets->getImpl().getElement(tet_index)->getInternalForce(sampled_force, m_world->getState());
-            element_forces.row(i) = sampled_force;
+            element_reduced_force.noalias() += m_U_cubature_sampled.block(i*12, 0, 12, d).transpose() * sampled_force;
+            sub_energy += m_cubature_weights(i) * tet_energy;
         }
 
-        // Constructing sparse matrix is not thread safe
-        m_neg_energy_sample_jac.setZero(); // Doesn't clear reserved memory
-        for(int i = 0; i < n_sample_tets; i++) {
-            int tet_index = m_cubature_indices[i];
-            for(int j = 0; j < 4; j++) {
-                int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
-                for(int k = 0; k < 3; k++) {
-                    m_neg_energy_sample_jac.insert(vert_index + k, i) = element_forces(i, j*3 + k);
-                }
-            }
+        #pragma omp critical
+        {
+            UT_forces += element_reduced_force; //Does this have to do a transpose to assign?
+            energy += sub_energy;
         }
-        m_neg_energy_sample_jac.makeCompressed();
-
-        // VectorXd alpha = m_energy_sampled_basis.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(sampled_energy);
-        // VectorXd alpha = (m_energy_sampled_basis.transpose() * m_energy_sampled_basis).ldlt().solve(m_energy_sampled_basis.transpose() * sampled_energy);
-        // VectorXd alpha = m_energy_sampled_basis_qr.solve(sampled_energy);
-        // energy = m_summed_energy_basis.dot(alpha);
-        energy = m_cubature_weights.dot(sampled_energy);
-
-        UT_forces = m_U.transpose() * (m_neg_energy_sample_jac * m_cubature_weights);
     }
 
-    double current_reduced_energy_and_forces_using_pred_weights_l1(const VectorXd &z, double &energy, VectorXd &UT_forces, double &prediction_time_s) {
-        // double get_weights_start = igl::get_seconds();
-        // VectorXd weights;
-        // VectorXi indices;
-        m_reduced_space->get_cubature_indices_and_weights(z, m_cubature_indices, m_cubature_weights);
-        // prediction_time_s = igl::get_seconds() - get_weights_start;
-        // TODO do I need to do this every step of optimization?
-
-
-        int n_sample_tets = m_cubature_indices.size();
-        
-        int n_force_per_element = T.cols() * 3;
-        MatrixXd element_forces(n_sample_tets, n_force_per_element);
-        
-        VectorXd energy_samp(n_sample_tets);
-        // VectorXd full_energies = VectorXd::Zero(T.rows());
-
-        #pragma omp parallel for num_threads(4) //schedule(static,64)// TODO how to optimize this
-        for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
-            int tet_index = m_cubature_indices[i];
-            energy_samp[i] = m_tets->getImpl().getElement(tet_index)->getStrainEnergy(m_world->getState());
-
-            //Forces
-            VectorXd sampled_force(n_force_per_element);
-            m_tets->getImpl().getElement(tet_index)->getInternalForce(sampled_force, m_world->getState());
-            element_forces.row(i) = sampled_force;
-        }
-
-        // #pragma omp parallel for //schedule(static,64)// TODO how to optimize this
-        // for(int i = 0; i < T.rows(); i++) { // TODO parallel
-        //     full_energies[i] = m_tets->getImpl().getElement(i)->getStrainEnergy(m_world->getState());
-        // }
-        // m_weight_vjp = m_reduced_space->cubature_vjp(z, full_energies);
-
-        // Constructing sparse matrix is not thread safe
-        m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
-        m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column       
-
-        for(int i = 0; i < n_sample_tets; i++) {
-            int tet_index = m_cubature_indices[i];
-            for(int j = 0; j < 4; j++) {
-                int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
-                for(int k = 0; k < 3; k++) {
-                    m_neg_energy_sample_jac.insert(vert_index + k, i) = element_forces(i, j*3 + k);
-                }
-            }
-        }
-        m_neg_energy_sample_jac.makeCompressed();
-
-        energy = energy_samp.transpose() * m_cubature_weights;
-        UT_forces = m_U.transpose() * (m_neg_energy_sample_jac * m_cubature_weights);
-    }
 
 
     double operator()(const VectorXd& new_z, VectorXd& grad, const int cur_iteration, const int cur_line_search_iteration)
@@ -504,15 +472,112 @@ public:
         double decode_start_time = igl::get_seconds();
         Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
         
-        if(m_use_partial_decode) {
-            // We only need to update verts for the tets we actually sample
-            VectorXd sampled_q = m_U_sampled * new_sub_q;
-            for(int i = 0; i < sampled_q.size(); i++) {
-                q[m_cubature_vert_indices[i]] = sampled_q[i]; // TODO this could probably be more efficient with a sparse operator?
-            } 
+        // Define up here so they are shared with threads
+        double energy;
+        VectorXd UT_internal_forces;
+        
+        #ifdef DO_TIMING
+        double energy_forces_start_time = igl::get_seconds();
+        double predict_weight_time = 0.0;
+        double decode_time;
+        #endif
+
+        if(m_energy_method != FULL) {
+            // If we are using cubature then we can leverage parallelism
+            #pragma omp parallel num_threads(8) // TODO is it possible to move this out of the optimization loop?
+            {
+                // Update our current state
+                if(m_use_partial_decode) {
+                    // We only need to update verts for the tets we actually sample
+                    #pragma omp for
+                    for(int i = 0; i < m_U_sampled.rows(); i++) {
+                        q[m_cubature_vert_indices[i]] = m_U_sampled.row(i) * new_sub_q; //sampled_q[i]; // TODO this could probably be more efficient with a sparse operator?
+                    }
+                } else {
+                    #pragma omp single
+                    {
+                        q = m_U * new_sub_q;
+                    }
+                }
+                
+                #ifdef DO_TIMING
+                    #pragma omp single
+                    {
+                        decode_time = igl::get_seconds() - decode_start_time;
+                        energy_forces_start_time = igl::get_seconds();
+                    }
+                #endif
+                
+                // Get energy and forces
+                parallel_current_reduced_energy_and_forces(energy, UT_internal_forces);
+            }
         } else {
+            // Update our current state
             q = m_U * new_sub_q;
-        } 
+
+            #ifdef DO_TIMING
+            decode_time = igl::get_seconds() - decode_start_time;
+            energy_forces_start_time = igl::get_seconds();
+            #endif
+
+            // Get energy and forces
+            energy = m_tets->getStrainEnergy(m_world->getState());
+            getInternalForceVector(m_internal_force_asm, *m_tets, *m_world);
+            UT_internal_forces = m_U.transpose() * *m_internal_force_asm;
+        }
+
+        #ifdef DO_TIMING
+        double energy_forces_time = igl::get_seconds() - energy_forces_start_time;
+        double obj_and_grad_time_start = igl::get_seconds();
+        #endif
+
+        const VectorXd h_2_UT_external_forces =  m_h * m_h * (m_U.transpose() * m_interaction_force + m_UT_F_ext);
+        const VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
+        const VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
+
+        double obj_val;
+        if(m_do_quasi_static) {
+            obj_val = m_h * m_h * energy - sub_q_tilde.transpose() * h_2_UT_external_forces;
+            grad = jtvp(new_z, - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+            
+        } else { 
+            obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
+                            + m_h * m_h * energy
+                            - sub_q_tilde.transpose() * h_2_UT_external_forces;
+
+            grad = jtvp(new_z, UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+        }
+
+        #ifdef DO_TIMING
+        double obj_and_grad_time = igl::get_seconds() - obj_and_grad_time_start;
+        double obj_time = igl::get_seconds() - obj_start_time;
+        #endif
+
+        if(LOGGING_ENABLED) {
+            timestep_info["iteration_info"]["lbfgs_iteration"].push_back(cur_iteration);
+            timestep_info["iteration_info"]["lbfgs_line_iteration"].push_back(cur_line_search_iteration);
+            timestep_info["iteration_info"]["lbfgs_obj_vals"].push_back(obj_val);
+
+            #ifdef DO_TIMING
+            timestep_info["iteration_info"]["timing"]["tot_obj_time_s"].push_back(obj_time);
+            timestep_info["iteration_info"]["timing"]["tf_time_s"].push_back(tf_time);
+            timestep_info["iteration_info"]["timing"]["linear_decode_time_s"].push_back(decode_time);
+            timestep_info["iteration_info"]["timing"]["energy_forces_time_s"].push_back(energy_forces_time);
+            timestep_info["iteration_info"]["timing"]["predict_weight_time"].push_back(predict_weight_time);
+            timestep_info["iteration_info"]["timing"]["obj_and_grad_eval_time_s"].push_back(obj_and_grad_time);
+            #endif
+
+            if(m_save_obj_every_iteration) {
+                VectorXd q = m_reduced_space->decode(new_z);
+                Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
+                fs::path obj_filename = iteration_obj_dir / (ZeroPadNumber(cur_iteration) + "_" + ZeroPadNumber(cur_line_search_iteration, 2) + ".obj");
+                MatrixXd new_verts = V + dV.transpose();
+                igl::writeOBJ(obj_filename.string(), new_verts, F);
+            }
+        }
+
+        return obj_val;
+
 
         // TWISTING
         // auto max_verts = get_min_verts(0, true);
@@ -525,90 +590,6 @@ public:
         //         q[vi * 3 + j] = new_q[j];
         //     }
         // }
-
-        double decode_time = igl::get_seconds() - decode_start_time;
-        
-        // Compute objective
-        double energy;
-        VectorXd UT_internal_forces;
-        double energy_forces_start_time = igl::get_seconds();
-        double predict_weight_time = 0.0;
-        if(m_energy_method == PCR || m_energy_method == AN08 || m_energy_method == NEW_PCR || m_energy_method == AN08_ALL) {
-            current_reduced_energy_and_forces(energy, UT_internal_forces);
-        }
-        else if(m_energy_method == PRED_WEIGHTS_L1) {
-            current_reduced_energy_and_forces_using_pred_weights_l1(m_prev_z, energy, UT_internal_forces, predict_weight_time);  // Use prev z so weights are constant through search
-        }
-        else if(m_energy_method == PRED_DIRECT) {
-            energy = m_reduced_space->get_energy(new_z);
-        }
-        else {
-            energy = m_tets->getStrainEnergy(m_world->getState());
-            getInternalForceVector(m_internal_force_asm, *m_tets, *m_world);
-            UT_internal_forces = m_U.transpose() * *m_internal_force_asm; // TODO can we avoid copy here?
-        }
-        double energy_forces_time = igl::get_seconds() - energy_forces_start_time;
-
-        double obj_and_grad_time_start = igl::get_seconds();
-        VectorXd h_2_UT_external_forces =  m_h * m_h * (m_U.transpose() * m_interaction_force + m_UT_F_ext);
-
-        VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
-        VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
-        // Full
-        double obj_val;
-
-        if(m_do_quasi_static) {
-            // quasi-static
-            obj_val = m_h * m_h * energy - sub_q_tilde.transpose() * h_2_UT_external_forces;
-            grad = jtvp(new_z, - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
-            
-        } else { 
-            obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
-                            + m_h * m_h * energy
-                            - sub_q_tilde.transpose() * h_2_UT_external_forces;
-
-            grad = jtvp(new_z, UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
-        }
-
-        // Compute gradient
-        // **** TODO
-        // Can I further reduce the force calculations by carrying through U?
-
-        // if(m_energy_method == PRED_DIRECT) {
-        //     grad = jtvp(new_z,UTMU_sub_q_tilde - h_2_UT_external_forces) - m_h * m_h * m_reduced_space->get_energy_gradient(new_z);
-        // } else {
-        //     grad = jtvp(new_z,UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
-        // }
-
-        double obj_and_grad_time = igl::get_seconds() - obj_and_grad_time_start;
-        double obj_time = igl::get_seconds() - obj_start_time;
-
-        if(LOGGING_ENABLED) {
-            timestep_info["iteration_info"]["lbfgs_iteration"].push_back(cur_iteration);
-            timestep_info["iteration_info"]["lbfgs_line_iteration"].push_back(cur_line_search_iteration);
-            timestep_info["iteration_info"]["lbfgs_obj_vals"].push_back(obj_val);
-            timestep_info["iteration_info"]["timing"]["tot_obj_time_s"].push_back(obj_time);
-            timestep_info["iteration_info"]["timing"]["tf_time_s"].push_back(tf_time);
-            timestep_info["iteration_info"]["timing"]["linear_decode_time_s"].push_back(decode_time);
-            timestep_info["iteration_info"]["timing"]["energy_forces_time_s"].push_back(energy_forces_time);
-            timestep_info["iteration_info"]["timing"]["predict_weight_time"].push_back(predict_weight_time);
-            timestep_info["iteration_info"]["timing"]["obj_and_grad_eval_time_s"].push_back(obj_and_grad_time);
-
-            if(m_save_obj_every_iteration) {
-                VectorXd q = m_reduced_space->decode(new_z);
-                Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
-
-                // PLY
-                // fs::path ply_filename = evaluation_ply_dir / (ZeroPadNumber(cur_iteration) + "_" + ZeroPadNumber(cur_line_search_iteration, 2) + ".ply");
-                // igl::writePLY(ply_filename.string(), V + dV.transpose(), F, false);
-
-                fs::path obj_filename = iteration_obj_dir / (ZeroPadNumber(cur_iteration) + "_" + ZeroPadNumber(cur_line_search_iteration, 2) + ".obj");
-                MatrixXd new_verts = V + dV.transpose();
-                igl::writeOBJ(obj_filename.string(), new_verts, F);
-            }
-        }
-
-        return obj_val;
     }
 
     VectorXi get_current_tets() {
@@ -640,6 +621,7 @@ private:
     MatrixType  m_UTMU; // reduced mass matrix
     MatrixType  m_U;
     MatrixXd m_U_sampled; // Always used in dense mode
+    MatrixXd m_U_cubature_sampled;
 
     AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_M_asm;
     AssemblerParallel<double, AssemblerEigenVector<double> > m_internal_force_asm;
@@ -665,6 +647,7 @@ private:
     VectorXd m_cubature_weights;
     VectorXi m_cubature_indices;
     VectorXi m_cubature_vert_indices;
+    std::vector<NeohookeanHFixedTet<double> *> m_cubature_elements;
 
     std::vector<VectorXd> m_all_cubature_weights;
     std::vector<VectorXi> m_all_cubature_indices;
@@ -771,7 +754,7 @@ public:
                 m_H_llt.compute(m_H);//m_H.ldlt();
             }
             if(m_is_full_space){ // Currently doing a FULL hessian update for the full space..
-                getMassMatrix(m_M_asm, *m_world);
+                // getMassMatrix(m_M_asm, *m_world);
                 getStiffnessMatrix(m_K_asm, *m_world);
                 m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
                 m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
@@ -909,10 +892,12 @@ private:
     typename std::conditional<
         std::is_same<MatrixType, MatrixXd>::value,
         Eigen::LDLT<MatrixXd>,
-        Eigen::SimplicialLDLT<SparseMatrix<double>>>::type m_H_llt;
+        Eigen::PardisoLDLT<SparseMatrix<double>, Eigen::Lower>>::type m_H_llt;
+        // Eigen::SimplicialLDLT<SparseMatrix<double>>>::type m_H_llt;
     MatrixType m_H_inv;
     MatrixType m_UTKU;
     MatrixType m_UTMU;
+
     MatrixType m_U;
 
     AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_M_asm;

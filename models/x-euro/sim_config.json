@@ -33,7 +33,7 @@
     "gpu_decode": true,
     "show_stress": false,
     "show_energy": false,
-    "interaction_spring_stiffness": 100,
+    "interaction_spring_stiffness": 1000,
     "full_space_constrained_axis": 0,
     "flip_constrained_axis": false,
     "print_every_n_frames": 10,
