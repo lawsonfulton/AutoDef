@@ -1,0 +1,32 @@
+{
+  "mesh": "../meshes/Fine_beam.mesh",
+
+  "training_dataset": "../training_data/fine_beam/training",
+  "validation_dataset": "",
+
+  "learning_config": {
+    "save_objs": true,
+    "skip_training": true,
+    "skip_jacobian": true,
+    "autoencoder_config": {
+      "pca_compare_dims": [5, 10, 20],
+
+      "pca_layer_dim": 20,
+      "non_pca_layer_sizes": [200, 200],
+      "ae_encoded_dim": 5,
+      "activation": "elu",
+
+      "batch_size": 300,
+      "training_epochs": 2500,
+      "do_fine_tuning": false,
+      "loss_weight": 1.0
+    },
+    "energy_model_config": {
+      "enabled": true,
+      "pca_dim": 40,
+      "num_sample_tets": 60,
+      "brute_force_iterations": 100,
+      "target_anneal_mins": 5
+    }
+  }
+}

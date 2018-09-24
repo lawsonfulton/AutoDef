@@ -1,0 +1,35 @@
+{
+  "training_dataset": "../training_data/25cm_soft_simple_armadillo_high_limb_interaction",
+  "validation_dataset": "",
+
+  "learning_config": {
+    "save_objs": false,
+    "skip_training": false,
+    "skip_jacobian": false,
+    "use_mass_pca": false,
+    "record_full_loss": false,
+    "autoencoder_config": {
+      "pca_compare_dims": [5, 10, 30],
+      "pca_layer_err": 0.003,
+      "train_in_full_space": false,
+      "pca_init": true,
+      "non_pca_layer_sizes": [200, 200],
+      "ae_encoded_dim": 15,
+      "activation": "elu",
+
+      "learning_rate": 0.001,
+      "batch_size": 32,
+      "training_epochs": 3000,
+      "do_fine_tuning": false,
+      "loss_weight": 1.0
+    },
+    "energy_model_config": {
+      "type": "an08",
+      "enabled": true,
+      "pca_dim": 40,
+      "num_sample_tets": 400,
+      "brute_force_iterations": 100,
+      "target_anneal_mins": 5
+    }
+  }
+}

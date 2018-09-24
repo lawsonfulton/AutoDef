@@ -31,7 +31,7 @@
     "save_obj_every_iteration": false
   },
   "visualization_config": {
-    "gpu_decode": true,
+    "gpu_decode": false,
     "show_stress": false,
     "show_energy": false,
     "interaction_spring_stiffness": 10,

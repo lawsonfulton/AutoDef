@@ -3,11 +3,13 @@ import sys
 import re
 import itertools
 from multiprocessing import Pool
+import shutil
 
 import numpy
 
 import pyigl as igl
 from utils.iglhelpers import e2p, p2e
+
 
 ###
 # I/O
@@ -36,6 +38,37 @@ def load_obj_verts(dir):
 def create_dir_if_not_exist(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
+
+def make_dir_with_confirmation (path, force=False):
+    if os.path.exists(path):
+        if force:
+            overwrite = True
+        else:
+            overwrite = query_yes_no(
+                'The directory "'+ path + '" already exists. Would you like to overwrite it?'
+            )
+        if not overwrite:
+            exit()
+    else:
+        os.makedirs(path)
+
+def delete_and_recreate_dir(path):
+    shutil.rmtree(path, ignore_errors=False)
+    os.makedirs(path)
+
+def delete_and_recreate_dir_with_confirmation (path, force=False):
+    if os.path.exists(path):
+        if force:
+            overwrite = True
+        else:
+            overwrite = query_yes_no(
+                'The directory "'+ path + '" already exists. Would you like to overwrite it?'
+            )
+        if not overwrite:
+            exit()
+            
+        delete_and_recreate_dir(path)
+
 
 def save_numpy_mat_to_dmat(filename, numpy_mat):
     eigen_mat = p2e(numpy_mat)

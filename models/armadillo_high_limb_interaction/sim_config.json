@@ -13,7 +13,7 @@
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
     "use_partial_decode": true,
-    "reduced_energy_method": "an08",
+    "reduced_energy_method": "an08_all",
     "use_preconditioner": true,
     "pca_dim": 83,
     "ae_encoded_dim": 15,
@@ -35,6 +35,7 @@
     "show_stress": false,
     "show_energy": false,
     "interaction_spring_stiffness": 10,
+    "spring_grab_radius": 0.03,
     "full_space_constrained_axis": -1,
     "flip_constrained_axis": false,
     "fixed_point_constraint": [

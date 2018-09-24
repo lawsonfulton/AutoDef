@@ -24,7 +24,8 @@
       "loss_weight": 1.0
     },
     "energy_model_config": {
-      "enabled": false,
+      "type": "an08",
+      "enabled": true,
       "pca_dim": 40,
       "num_sample_tets": 60,
       "brute_force_iterations": 100,

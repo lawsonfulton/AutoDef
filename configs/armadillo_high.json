@@ -1,5 +1,5 @@
 {
-  "training_dataset": "../training_data/25cm_armadillo_high_limb_interaction",
+  "training_dataset": "../training_data/25cm_soft_simple_armadillo_high_limb_interaction",
   "validation_dataset": "",
 
   "learning_config": {
@@ -24,9 +24,10 @@
       "loss_weight": 1.0
     },
     "energy_model_config": {
-      "enabled": false,
+      "type": "an08",
+      "enabled": true,
       "pca_dim": 40,
-      "num_sample_tets": 60,
+      "num_sample_tets": 400,
       "brute_force_iterations": 100,
       "target_anneal_mins": 5
     }

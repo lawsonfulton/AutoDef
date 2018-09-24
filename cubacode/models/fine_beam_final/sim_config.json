@@ -1,0 +1,34 @@
+{
+  "mesh": "models/fine_beam_final/tets.mesh",
+  "logging_enabled": false,
+  "material_config": {
+    "density": 1000.0,
+    "youngs_modulus": 1500000.0,
+    "poissons_ratio": 0.45
+  },
+  "integrator_config": {
+    "reduced_space_type": "full",
+    "use_reduced_energy": false,
+    "use_preconditioner": true,
+    "reduced_energy_method": "pcr",
+    "use_analytic_jac": true,
+    "pca_dim": 5,
+    "ae_encoded_dim": 5,
+    "ae_decoded_dim": 20,
+    "timestep": 0.05,
+    "finite_diff_eps": 5e-05,
+    "lbfgs_config": {
+      "lbfgs_max_iterations": 150,
+      "lbfgs_epsilon": 0.001,
+      "lbfgs_m": 5
+    },
+    "gravity": -9.8
+  },
+  "visualization_config": {
+    "show_stress": false,
+    "show_energy": false,
+    "interaction_spring_stiffness": 100000.0,
+    "full_space_constrained_axis": 0,
+    "gpu_decode": true
+  }
+}

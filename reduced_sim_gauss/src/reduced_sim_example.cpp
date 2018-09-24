@@ -51,14 +51,17 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 #include <igl/get_seconds.h>
 #include <igl/jet.h>
 #include <igl/slice.h>
+#include <igl/slice_into.h>
+#include <igl/unique.h>
 #include <igl/per_corner_normals.h>
 #include <igl/per_vertex_normals.h>
 #include <igl/point_mesh_squared_distance.h>
-
+#include <igl/circumradius.h>
 #include <igl/material_colors.h>
 #include <igl/snap_points.h>
 #include <igl/centroid.h>
 #include <igl/LinSpaced.h>
+#include <igl/vertex_triangle_adjacency.h>
 
 #include <time.h>
 #include <stdlib.h>
@@ -101,12 +104,14 @@ Eigen::MatrixXi T_sampled;
 Eigen::MatrixXi F_sampled;
 int n_dof;
 
+std::vector<int> fixed_verts;
+
 // Mouse/Viewer state
 Eigen::RowVector3f last_mouse;
 Eigen::RowVector3d dragged_pos;
 Eigen::RowVector3d dragged_mesh_pos;
 int vis_vert_id = 0;
-double drag_radius = 0.03; 
+double spring_grab_radius = 0.03; 
 bool is_dragging = false;
 bool per_vertex_normals = false;
 std::vector<int> dragged_verts;
@@ -114,6 +119,7 @@ int current_frame = 0;
 
 // Parameters
 int print_freq = 40;
+bool NO_WAIT = false;
 bool LOGGING_ENABLED = false;
 bool PLAYBACK_SIM = false;
 bool SAVE_TRAINING_DATA = false;
@@ -150,7 +156,7 @@ std::vector<int> get_verts_in_sphere(const VectorXd &c, double r, const MatrixXd
     std::vector<int> min_verts;
 
     for(int ii=0; ii<verts.rows(); ++ii) {
-        if((verts.row(ii) - c.transpose()).squaredNorm() < r * r) {
+        if((verts.row(ii) - c.transpose()).squaredNorm() <= r * r) {
             min_verts.push_back(ii);
         }
     }
@@ -295,7 +301,7 @@ public:
         m_interaction_force = SparseVector<double>(m_F_ext.size());
 
         m_energy_method = energy_method_from_integrator_config(integrator_config);
-        m_use_partial_decode =  (m_energy_method == PCR || m_energy_method == AN08 || m_energy_method == NEW_PCR) && get_json_value(integrator_config, "use_partial_decode", true);
+        m_use_partial_decode =  (m_energy_method == PCR || m_energy_method == AN08 || m_energy_method == AN08_ALL || m_energy_method == NEW_PCR) && get_json_value(integrator_config, "use_partial_decode", true);
 
         m_do_quasi_static = get_json_value(integrator_config, "quasi_static", false);
 
@@ -318,9 +324,6 @@ public:
             // m_energy_sampled_basis_qr = m_energy_sampled_basis.fullPivHouseholderQr();
             
             m_cubature_weights = m_energy_sampled_basis * S_barT_S_bar.ldlt().solve(m_summed_energy_basis); //U_bar(A^-1*u)
-
-            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
-            m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
             std::cout << "Done. Will sample from " << m_cubature_indices.size() << " tets." << std::endl;
         }
         else if(m_energy_method == AN08 || m_energy_method == NEW_PCR) {
@@ -339,9 +342,6 @@ public:
 
             m_cubature_weights = Ws;
             m_cubature_indices = Is;
-
-            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
-            m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
             std::cout << "Done. Will sample from " << m_cubature_indices.size() << " tets." << std::endl;
         } else if(m_energy_method == AN08_ALL) {
             fs::path energy_model_dir = model_root / "energy_model/an08/";
@@ -349,51 +349,53 @@ public:
 
             m_cubature_weights = m_all_cubature_weights.back();
             m_cubature_indices = m_all_cubature_indices.back();
-
-            m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
-            m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
         }
 
         // Computing the sampled verts
-        if (m_energy_method == AN08 || m_energy_method == PCR || m_energy_method == NEW_PCR) {
-            // figure out the verts
-            std::set<int> vert_set;
-            int n_sample_tets = m_cubature_indices.size();
-            for(int i = 0; i < m_cubature_indices.size(); i++) {
-                int tet_index = m_cubature_indices[i];
-                for(int j = 0; j < 4; j++) {
-                    int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
-                    for(int k = 0; k < 3; k++) {
-                        vert_set.insert(vert_index + k);
-                    }
+        if (m_energy_method == AN08 || m_energy_method == PCR || m_energy_method == NEW_PCR || m_energy_method == AN08_ALL) {
+            initialize_cubature();
+        }
+    }
+
+    void initialize_cubature() {
+        // figure out the verts
+        std::set<int> vert_set;
+        int n_sample_tets = m_cubature_indices.size();
+        for(int i = 0; i < m_cubature_indices.size(); i++) {
+            int tet_index = m_cubature_indices[i];
+            for(int j = 0; j < 4; j++) {
+                int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
+                for(int k = 0; k < 3; k++) {
+                    vert_set.insert(vert_index + k);
                 }
             }
-            // Put them in a vector sorted order
-            m_cubature_vert_indices = VectorXi(vert_set.size());
-            int i = 0;
-            for(auto vi: vert_set) {
-                m_cubature_vert_indices[i++] = vi;
-                // std::cout << vi << ", " << std::endl;
-            }
-            std::sort(m_cubature_vert_indices.data(), m_cubature_vert_indices.data()+m_cubature_vert_indices.size());
-            MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
-            m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
+        }
+        // Put them in a vector sorted order
+        m_cubature_vert_indices = VectorXi(vert_set.size());
+        int i = 0;
+        for(auto vi: vert_set) {
+            m_cubature_vert_indices[i++] = vi;
+            // std::cout << vi << ", " << std::endl;
+        }
+        std::sort(m_cubature_vert_indices.data(), m_cubature_vert_indices.data()+m_cubature_vert_indices.size());
+        MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
+        m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
 
 
-            // Get the element references ahead of time
-            for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
-                int tet_index = m_cubature_indices[i];  
-                auto elem = m_tets->getImpl().getElement(tet_index);
-                m_cubature_elements.push_back(elem);
-            }
+        // Get the element references ahead of time
+        m_cubature_elements.clear();
+        for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+            int tet_index = m_cubature_indices[i];  
+            auto elem = m_tets->getImpl().getElement(tet_index);
+            m_cubature_elements.push_back(elem);
+        }
 
-            // Get the rows of U ahead of time
-            m_U_cubature_sampled.resize(n_sample_tets * 12, m_U.cols());
-            for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
-                for(int k = 0; k < 4; k++) {
-                    for(int j = 0; j < 3; j++) {    
-                        m_U_cubature_sampled.row(i * 12 + k * 3 + j) = m_cubature_weights(i) * denseU.row(m_cubature_elements[i]->getQDOFList()[k]->getGlobalId() + j);
-                    }
+        // Get the rows of U ahead of time
+        m_U_cubature_sampled.resize(n_sample_tets * 12, m_U.cols());
+        for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+            for(int k = 0; k < 4; k++) {
+                for(int j = 0; j < 3; j++) {    
+                    m_U_cubature_sampled.row(i * 12 + k * 3 + j) = m_cubature_weights(i) * denseU.row(m_cubature_elements[i]->getQDOFList()[k]->getGlobalId() + j);
                 }
             }
         }
@@ -440,7 +442,7 @@ public:
 
         double sub_energy = 0.0;
 
-        #pragma omp for //schedule(static)// firstprivate(sampled_force, element_reduced_force) // schedule(static,512)// TODO how to optimize this
+        #pragma omp for nowait //schedule(static)// firstprivate(sampled_force, element_reduced_force) // schedule(static,512)// TODO how to optimize this
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
             int tet_index = m_cubature_indices[i];
             auto elem = m_cubature_elements[i];
@@ -531,7 +533,8 @@ public:
         double obj_and_grad_time_start = igl::get_seconds();
         #endif
 
-        const VectorXd h_2_UT_external_forces =  m_h * m_h * (m_U.transpose() * m_interaction_force + m_UT_F_ext);
+        const VectorXd UT_F_interaction = m_interaction_force.transpose() * m_U;
+        const VectorXd h_2_UT_external_forces =  m_h * m_h * (UT_F_interaction + m_UT_F_ext);
         const VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
         const VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
 
@@ -600,8 +603,7 @@ public:
         m_cubature_weights = m_all_cubature_weights[m_all_cubature_weights.size() - i - 1];
         m_cubature_indices = m_all_cubature_indices[m_all_cubature_weights.size() - i - 1];
 
-        m_neg_energy_sample_jac = SparseMatrix<double>(n_dof, m_cubature_indices.size());
-        m_neg_energy_sample_jac.reserve(VectorXi::Constant(n_dof, T.cols() * 3)); // Reserve enough room for 4 verts (tet corners) per column
+        initialize_cubature();
 
         std::cout << "Now sampling from " << m_cubature_indices.size() << " tets" << std::endl;
     }
@@ -642,7 +644,6 @@ private:
     VectorXd m_summed_energy_basis;
     MatrixXd m_energy_sampled_basis;
     Eigen::FullPivHouseholderQR<MatrixXd> m_energy_sampled_basis_qr;
-    SparseMatrix<double> m_neg_energy_sample_jac;
 
     VectorXd m_cubature_weights;
     VectorXi m_cubature_indices;
@@ -666,6 +667,27 @@ public:
         m_is_linear_space = integrator_config["reduced_space_type"] == "linear";
         m_h = integrator_config["timestep"];
         m_U = reduced_space->outer_jacobian();
+
+        // // WHY ISNT THIS workWILL IT WORK FOR FULL SPACE?
+        // // IS IT BECAUSE I am slice based on vert not dof????
+        // VectorXi FIunqiue;
+        // igl::unique(F, FIunqiue);
+        // m_U_F_only.resize(m_U.rows(), m_U.cols());
+
+        // std::vector< Eigen::Triplet<double> > tripletList;
+        // tripletList.reserve(FIunqiue.size() * 3);
+        // for (int i = 0; i < FIunqiue.size(); ++i)
+        // {
+        //     for (int j = 0; j < 3; ++j)
+        //     {
+        //         int dof_i = FIunqiue[i] * 3 + j;
+        //         for(int k = 0; k < m_U.cols(); k++) {
+        //             // m_U_F_only.insert(dof_i, m_U.coeff(dof_i, k));
+        //             tripletList.push_back(Eigen::Triplet<double>(dof_i, k,  m_U.coeff(dof_i, k)));
+        //         }
+        //     }
+        // }
+        // m_U_F_only.setFromTriplets(tripletList.begin(), tripletList.end());
 
 
         // Set up lbfgs params
@@ -855,7 +877,17 @@ public:
     MatrixXd get_current_V() {
         VectorXd q = get_current_q();
         Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
-        return V + dV.transpose();    
+        return V + dV.transpose(); 
+    }
+
+    void get_current_V_faces_only(MatrixXd &newV) {
+        // Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
+        // return V + dV.transpose();   
+
+        VectorXd sub_q = m_reduced_space->sub_decode(m_cur_z);
+        VectorXd q = m_U_F_only * sub_q ;
+        Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
+        newV = V + dV.transpose();
     }
 
     VectorXi get_current_tets() {
@@ -899,6 +931,7 @@ private:
     MatrixType m_UTMU;
 
     MatrixType m_U;
+    SparseMatrix<double> m_U_F_only;
 
     AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_M_asm;
     AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_K_asm;
@@ -918,6 +951,7 @@ private:
 
 
 SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, const std::vector<int> &dragged_verts, bool is_dragging, double spring_stiffness, NeohookeanTets *tets, const MyWorld &world) {
+    // double start = igl::get_seconds();
     SparseVector<double> force(n_dof);// = VectorXd::Zero(n_dof); // TODO make this a sparse vector?
     if(is_dragging) {
         force.reserve(3 * dragged_verts.size());
@@ -932,7 +966,7 @@ SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, cons
             }
         }
     } 
-
+    // std::cout << "compute_interaction_force: " << igl::get_seconds() - start << std::endl;
     return force;
 }
 
@@ -1021,16 +1055,46 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     viewer.data.set_mesh(V,F);
     igl::per_corner_normals(V,F,40,N);
     viewer.data.set_normals(N);
-
+ 
     viewer.core.show_lines = false;
     viewer.core.invert_normals = true;
-    viewer.core.is_animating = false;
+    if(NO_WAIT) {
+        viewer.core.is_animating = true;
+    } else {
+        viewer.core.is_animating = false;
+    }
     viewer.data.face_based = false;
-    viewer.core.line_width = 2;
+    viewer.core.line_width = 1;
     viewer.core.animation_max_fps = 1000.0;
     viewer.core.background_color = Eigen::Vector4f(1.0, 1.0, 1.0, 1.0);
     viewer.core.shininess = 120.0;
     viewer.data.set_colors(Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]));
+    
+    // Set the faces that contain only fixed verts to a different colour
+    if(!do_gpu_decode) {
+        MatrixXd C(F.rows(), 3);
+        for(int i = 0; i < C.rows(); i++) {
+            C.row(i) = Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]);
+        }
+        std::vector<std::vector<int>> VF;
+        std::vector<std::vector<int>> VFi;
+        igl::vertex_triangle_adjacency(V.rows(), F, VF, VFi);
+
+        std::set<int> fixed_vert_set(fixed_verts.begin(), fixed_verts.end());
+        for(const auto &fvi : fixed_verts) {
+            for(const auto &fi : VF[fvi]) {
+                bool all_in_set = true;
+                for(int i = 0; i < 3; i++) {
+                    all_in_set &= (bool)fixed_vert_set.count(F(fi, i));
+                }
+                if(all_in_set) {
+                    C.row(fi) = Eigen::RowVector3d(igl::FAST_RED_DIFFUSE[0], igl::FAST_RED_DIFFUSE[1], igl::FAST_RED_DIFFUSE[2]);
+                }
+            }
+        }
+
+        viewer.data.set_colors(C);
+    }
 
     viewer.launch_init(true, false);    
     viewer.opengl.shader_mesh.free();
@@ -1270,8 +1334,9 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
         if(viewer.core.is_animating)
         {   
             if(!do_gpu_decode) {
-                auto q = mapDOFEigen(tets->getQ(), world);
+                // auto q = mapDOFEigen(tets->getQ(), world);
                 Eigen::MatrixXd newV = gplc_stepper.get_current_V();
+                // gplc_stepper.get_current_V_faces_only(newV);
 
                 if(show_tets) {
                     VectorXi tet_indices = gplc_stepper.get_current_tets();
@@ -1308,7 +1373,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
                 if(is_dragging && !was_dragging) { // Got a click
                     Eigen::MatrixXd curV = gplc_stepper.get_current_V();
-                    dragged_verts = get_verts_in_sphere(dragged_mesh_pos, drag_radius, curV);
+                    dragged_verts = get_verts_in_sphere(dragged_mesh_pos, spring_grab_radius, curV);
                     // vis_vert_id = get closest point on mesh for dragged_mesh_pos using snap to
                     // dragged_face = current_mouse_info["dragged_face"];
                     // dragged_vert = current_mouse_info["dragged_vert"];
@@ -1454,7 +1519,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
             MatrixXd C;
             
-            igl::jet(energy_per_face / 100.0, false, C);
+            igl::jet(energy_per_face, false, C);
             viewer.data.set_colors(C);
         }
 
@@ -1545,7 +1610,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
                 dragged_pos = curV.row(vis_vert_id);
                 dragged_mesh_pos = dragged_pos; // Just using closest vert for now
-                dragged_verts = get_verts_in_sphere(dragged_mesh_pos, drag_radius, curV);get_verts_in_sphere(dragged_mesh_pos, drag_radius, curV);
+                dragged_verts = get_verts_in_sphere(dragged_mesh_pos, spring_grab_radius, curV);
 
                 std::cout << "Grabbed " << dragged_verts.size() << " verts" << std::endl;
                 is_dragging = true;
@@ -1626,12 +1691,15 @@ int main(int argc, char **argv) {
     fs::path model_root(argv[1]);
     fs::path sim_config("sim_config.json");
 
+    
     if(argc >= 3) {
-        fs::path sim_recording_path(argv[2]);
-        std::ifstream recording_fin(sim_recording_path.string());
+        if(std::string(argv[2]) != "--log_name") { // hack to save the log name I want
+            fs::path sim_recording_path(argv[2]);
+            std::ifstream recording_fin(sim_recording_path.string());
 
-        recording_fin >> sim_playback_json;
-        PLAYBACK_SIM = true;
+            recording_fin >> sim_playback_json;
+            PLAYBACK_SIM = true;
+        }
     }
 
 
@@ -1647,7 +1715,9 @@ int main(int argc, char **argv) {
     print_freq = get_json_value(config["visualization_config"], "print_every_n_frames", print_freq);
 
     std::string log_string = "";
-    if(argc == 4) {
+    if(argc == 4 && std::string(argv[3]) == "--no_wait" ) {
+        NO_WAIT = true;
+    } else if(argc == 4) {
         log_string = argv[3];
     } else {
         log_string = currentDateTime() + "_" + reduced_space_string;
@@ -1701,6 +1771,7 @@ int main(int argc, char **argv) {
         std::string save_training_data_path_string = get_json_value(config, "save_training_data_path", std::string());
         save_training_data_dir = fs::path(save_training_data_path_string);
         create_or_replace_dir(save_training_data_dir);
+        std::cout << "SAVING TRAINING DATA TO " << save_training_data_dir.string() << std::endl;
 
         // Save the training params
         json training_data_params;
@@ -1709,7 +1780,9 @@ int main(int argc, char **argv) {
         training_data_params["Poisson"] = material_config["poissons_ratio"];
         training_data_params["time_step"] = integrator_config["timestep"];
         training_data_params["spring_strength"] = viz_config["interaction_spring_stiffness"];
+        training_data_params["spring_grab_radius"] = viz_config["spring_grab_radius"];
         training_data_params["fixed_axis"] = viz_config["full_space_constrained_axis"];
+        training_data_params["constrained_axis_eps"] = viz_config["constrained_axis_eps"];
         training_data_params["flip_fixed_axis"] = viz_config["flip_constrained_axis"];
         training_data_params["fixed_point_constraint"] = viz_config["fixed_point_constraint"];
         training_data_params["fixed_point_radius"] = viz_config["fixed_point_radius"];
@@ -1718,7 +1791,11 @@ int main(int argc, char **argv) {
         fout << training_data_params;
         fout.close();
 
-        fs::copy_file(alternative_mesh_path, save_training_data_dir / "tets.mesh" );
+        if(alternative_mesh_path != "") {
+            fs::copy_file(alternative_mesh_path, save_training_data_dir / "tets.mesh" );
+        } else {
+            fs::copy_file((model_root / "tets.mesh").string(), save_training_data_dir / "tets.mesh" );
+        }
     }
 
     // Load the mesh here
@@ -1734,6 +1811,35 @@ int main(int argc, char **argv) {
     Eigen::RowVector3d centroid;
     igl::centroid(V, F, centroid);
     V = V.rowwise() - centroid;
+
+    // Hacky way of setting spring grab radius to zero for reduced space
+    if(reduced_space_string == "full") {
+        spring_grab_radius = get_json_value(config["visualization_config"], "spring_grab_radius", 0.03);
+    } else {
+        VectorXd R;
+        igl::circumradius(V, F, R);
+        spring_grab_radius = R.maxCoeff();//Make it slightly bigger than the biggest triangle
+    }
+
+    // Do this out here so we can still visualize the constrained verts
+    int fixed_axis = -1;
+    try {
+        fixed_axis = config["visualization_config"].at("full_space_constrained_axis");
+    } 
+    catch (nlohmann::detail::out_of_range& e){
+        std::cout << "full_space_constrained_axis field not found in visualization_config" << std::endl;
+        exit(1);
+    }
+    bool flip_axis = get_json_value(config["visualization_config"], "flip_constrained_axis", false);
+    std::vector<double> fixed_vert_c = get_json_value(config["visualization_config"], "fixed_point_constraint", std::vector<double>());
+    double fixed_vert_r = get_json_value(config["visualization_config"], "fixed_point_radius", 0.0);
+    double constrained_axis_eps = get_json_value(config["visualization_config"], "constrained_axis_eps", 0.01);
+
+    if(fixed_axis != -1) {
+        fixed_verts = get_min_verts(fixed_axis, flip_axis, constrained_axis_eps);
+    } else if (fixed_vert_r != -1) {
+        fixed_verts = get_verts_in_sphere(Eigen::Map<VectorXd>(fixed_vert_c.data(), 3), fixed_vert_r, V);
+    }
 
     if(reduced_space_string == "linear") {
         std::string pca_dim(std::to_string((int)integrator_config["pca_dim"]));
@@ -1752,31 +1858,14 @@ int main(int argc, char **argv) {
         run_sim<AutoencoderSpace, MatrixXd>(&reduced_space, config, model_root);  
     }
     else if(reduced_space_string == "full") {
-        int fixed_axis = -1;
-        try {
-            fixed_axis = config["visualization_config"].at("full_space_constrained_axis");
-        } 
-        catch (nlohmann::detail::out_of_range& e){
-            std::cout << "full_space_constrained_axis field not found in visualization_config" << std::endl;
-            exit(1);
-        }
-        bool flip_axis = get_json_value(config["visualization_config"], "flip_constrained_axis", false);
-        std::vector<double> fixed_vert_c = get_json_value(config["visualization_config"], "fixed_point_constraint", std::vector<double>());
-        double fixed_vert_r = get_json_value(config["visualization_config"], "fixed_point_radius", 0.0);
+        
 
-        std::vector<int> min_verts;
-        if(fixed_axis != -1) {
-            min_verts = get_min_verts(fixed_axis, flip_axis);
-        } else if (fixed_vert_r != -1) {
-            min_verts = get_verts_in_sphere(Eigen::Map<VectorXd>(fixed_vert_c.data(), 3), fixed_vert_r, V);
-        }
-
-        std::cout << "Constraining " << min_verts.size() << " verts" << std::endl;
+        std::cout << "Constraining " << fixed_verts.size() << " verts" << std::endl;
         // For twisting
         // auto max_verts = get_min_verts(fixed_axis, true);
-        // min_verts.insert(min_verts.end(), max_verts.begin(), max_verts.end());
+        // fixed_verts.insert(fixed_verts.end(), max_verts.begin(), max_verts.end());
 
-        SparseMatrix<double> P = construct_constraints_P(V, min_verts); // Constrain on X axis
+        SparseMatrix<double> P = construct_constraints_P(V, fixed_verts); // Constrain on X axis
         SparseConstraintSpace reduced_space(P.transpose());
 
         run_sim<SparseConstraintSpace, SparseMatrix<double>>(&reduced_space, config, model_root);
