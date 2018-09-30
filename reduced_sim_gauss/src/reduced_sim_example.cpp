@@ -6,6 +6,8 @@
 
 #include <vector>
 #include <set>
+#include <thread>
+#include <future>
 
 // Autodef
 #include "TypeDefs.h"
@@ -39,6 +41,9 @@ typedef World<double,
 typedef TimeStepperEulerImplicitLinear<double, AssemblerParallel<double, AssemblerEigenSparseMatrix<double>>,
 AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 
+//#include <igl/png/render_to_png_async.h>
+//#include <igl/png/render_to_png.h>
+#include <igl/png/writePNG.h>
 
 #include <igl/writeDMAT.h>
 #include <igl/readDMAT.h>
@@ -123,6 +128,7 @@ bool NO_WAIT = false;
 bool LOGGING_ENABLED = false;
 bool PLAYBACK_SIM = false;
 bool SAVE_TRAINING_DATA = false;
+bool SAVE_PNGS = false;
 int log_save_freq = 5;
 json sim_log;
 json sim_playback_json;
@@ -133,10 +139,14 @@ fs::path iteration_obj_dir;
 fs::path pointer_obj_dir;
 fs::path tet_obj_dir;
 fs::path save_training_data_dir;
+fs::path save_pngs_dir;
 std::ofstream log_ofstream;
 
+// Constants
+const int PARDISO_DOF_CUTOFF = 7000;
 const Eigen::RowVector3d sea_green(229./255.,211./255.,91./255.);
 
+#define DO_TIMING
 
 std::vector<int> get_min_verts(int axis, bool flip_axis = false, double tol = 0.001) {
     int dim = axis; // x
@@ -218,7 +228,7 @@ void create_or_replace_dir(fs::path dir) {
             exit(1);
         }
     }
-    fs::create_directory(dir);
+    fs::create_directories(dir);
 }
 
 void reset_world (MyWorld &world) {
@@ -533,8 +543,9 @@ public:
         double obj_and_grad_time_start = igl::get_seconds();
         #endif
 
-        const VectorXd UT_F_interaction = m_interaction_force.transpose() * m_U;
-        const VectorXd h_2_UT_external_forces =  m_h * m_h * (UT_F_interaction + m_UT_F_ext);
+        // const VectorXd UT_F_interaction = m_interaction_force.transpose() * m_U;
+        // const VectorXd h_2_UT_external_forces =  m_h * m_h * (UT_F_interaction + m_UT_F_ext);
+        const VectorXd h_2_UT_external_forces = m_h * m_h * (m_U.transpose() * m_interaction_force + m_UT_F_ext);
         const VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
         const VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
 
@@ -729,7 +740,15 @@ public:
             m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
             m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
             m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
-            m_H_llt.compute(m_H);
+
+            m_use_pardiso = m_is_full_space && m_H.rows() > PARDISO_DOF_CUTOFF;
+            std::cout << "Using pardiso: " << m_use_pardiso << std::endl;
+            std::cout << "Rows in m_H: " << m_H.rows() << std::endl;
+            if(m_use_pardiso) {
+                m_H_solver_pardiso.compute(m_H);
+            } else {
+                m_H_solver_eigen.compute(m_H);
+            }
             std::cout << "Took " << (igl::get_seconds() - start_time) << "s" << std::endl;
         }
 
@@ -772,8 +791,9 @@ public:
             double precondition_start_time = igl::get_seconds();
             if(!m_is_full_space && !m_is_linear_space) { // Only update the hessian each time for nonlinear space. 
                 MatrixType J = m_reduced_space->inner_jacobian(m_cur_z);
+                // std::cout << "Frobenius norm of J: " << J.norm() << std::endl;
                 m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
-                m_H_llt.compute(m_H);//m_H.ldlt();
+                m_H_solver_eigen.compute(m_H);//m_H.ldlt();
             }
             if(m_is_full_space){ // Currently doing a FULL hessian update for the full space..
                 // getMassMatrix(m_M_asm, *m_world);
@@ -781,12 +801,22 @@ public:
                 m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
                 m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
                 m_H = m_UTMU - m_h * m_h * m_UTKU;
-                m_H_llt.compute(m_H);
+                if(m_use_pardiso) {
+                    m_H_solver_pardiso.compute(m_H);
+                } else {
+                    m_H_solver_eigen.compute(m_H);
+                }
             }
             precondition_compute_time = igl::get_seconds() - precondition_start_time;
 
-            niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_llt);   
+            if(m_use_pardiso) {
+                niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_solver_pardiso);   
+            } else {
+                niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_solver_eigen);   
+            }
+            bool m_use_pardiso;
         } else {
+
             niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);   
         }
         double update_time = igl::get_seconds() - start_time;
@@ -924,8 +954,14 @@ private:
     typename std::conditional<
         std::is_same<MatrixType, MatrixXd>::value,
         Eigen::LDLT<MatrixXd>,
-        Eigen::PardisoLDLT<SparseMatrix<double>, Eigen::Lower>>::type m_H_llt;
-        // Eigen::SimplicialLDLT<SparseMatrix<double>>>::type m_H_llt;
+        Eigen::SimplicialLDLT<SparseMatrix<double>> >::type m_H_solver_eigen;
+    
+    bool m_use_pardiso;
+    typename std::conditional<
+        std::is_same<MatrixType, MatrixXd>::value,
+        Eigen::LDLT<MatrixXd>,
+        Eigen::PardisoLDLT<SparseMatrix<double>, Eigen::Lower> >::type m_H_solver_pardiso;
+
     MatrixType m_H_inv;
     MatrixType m_UTKU;
     MatrixType m_UTMU;
@@ -949,8 +985,8 @@ private:
 };
 
 
-
-SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, const std::vector<int> &dragged_verts, bool is_dragging, double spring_stiffness, NeohookeanTets *tets, const MyWorld &world) {
+template <typename S, typename M>
+SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, const std::vector<int> &dragged_verts, bool is_dragging, double spring_stiffness, GPLCTimeStepper<S,M> &gplc_stepper) {
     // double start = igl::get_seconds();
     SparseVector<double> force(n_dof);// = VectorXd::Zero(n_dof); // TODO make this a sparse vector?
     if(is_dragging) {
@@ -958,9 +994,11 @@ SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, cons
         for(int vi = 0; vi < dragged_verts.size(); vi++) {
             int dragged_vert_local = dragged_verts[vi];
 
-            Vector3d fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert_local], dragged_vert_local, &tets->getImpl().getV())(world.getState());
+            // It's because I'm only updating the positions of the sampled verts....
+            // Vector3d fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert_local], dragged_vert_local, &tets->getImpl().getV())(world.getState());
+            Vector3d fem_attached_pos = gplc_stepper.get_current_vert_pos(dragged_vert_local);
             Vector3d local_force = spring_stiffness * (dragged_pos - fem_attached_pos) / dragged_verts.size();
-
+            // std::cout << (local_force).norm() << std::endl;
             for(int i=0; i < 3; i++) {
                 force.insert(dragged_vert_local * 3 + i) = local_force[i];    
             }
@@ -1056,7 +1094,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     igl::per_corner_normals(V,F,40,N);
     viewer.data.set_normals(N);
  
-    viewer.core.show_lines = false;
+    viewer.core.show_lines = get_json_value(visualization_config, "show_lines", false);
     viewer.core.invert_normals = true;
     if(NO_WAIT) {
         viewer.core.is_animating = true;
@@ -1068,10 +1106,13 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     viewer.core.animation_max_fps = 1000.0;
     viewer.core.background_color = Eigen::Vector4f(1.0, 1.0, 1.0, 1.0);
     viewer.core.shininess = 120.0;
-    viewer.data.set_colors(Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]));
+    // viewer.data.set_colors(Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]));
+    viewer.data.set_colors(Eigen::RowVector3d(0.0, 0.0, 0.0));
     
     // Set the faces that contain only fixed verts to a different colour
     if(!do_gpu_decode) {
+
+        // Per face
         MatrixXd C(F.rows(), 3);
         for(int i = 0; i < C.rows(); i++) {
             C.row(i) = Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]);
@@ -1091,6 +1132,19 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
                     C.row(fi) = Eigen::RowVector3d(igl::FAST_RED_DIFFUSE[0], igl::FAST_RED_DIFFUSE[1], igl::FAST_RED_DIFFUSE[2]);
                 }
             }
+        }
+
+        viewer.data.set_colors(C);
+    } else {
+
+        // Per vert
+        MatrixXd C(V.rows(), 3);
+        for(int i = 0; i < C.rows(); i++) {
+            C.row(i) = Eigen::RowVector3d(0.0, 0.0, 0.0);
+        }
+
+        for(const auto &vi : fixed_verts) {
+            C.row(vi) = Eigen::RowVector3d(1.0, 1.0, 1.0);
         }
 
         viewer.data.set_colors(C);
@@ -1205,7 +1259,13 @@ vec3 vector_to_light_eye = light_position_eye - position_eye;
 vec3 direction_to_light_eye = normalize (vector_to_light_eye);
 float dot_prod = dot (direction_to_light_eye, normal_eye);
 float clamped_dot_prod = max (dot_prod, 0.0);
-vec3 Id = Ld * vec3(Kdi) * clamped_dot_prod;    // Diffuse intensity
+
+vec4 cyan_diffuse = vec4(94.0/255.0,185.0/255.0,238.0/255.0,1.0);
+vec4 fast_red_diffuse = vec4(255.0/255.0, 65.0/255.0, 46.0/255.0, 1.0);
+
+float eps = 1e-5;
+vec4 KdiNew =  cyan_diffuse * step(Kdi.x, 1.0 - eps) + fast_red_diffuse * (1.0 - step(Kdi.x, 1.0 - eps));
+vec3 Id = Ld * vec3(KdiNew) * clamped_dot_prod;    // Diffuse intensity
 
 vec3 reflection_eye = reflect (-direction_to_light_eye, normal_eye);
 vec3 surface_to_viewer_eye = normalize (-position_eye);
@@ -1223,7 +1283,7 @@ float fresnel_factor = 0;
 vec3 Is = Ls * vec3(Ksi) * specular_factor;    // specular intensity
 vec3 If = Lf * vec3(Kfi) * fresnel_factor;     // fresnel intensity
 vec4 color = vec4(lighting_factor * (If + Is + Id) + Ia + 
-  (1.0-lighting_factor) * vec3(Kdi),(Kai.a+Ksi.a+Kdi.a)/3);
+  (1.0-lighting_factor) * vec3(KdiNew),(Kai.a+Ksi.a+KdiNew.a)/3);
 outColor = color;
 if (fixed_color != vec4(0.0)) outColor = fixed_color;
 })";
@@ -1267,6 +1327,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
     double cur_fps = 0.0;
     double last_time = igl::get_seconds();
+    std::vector<std::shared_future<bool>> VF;
     viewer.callback_pre_draw = [&](igl::viewer::Viewer & viewer)
     {
         if(do_gpu_decode) {
@@ -1333,6 +1394,24 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
         if(viewer.core.is_animating)
         {   
+            if(SAVE_PNGS) {
+                    std::string frame_num_string = std::to_string(current_frame);// + starting_frame_num);
+                    fs::path  png_file = save_pngs_dir / ("image_" + frame_num_string + ".png");
+                    // igl::png::render_to_png_async(png_file.string(), 4000, 4000, true, true);
+                    // igl::png::render_to_png(png_file.string(), 640, 480, true, true);
+                    // Allocate temporary buffers
+                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> R(1280,800);
+                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> G(1280,800);
+                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> B(1280,800);
+                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> A(1280,800);
+
+                    // // Draw the scene in the buffers
+                    viewer.core.draw_buffer(viewer.data, viewer.opengl, false,R,G,B,A);
+                    // // Save it to a PNG
+                    VF.push_back(std::async(std::launch::async, igl::png::writePNG, R,G,B,A,png_file.string()));
+                     // igl::png::writePNG(R,G,B,A,png_file.string());
+                }
+
             if(!do_gpu_decode) {
                 // auto q = mapDOFEigen(tets->getQ(), world);
                 Eigen::MatrixXd newV = gplc_stepper.get_current_V();
@@ -1392,7 +1471,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             }
             
             // Do the physics update
-            interaction_force = compute_interaction_force(dragged_pos, dragged_verts, is_dragging, spring_stiffness, tets, world);
+            interaction_force = compute_interaction_force(dragged_pos, dragged_verts, is_dragging, spring_stiffness, gplc_stepper);
             gplc_stepper.step(interaction_force);
 
             if(LOGGING_ENABLED) {
@@ -1796,6 +1875,13 @@ int main(int argc, char **argv) {
         } else {
             fs::copy_file((model_root / "tets.mesh").string(), save_training_data_dir / "tets.mesh" );
         }
+    }
+
+    SAVE_PNGS = get_json_value(config, "save_pngs", false);
+    if(SAVE_PNGS) {
+        // std::string save_pngs_path_string = get_json_value(config, "save_pngs_path", std::string());
+        save_pngs_dir =  log_dir / fs::path("pngs/");
+        create_or_replace_dir(save_pngs_dir);
     }
 
     // Load the mesh here

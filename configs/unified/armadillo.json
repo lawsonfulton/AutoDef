@@ -1,11 +1,11 @@
 {
     "low_res_mesh": "meshes/25cm_armadillo_very_low.mesh",
-    "high_res_mesh": "meshes/25cm_armadillo_very_low.mesh",
+    "high_res_mesh": "meshes/25cm_armadillo_high.mesh",
 
     "sim_params": {
-        "low_res_youngs_modulus": 200000,
-        "high_res_youngs_modulus": 200000,
-        "density": 200,
+        "low_res_youngs_modulus": 6000,
+        "high_res_youngs_modulus": 10000,
+        "density": 1000,
         "poissons_ratio": 0.47,
 
         "timestep": 0.005,
@@ -22,26 +22,26 @@
         "interaction_spring_stiffness": 10,
         "spring_grab_radius": 0.03,
 
-        "full_space_constrained_axis": 1,
+        "full_space_constrained_axis": -1,
         "constrained_axis_eps": 0.05,
         "flip_constrained_axis": false,
         "fixed_point_constraint": [0, 0.124, -0.1],
-        "fixed_point_radius": -1
+        "fixed_point_radius": 0.12
     },
 
     "training_params": {
         "pca_max_vert_error_meters": 0.003,
         
         "non_pca_layer_sizes": [200, 200],
-        "ae_encoded_dim": 15,
+        "ae_encoded_dim": 40,
         
         "activation": "elu",
         "learning_rate": 0.001,
-        "batch_size": 32,
-        "training_epochs": 3,
-        "batch_size_increase": true,
+        "batch_size": 256,
+        "training_epochs": 2000,
+        "batch_size_increase": false,
 
         "cubature_type": "an08",
-        "num_sample_tets": 500
+        "num_sample_tets": 1000
     }
 }

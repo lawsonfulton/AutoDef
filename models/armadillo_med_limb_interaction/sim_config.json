@@ -24,7 +24,7 @@
       "lbfgs_epsilon": 1e-08,
       "lbfgs_m": 8
     },
-    "gravity": -9.8,
+    "gravity": 0,
     "gravity_axis": 1,
     "start_pose_from_training_data": -1,
     "quasi_static": false,

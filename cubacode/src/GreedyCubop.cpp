@@ -594,6 +594,21 @@ void GreedyCubop::run(
 			Real rnormErr = (residual.norm2() - residualNorm) / residualNorm;
 			assert( rnormErr < 1e-6 );
 
+			// Remove zero points
+			// vector<int> nonzero_selectedPoints;
+			// vector<Real> nonzero_w;
+			// for(int i = 0; i < selectedPoints.size(); i++) {
+			// 	if(w(i) > 1e-6) {
+			// 		nonzero_selectedPoints.push_back(selectedPoints[i]);
+			// 		nonzero_w.push_back(w(i));
+			// 	}
+			// }
+			// selectedPoints = nonzero_selectedPoints;
+			// w.resizeAndWipe(selectedPoints.size());
+			// for(int i = 0; i < nonzero_w.size(); i++) {
+			// 	w(i) = nonzero_w[i];
+			// }
+
 			//----------------------------------------
 			//  Hand it off
 			//----------------------------------------

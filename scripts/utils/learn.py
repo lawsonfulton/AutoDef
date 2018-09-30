@@ -24,7 +24,7 @@ visualize_test_data = True
 training_data_root = 'training_data/fixed_material_model/'
 test_data_root = 'training_data/fixed_material_model_test/'
 
-def autoencoder_analysis(
+def autoencoder_analysis_vae(
     data,
     test_data,
     activation='relu',
@@ -67,6 +67,262 @@ def autoencoder_analysis(
     train_data = data
     test_data = test_data if test_data is not None else data[:10] 
 
+
+    ## Preprocess the data
+    # mean = numpy.mean(train_data, axis=0)
+    # std = numpy.std(train_data, axis=0)
+    
+    mean = numpy.mean(train_data)
+    std = numpy.std(train_data)
+    s_min = numpy.min(train_data)
+    s_max = numpy.max(train_data)
+    print(mean)
+    print(std)
+
+    # TODO dig into this. Why does it mess up?
+    def normalize(data):
+        return data
+        #return (data - mean) / std
+        # return numpy.nan_to_num((train_data - s_min) / (s_max - s_min))
+    def denormalize(data):
+        return data
+        #return data * std + mean
+        # return data * (s_max - s_min) + s_mi
+
+    # My elu fixes the jvp problem
+    if activation == "my_elu":
+        activation = my_utils.create_my_elu()
+    ## Set up the network
+
+    def sampling(args):
+        """Reparameterization trick by sampling fr an isotropic unit Gaussian.
+        # Arguments:
+            args (tensor): mean and log of variance of Q(z|X)
+        # Returns:
+            z (tensor): sampled latent vector
+        """
+
+        z_mean, z_log_var = args
+        batch = K.shape(z_mean)[0]
+        dim = K.int_shape(z_mean)[1]
+        # by default, random_normal has mean=0 and std=1.0
+        epsilon = K.random_normal(shape=(batch, dim))
+        return z_mean + K.exp(0.5 * z_log_var) * epsilon
+
+
+
+
+    # VAE model = encoder + decoder
+    # build encoder model
+    inputs = Input(shape=(len(train_data[0]),), name='encoder_input')
+    # x = Lambda(some_noise, output_shape=(len(train_data[0]),), name='asdasd')(inputs)
+    x = Dense(100, activation=activation)(inputs)
+    x = Dense(100, activation=activation)(x)
+    z_mean = Dense(latent_dim, name='z_mean')(x)
+    z_log_var = Dense(latent_dim, name='z_log_var')(x)
+
+    # use reparameterization trick to push the sampling out as input
+    # note that "output_shape" isn't necessary with the TensorFlow backend
+    z = Lambda(sampling, output_shape=(latent_dim,), name='encoded_layer')([z_mean, z_log_var])
+
+    # instantiate encoder model
+    vae_encoder = Model(inputs, [z_mean, z_log_var, z], name='vae_encoder')
+    vae_encoder.summary()
+    encoder = Model(inputs, z_mean, name='encoder')
+    # plot_model(vae_encoder, to_file='vae_mlp_encoder.png', show_shapes=True)
+
+    # build decoder model
+    latent_inputs = Input(shape=(latent_dim,), name='decoder_input')
+    x = Dense(100, activation=activation, name='dense_decode_layer_0')(latent_inputs)
+    x = Dense(100, activation=activation, name='dense_decode_layer_1')(x)
+    outputs = Dense(len(train_data[0]), activation='linear', name='decoder_output_layer')(x)
+
+    # instantiate decoder model
+    decoder = Model(latent_inputs, outputs, name='decoder')
+    decoder.summary()
+    # plot_model(decoder, to_file='vae_mlp_decoder.png', show_shapes=True)
+
+    # instantiate VAE model
+    outputs = decoder(vae_encoder(inputs)[2])
+    autoencoder = Model(inputs, outputs, name='vae_mlp')
+
+
+
+    # input = Input(shape=(len(train_data[0]),), name="encoder_input")
+    # output = input
+
+    # if pca_basis is not None:
+    #     # output = Lambda(pca_transform_layer)(output)
+    #     # output = PCALayer(pca_object, is_inv=False, fine_tune=do_fine_tuning)(output)
+
+    #     W = pca_basis
+    #     b = numpy.zeros(pca_basis.shape[1])
+    #     output = Dense(pca_basis.shape[1], activation='linear', weights=[W,b], trainable=do_fine_tuning, name="pca_encode_layer")(output)
+
+    # for i, layer_width in enumerate(layers):
+    #     act = activation
+    #     # if i == len(layers) - 1:
+    #     #     act = 'sigmoid'
+    #     output = Dense(layer_width, activation=act, name="dense_encode_layer_" + str(i))(output)
+
+    # # -- Encoded layer
+    # output = Dense(latent_dim, activation=activation, name="encoded_layer")(output)  # TODO Tanh into encoded layer to bound vars?
+
+    # for i, layer_width in enumerate(reversed(layers)):
+    #     output = Dense(layer_width, activation=activation, name="dense_decode_layer_" + str(i))(output)
+    
+    # if pca_basis is not None:
+    #     output = Dense(pca_basis.shape[1], activation='linear', name="to_pca_decode_layer")(output) ## TODO is this right?? Possibly should just change earlier layer width
+    #     # output = Lambda(pca_inv_transform_layer)(output)
+    #     # output = PCALayer(pca_object, is_inv=True, fine_tune=do_fine_tuning)(output)
+
+    #     W = pca_basis.T
+    #     b = numpy.zeros(len(train_data[0]))
+    #     output = Dense(len(train_data[0]), activation='linear', weights=[W,b], trainable=do_fine_tuning, name="pca_decode_layer")(output)
+    # else:
+    #     output = Dense(len(train_data[0]), activation='linear', name="decoder_output_layer")(output)#'linear',)(output) # First test seems to indicate no change on output with linear
+
+    # autoencoder = Model(input, output)
+    ## Set the optimization parameters
+
+    from keras.losses import mse, binary_crossentropy
+
+    def vae_loss(inputs, outputs):
+        reconstruction_loss = mse(inputs, outputs)
+        reconstruction_loss *= len(train_data[0])
+        kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
+        kl_loss = K.sum(kl_loss, axis=-1)
+        kl_loss *= -0.5
+
+        return K.mean(reconstruction_loss + kl_loss)
+    loss_func = vae_loss
+
+    optimizer = keras.optimizers.Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
+    #optimizer = keras.optimizers.Adadelta()
+    autoencoder.compile(
+        optimizer=optimizer,
+        loss=loss_func,
+    )
+
+    hist = History()
+    model_start_time = time.time()
+
+    #    in_data = train_data
+    # out_data = train_data
+
+    # denoising = True
+    # if denoising:
+    #     noise_factor = 0.5
+    #     in_data = train_data + noise_factor * numpy.random.normal(loc=0.0, scale=1.0, size=train_data.shape) 
+
+    if batch_size_increase:
+        n_batch_steps = 5
+        max_batch_size = len(train_data)
+        min_batch_size = batch_size
+        batch_sizes = numpy.linspace(min_batch_size, max_batch_size, n_batch_steps, dtype=int)
+        for bs in batch_sizes: 
+            autoencoder.fit(
+                train_data, train_data,
+                epochs=epochs // n_batch_steps,
+                batch_size=bs,
+                shuffle=True,
+                validation_data=(test_data, test_data),
+                callbacks=[hist, callback]
+                )
+    else:
+        autoencoder.fit(
+            train_data, train_data,
+            epochs=epochs,
+            batch_size=batch_size,
+            shuffle=True,
+            validation_data=(test_data, test_data),
+            callbacks=[hist, callback]
+            )
+
+    training_time = time.time() - model_start_time
+    print("Total training time: ", training_time)
+    
+    # autoencoder,encoder, decoder = my_utils.decompose_vae(autoencoder)
+
+    # Save the models in both tensorflow and keras formats
+    if model_root:
+        print("Saving model...")
+        models_with_names = [
+            #(autoencoder, "autoencoder"),
+            (encoder, "encoder"),
+            (decoder, "decoder"),
+        ]
+
+        keras_models_dir = os.path.join(model_root, 'keras_models')
+        my_utils.create_dir_if_not_exist(keras_models_dir)
+
+        for keras_model, name in models_with_names:
+            keras_model_file = os.path.join(keras_models_dir, name + ".hdf5")
+            keras_model.save(keras_model_file)  # Save the keras model
+
+            # New Json mode
+            model_json = keras_model.to_json()
+            with open(os.path.join(keras_models_dir, name + '.json'), "w") as json_file:
+                json_file.write(model_json)
+            keras_model.save_weights(os.path.join(keras_models_dir, name + '.h5'))
+
+        print ("Finished saving model.")
+
+    def encode(decoded_data):
+        return encoder.predict(normalize(flatten_data(decoded_data))) 
+    def decode(encoded_data):
+        return unflatten_data(denormalize(decoder.predict(encoded_data)))
+
+    return encode, decode, training_time
+
+def autoencoder_analysis(
+    data,
+    test_data,
+    activation='relu',
+    latent_dim=3,
+    epochs=100,
+    batch_size=100,
+    batch_size_increase=False,
+    learning_rate=0.001,
+    layers=[32, 16],
+    pca_weights=None,
+    pca_basis=None,
+    do_fine_tuning=False,
+    model_root=None,
+    autoencoder_config=None,
+    callback=None,
+    UTMU=None,
+    ): # TODO should probably just pass in both configs here 
+    """
+    Returns and encoder and decoder for going into and out of the reduced latent space.
+    If pca_weights is given, then do a weighted mse.
+    """
+    assert not((pca_weights is not None) and (pca_basis is not None))  # pca_weights incompatible with pca_object
+
+    # import tensorflow as tf
+    # from keras.backend.tensorflow_backend import set_session
+    # config = tf.ConfigProto()
+    # config.gpu_options.per_process_gpu_memory_fraction = 0.1
+    # set_session(tf.Session(config=config))
+
+    import keras
+    import keras.backend as K
+    from keras.layers import Input, Dense, Lambda
+    from keras.models import Model, load_model
+    from keras.engine.topology import Layer
+    from keras.callbacks import History 
+
+    flatten_data, unflatten_data = my_utils.get_flattners(data)
+
+    # TODO: Do I need to shuffle?
+    use_validation = False
+    if use_validation:
+        numpy.random.shuffle(data)
+        test_data = data[:len(data)//20]
+        train_data = data[len(data)//20:]
+    else:
+        train_data = data
+        test_data = test_data if test_data is not None else data[:10] 
 
     ## Preprocess the data
     # mean = numpy.mean(train_data, axis=0)
@@ -143,6 +399,22 @@ def autoencoder_analysis(
     if UTMU is not None:
         loss_func = make_UTMU_loss()
 
+    lam = 1e-2
+    def contractive_loss(y_pred, y_true):
+        mse = K.mean(K.square(y_true - y_pred), axis=1)
+
+        W = K.variable(value=autoencoder.get_layer('encoded_layer').get_weights()[0])  # N x N_hidden
+        W = K.transpose(W)  # N_hidden x N
+        h = autoencoder.get_layer('encoded_layer').output
+        dh = h * (1 - h)  # N_batch x N_hidden
+
+        # N_batch x N_hidden * N_hidden x 1 = N_batch x 1
+        contractive = lam * K.sum(dh**2 * K.sum(W**2, axis=1), axis=1)
+
+        return mse + contractive
+
+    # loss_func = contractive_loss
+
     optimizer = keras.optimizers.Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0)
     #optimizer = keras.optimizers.Adadelta()
     autoencoder.compile(
@@ -153,6 +425,14 @@ def autoencoder_analysis(
     hist = History()
     model_start_time = time.time()
 
+    in_data = train_data
+    out_data = train_data
+
+    denoising = False
+    if denoising:
+        noise_factor = 0.5
+        in_data = train_data + noise_factor * numpy.random.normal(loc=0.0, scale=1.0, size=train_data.shape) 
+
     if batch_size_increase:
         n_batch_steps = 5
         max_batch_size = len(train_data)
@@ -160,7 +440,7 @@ def autoencoder_analysis(
         batch_sizes = numpy.linspace(min_batch_size, max_batch_size, n_batch_steps, dtype=int)
         for bs in batch_sizes: 
             autoencoder.fit(
-                train_data, train_data,
+                in_data, out_data,
                 epochs=epochs // n_batch_steps,
                 batch_size=bs,
                 shuffle=True,
@@ -169,7 +449,7 @@ def autoencoder_analysis(
                 )
     else:
         autoencoder.fit(
-            train_data, train_data,
+            in_data, out_data,
             epochs=epochs,
             batch_size=batch_size,
             shuffle=True,
@@ -198,6 +478,12 @@ def autoencoder_analysis(
             keras_model_file = os.path.join(keras_models_dir, name + ".hdf5")
             keras_model.save(keras_model_file)  # Save the keras model
 
+            # New Json mode
+            model_json = keras_model.to_json()
+            with open(os.path.join(keras_models_dir, name + '.json'), "w") as json_file:
+                json_file.write(model_json)
+            keras_model.save_weights(os.path.join(keras_models_dir, name + '.h5'))
+
         print ("Finished saving model.")
 
     def encode(decoded_data):
@@ -207,6 +493,11 @@ def autoencoder_analysis(
 
     return encode, decode, training_time
 
+def distance_errors(samples, reencoded):
+    per_vert_error_vec = (samples - reencoded).reshape(len(samples[0])//3*len(samples),3)
+    dist_errors = numpy.sum(numpy.abs(per_vert_error_vec)**2,axis=-1)**(1./2)
+    return dist_errors
+
 def pca_with_error_cutoff(samples, max_allowable_error):
     from scipy import linalg
 
@@ -214,12 +505,11 @@ def pca_with_error_cutoff(samples, max_allowable_error):
 
     _, S, components = linalg.svd(samples, full_matrices=False)
     
-    for pca_dim in range(1, len(samples[0])):
+
+    def get_for_dim(pca_dim):
         U = components[:pca_dim].T
 
-        explained_variance_ = (S ** 2) / (len(samples) - 1)
-        total_var = explained_variance_.sum()
-        explained_variance_ratio = (explained_variance_ / total_var)[:pca_dim]
+        explained_variance_ratio = 0
 
         def encode(samples):
             return samples @ U
@@ -227,16 +517,31 @@ def pca_with_error_cutoff(samples, max_allowable_error):
         def decode(samples):
             return samples @ U.T
 
-        per_vert_error_vec = (samples - decode(encode(samples))).reshape(len(samples[0])//3*len(samples),3)
-        dist_errors = numpy.sum(numpy.abs(per_vert_error_vec)**2,axis=-1)**(1./2)
-        avg_error = numpy.max(dist_errors)
-        # print(numpy.mean(dist_errors))
-        if avg_error < max_allowable_error:
-            print("PCA basis of size", pca_dim, " has mean distance error of", avg_error, "<", max_allowable_error)
-            return U, explained_variance_ratio, encode, decode
+        dist_errors = distance_errors(samples, decode(encode(samples)))
+        max_error = numpy.max(dist_errors)
+        
+        return max_error, U, explained_variance_ratio, encode, decode
 
-    print("Couldn't find a basis that meets error cutoff")
-    return None
+    dim_list = list(reversed(range(1, len(samples[0]))))
+
+    def bisect_left():
+        mem = {}
+        lo = len(dim_list) - 300 # we're never going to work with a basis bigger than 300 right?
+        hi = len(dim_list)
+        while lo < hi:
+            mid = (lo+hi)//2
+
+            mem[dim_list[mid]] = get_for_dim(dim_list[mid])
+            print(dim_list[mid], mem[dim_list[mid]][0])
+            if mem[dim_list[mid]][0] < max_allowable_error:
+                lo = mid+1
+            else:
+                hi = mid
+        return mem[dim_list[lo - 1]] if dim_list[lo - 1] in mem else get_for_dim(dim_list[lo - 1])
+
+    max_err, U, explained_variance_ratio, encode, decode = bisect_left()
+    print("PCA basis of size", len(U[0]), " has max distance error of", max_err, "<", max_allowable_error)
+    return U, explained_variance_ratio, encode, decode, components
 
 
 def mass_pca_analysis(samples, pca_dim, mesh_path, density):
@@ -307,7 +612,7 @@ def generate_model(
     ae_dim = autoencoder_config['ae_encoded_dim']
     ae_epochs = autoencoder_config['training_epochs']
     batch_size = autoencoder_config['batch_size'] if autoencoder_config['batch_size'] > 0 else len(displacements)
-    batch_size_increase = autoencoder_config.get('batch_size_inrease', False)
+    batch_size_increase = autoencoder_config.get('batch_size_increase', False)
     learning_rate = autoencoder_config['learning_rate']
     layers = autoencoder_config['non_pca_layer_sizes']
     do_fine_tuning = autoencoder_config['do_fine_tuning']
@@ -328,7 +633,7 @@ def generate_model(
         displacements = (mass_matrix * displacements.T).T # todo
     else:
         #U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
-        U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_with_error_cutoff(displacements, pca_ae_train_err)
+        U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode, components = pca_with_error_cutoff(displacements, pca_ae_train_err)
     pca_train_time = time.time() - pca_start_time
 
     # Add this dim to our list of compare_dims if it's not there already
@@ -341,7 +646,7 @@ def generate_model(
             raise("This needs to be debugged")
             U, explained_var, pca_encode, pca_decode = mass_pca_analysis(displacements, pca_dim, mesh_path, density)
         else:
-            U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim)
+            U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim, components)
 
         encoded_pca_displacements = pca_encode(displacements)
         decoded_pca_displacements = pca_decode(encoded_pca_displacements)
@@ -361,17 +666,20 @@ def generate_model(
             pred = flatten_data(decoded_pca_displacements)
             relative_error = compute_relative_percent_error(pred, actual)
             
+            max_distance_error = numpy.max(distance_errors(decoded_pca_displacements, displacements))
 
             if test_displacements is not None:
                 validation_mse = mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements))
             training_results['pca'][str(pca_dim) + '-components'] = {}
             training_results['pca'][str(pca_dim) + '-components']['training-mse'] = training_mse
-            training_results['pca'][str(pca_dim) + '-components']['explained_var'] = numpy.sum(explained_var)
-            training_results['pca'][str(pca_dim) + '-components']['relative_percent_error'] = relative_error
+            training_results['pca'][str(pca_dim) + '-components']['max-distance-error'] = max_distance_error
+            # training_results['pca'][str(pca_dim) + '-components']['explained_var'] = numpy.sum(explained_var)
+            # training_results['pca'][str(pca_dim) + '-components']['relative_percent_error'] = relative_error
             if test_displacements is not None:
                 training_results['pca'][str(pca_dim) + '-components']['validation-mse'] = validation_mse
 
             print(str(pca_dim) + ' training MSE: ', training_mse)
+            print(str(pca_dim) + ' training worst distance error: ', max_distance_error)
             # print(str(pca_dim) + ' explained variance: ', numpy.sum(explained_var))
             # print(str(pca_dim) + ' relative percent error: ', relative_error)
             print()
@@ -456,14 +764,16 @@ def generate_model(
         decoded_autoencoder_test_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(test_displacements))))
     ae_training_mse = mean_squared_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
     ae_relative_percent_error = compute_relative_percent_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
-
+    ae_max_dist_error = numpy.max(distance_errors(decoded_autoencoder_displacements, displacements))
     training_results['autoencoder']['training-mse'] = ae_training_mse
     training_results['autoencoder']['relative_percent_error'] = ae_relative_percent_error
+    training_results['autoencoder']['max_distance_error'] = ae_max_dist_error
     if test_displacements is not None:
         training_results['autoencoder']['validation-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements))
 
     print('Finale ae training MSE:', ae_training_mse)
     print('Finale ae relative percent error:', ae_relative_percent_error)
+    print('Finale ae max distance error:', ae_max_dist_error)
 
     training_results['autoencoder']['ae_training_time_s'] = ae_train_time
     training_results['autoencoder']['pca_training_time_s'] = pca_train_time
@@ -547,13 +857,13 @@ def load_displacements_and_energy(model_root, use_reencoded=False, use_extra_sam
 
 # TODO refactor this..
 # Include it in the build model pipeline
-def build_energy_model(model_root, energy_model_config):
+def build_energy_model(model_root, config):
     """energy basis"""
-
+    energy_model_config = config['learning_config']['energy_model_config']
     # TODO SAVE ENERGY MODEL
     base_path = model_root
-    training_data_path = os.path.join(base_path, 'training_data/training')
-    validation_data_path = os.path.join(base_path, 'training_data/validation')
+    training_data_path = config['training_dataset']
+    validation_data_path = ""#os.path.join(base_path, 'training_data/validation')
     
     # Energies
     energies = my_utils.load_energy_dmats_to_numpy(training_data_path)
@@ -876,18 +1186,19 @@ def pca_analysis(data, n_components, plot_explained_variance=False):
 
     return pca, encode, decode, pca.explained_variance_ratio_, mse
 
-def pca_no_centering(samples, pca_dim):
+def pca_no_centering(samples, pca_dim, components=None):
     from scipy import linalg
 
     print('Doing PCA for', pca_dim, 'components...')
 
-    _, S, components = linalg.svd(samples, full_matrices=False)
+    if components is None:
+        _, S, components = linalg.svd(samples, full_matrices=False)
     
     U = components[:pca_dim].T
 
-    explained_variance_ = (S ** 2) / (len(samples) - 1)
-    total_var = explained_variance_.sum()
-    explained_variance_ratio = (explained_variance_ / total_var)[:pca_dim]
+    explained_variance_ = 0# (S ** 2) / (len(samples) - 1)
+    total_var = 0 #explained_variance_.sum()
+    explained_variance_ratio = 0 #(explained_variance_ / total_var)[:pca_dim]
 
     def encode(samples):
         return samples @ U

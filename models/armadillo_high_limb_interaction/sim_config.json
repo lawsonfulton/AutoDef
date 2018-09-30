@@ -1,7 +1,8 @@
 {
   "mesh": "models/armadillo_high_limb_interaction/tets.mesh",
-  "logging_enabled": true,
+  "logging_enabled": false,
   "save_objs": false,
+  "save_pngs": false,
   "save_training_data_path": "",
   "alternative_full_space_mesh": "",
   "material_config": {
@@ -20,7 +21,7 @@
     "ae_decoded_dim": 83,
     "timestep": 0.005,
     "lbfgs_config": {
-      "lbfgs_max_iterations": 1000,
+      "lbfgs_max_iterations": 10000,
       "lbfgs_epsilon": 1e-08,
       "lbfgs_m": 8
     },
@@ -44,7 +45,7 @@
       -0.1
     ],
     "fixed_point_radius": 0.11,
-    "print_every_n_frames": 100,
+    "print_every_n_frames": 10,
     "max_frames": 0
   }
 }

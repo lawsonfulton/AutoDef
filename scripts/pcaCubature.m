@@ -1,7 +1,7 @@
 %L1 Cubature weights
 configs = jsondecode(fileread('configs.json'));
 %'%05.f'
-input_dir = './x/training_data/';
+input_dir = '/home/lawson/Workspace/AutoDef/models/x-final/training_data/training/';
 E = readDMAT([input_dir, 'energy_', num2str(1),'.dmat']);
 for ii=2:500
     E_n = readDMAT([input_dir, 'energy_', num2str(ii),'.dmat']);

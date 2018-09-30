@@ -46,7 +46,7 @@ def copy_files_into_out_dir(config, model_root):
     # -- Training config file as a record
 
     with open(os.path.join(model_root, 'model_config.json'), 'w') as f:
-        json.dump(config, f)
+        json.dump(config, f, indent=2)
 
 
 def main():
@@ -115,6 +115,7 @@ def build_model(config, model_root, force=False):
         'mesh': os.path.join(model_root, 'tets.mesh'),
         'logging_enabled': False,
         'save_objs': False,
+        'save_pngs': False,
         'save_training_data': False,
         'save_training_data_path': '', # If this path is filled in, then displacements, mouse, params, will be recorded.
         'alternative_full_space_mesh': '',
@@ -152,6 +153,7 @@ def build_model(config, model_root, force=False):
             'gpu_decode': True,
             'show_stress': False,
             'show_energy': False,
+            'show_lines': False,
             'interaction_spring_stiffness': training_data_params.get('spring_strength', 100),
             'spring_grab_radius': training_data_params.get('spring_grab_radius', 0.03), # Note this is ignored for reduced spaces
             'full_space_constrained_axis': training_data_params['fixed_axis'],
@@ -172,9 +174,9 @@ def build_model(config, model_root, force=False):
         num_sample_tets = energy_model_config['num_sample_tets']
 
         if(energy_type == 'pcr'):
-            learn.build_energy_model(model_root, energy_model_config)
+            learn.build_energy_model(model_root, config)
         elif(energy_type == 'an08'):
-            subprocess.run(['../cubacode/build/bin/Cubacode', model_root, str(num_sample_tets)])
+            subprocess.run(['cubacode/build/bin/Cubacode', model_root, str(num_sample_tets)])
         else:
             raise("Energy type doesn't exist")
 

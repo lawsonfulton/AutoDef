@@ -4,6 +4,7 @@ import os
 import json
 import tempfile
 import shutil
+import time
 
 from utils import my_utils
 from build_model import build_model
@@ -16,15 +17,19 @@ from build_model import build_model
 # Want to be able to rerun training
 # Solution -> Output generated configs to the model folder
 
-SOLVER_BIN_PATH = "reduced_sim_gauss/build/bin/ReduceSimExample"
-
+SOLVER_BIN_PATH = 'reduced_sim_gauss/build/bin/ReduceSimExample'
+CUBATURE_BIN_PATH = 'cubacode/build/bin/Cubacode'
 
 def main():
     config_path = sys.argv[1]
     model_path = sys.argv[2]
+    extra_flag = sys.argv[3] if len(sys.argv) >= 4 else ''
+
+    options = parse_flag(extra_flag)
 
     # confirm overwrite
-    my_utils.delete_and_recreate_dir_with_confirmation(model_path)
+    if not options.skip_delete:
+        my_utils.delete_and_recreate_dir_with_confirmation(model_path)
 
     # Load unified config
     unified_config = {}
@@ -32,21 +37,51 @@ def main():
         unified_config = json.load(f)
 
     # --- Record User Interaction ---
+    start_user_interaction_time = time.time()
     log_name = 'user_interaction_log'
     low_res_model_path, _ = setup_submodel(model_path, unified_config, 'low_res')
-    subprocess.run([SOLVER_BIN_PATH, low_res_model_path, '--log_name', log_name])
-
+    if not options.skip_record:
+        subprocess.run([SOLVER_BIN_PATH, low_res_model_path, '--log_name', log_name])
+    total_user_interaction_time = time.time() - start_user_interaction_time
     
     # --- Replay on high res model ---
+    start_replay_time = time.time()
     user_interaction_log_path = os.path.join(low_res_model_path, 'simulation_logs/', log_name, 'sim_stats.json')
     high_res_model_path, training_data_ouput_path = setup_submodel(model_path, unified_config, 'high_res')
-    subprocess.run([SOLVER_BIN_PATH, high_res_model_path, user_interaction_log_path, '--no_wait'])
+    if not options.skip_replay:
+        subprocess.run([SOLVER_BIN_PATH, high_res_model_path, user_interaction_log_path, '--no_wait'])
+    total_replay_time = time.time() - start_replay_time
 
-    # # Make training config
+    # --- Train the network and run cubature training ---
+    start_training_time = time.time()
     learning_config = create_learning_config(unified_config, training_data_ouput_path)
+    if not options.skip_train:
+        build_model(learning_config, model_path, force=True)
+    total_training_time = time.time() - start_training_time
 
-    build_model(learning_config, model_path, force=True)
+    with open(os.path.join(model_path, "unified_training_timing.json"), 'w') as f:
+        timing = {
+            "total_user_interaction_time": total_user_interaction_time,
+            "total_replay_time": total_replay_time,
+            "total_training_time": total_training_time,
+        }
+        json.dump(timing, f, indent=2)
 
+
+def parse_flag(flag):
+    class Options:
+        skip_delete = False
+        skip_record = False
+        skip_replay = False
+        skip_train = False
+
+    options = Options()
+    if flag == '--retrain':
+        options.skip_delete = True
+        options.skip_record = True
+        options.skip_replay = True
+
+    return options
 
 def setup_submodel(model_path, unified_config, type_str): # type_str = 'low_res' or 'high_res'
     submodel_path = os.path.join(model_path, 'unified_generate/' + type_str + '/')
@@ -73,12 +108,13 @@ def create_sim_config(submodel_path, unified_config, type_str):
     elif type_str == 'high_res':
         mesh_path = unified_config['high_res_mesh']
         youngs_modulus = unified_config['sim_params']['high_res_youngs_modulus']
-        training_data_ouput_path = os.path.join(submodel_path, 'training_data/')
+        training_data_ouput_path = os.path.join(submodel_path, 'training_data/training/')
 
     sim_config = {
         'mesh': mesh_path, # TODO this might need to be relative to solver?
         'logging_enabled': True,
-        'save_objs': False,
+        'save_objs': True,
+        'save_pngs': False,
         'save_training_data': training_data_ouput_path != '',
         'save_training_data_path': training_data_ouput_path,
         'alternative_full_space_mesh': '',
@@ -116,6 +152,7 @@ def create_sim_config(submodel_path, unified_config, type_str):
             'gpu_decode': False,
             'show_stress': False,
             'show_energy': False,
+            'show_lines': True,
             'interaction_spring_stiffness': sim_params['interaction_spring_stiffness'],
             'spring_grab_radius': sim_params['spring_grab_radius'],
             'full_space_constrained_axis': sim_params['full_space_constrained_axis'],
@@ -135,37 +172,38 @@ def create_learning_config(unified_config, training_data_ouput_path):
     training_params = unified_config['training_params']
 
     learning_config = {
-        "training_dataset": training_data_ouput_path,
-        "validation_dataset": "",
+        'training_dataset': training_data_ouput_path,
+        'validation_dataset': '',
 
-        "learning_config": {
-            "save_objs": False,
-            "skip_training": False,
-            "skip_jacobian": False,
-            "use_mass_pca": False,
-            "record_full_loss": False,
-            "autoencoder_config": {
-                "pca_compare_dims": [training_params['ae_encoded_dim']],
-                "pca_layer_err": training_params['pca_max_vert_error_meters'],
-                "train_in_full_space": False,
-                "pca_init": True,
-                "non_pca_layer_sizes": training_params['non_pca_layer_sizes'],
-                "ae_encoded_dim": training_params['ae_encoded_dim'],
-                "activation": training_params['activation'],
+        'learning_config': {
+            'save_objs': False,
+            'skip_training': False,
+            'skip_jacobian': False,
+            'use_mass_pca': False,
+            'record_full_loss': False,
+            'autoencoder_config': {
+                'pca_compare_dims': [training_params['ae_encoded_dim']],
+                'pca_layer_err': training_params['pca_max_vert_error_meters'],
+                'train_in_full_space': False,
+                'pca_init': True,
+                'non_pca_layer_sizes': training_params['non_pca_layer_sizes'],
+                'ae_encoded_dim': training_params['ae_encoded_dim'],
+                'activation': training_params['activation'],
 
-                "learning_rate": training_params['learning_rate'],
-                "batch_size": training_params['batch_size'],
-                "training_epochs": training_params['training_epochs'],
-                "do_fine_tuning": False,
-                "loss_weight": 1.0
+                'learning_rate': training_params['learning_rate'],
+                'batch_size': training_params['batch_size'],
+                'batch_size_increase': training_params['batch_size_increase'],
+                'training_epochs': training_params['training_epochs'],
+                'do_fine_tuning': False,
+                'loss_weight': 1.0
             },
-            "energy_model_config": {
-                "type": training_params['cubature_type'],
-                "enabled": True,
-                "pca_dim": 40,
-                "num_sample_tets": training_params['num_sample_tets'],
-                "brute_force_iterations": 100,
-                "target_anneal_mins": 5
+            'energy_model_config': {
+                'type': training_params['cubature_type'],
+                'enabled': True,
+                'pca_dim': 40,
+                'num_sample_tets': training_params['num_sample_tets'],
+                'brute_force_iterations': 100,
+                'target_anneal_mins': 5
             }
         }
     }

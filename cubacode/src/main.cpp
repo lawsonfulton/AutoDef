@@ -42,6 +42,7 @@ Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
 fs::path model_root;
 int goal_tet_count = 0;
+double starting_time;
 
 void eig_to_VEC(const Eigen::VectorXd &eig_vec, VECTOR &vec_vec) {
     vec_vec.resizeAndWipe(eig_vec.size());
@@ -165,6 +166,8 @@ protected:
         }
         my_out << endl << "n_nonzero: " << n_nonzero << endl;
         my_out << endl;
+        my_out << "Running time so far: " << igl::get_seconds() - starting_time << "s" << std::endl;
+        my_out << endl;
 
         Eigen::VectorXi Is = Eigen::Map<Eigen::VectorXi>(&nonzero_indices[0], nonzero_indices.size());
         Eigen::VectorXd Ws = Eigen::Map<Eigen::VectorXd>(&nonzero_weights[0], nonzero_weights.size());
@@ -186,9 +189,9 @@ protected:
         cout << my_out.str();
         cout << "Saved weights and indices to " << this_iteration_output_dir.string() << endl << endl;
 
-        const bool DEBUG = true;
+        const bool DEBUG = false;
         if(DEBUG) {
-            int example_id = 500;//250;
+            int example_id = 500 % m_reduced_forces.size();//250;
             Eigen::VectorXd actual_g = m_reduced_forces[example_id];
             Eigen::VectorXd pred_g = get_predicted_force(example_id, nonzero_indices, nonzero_weights);
 
@@ -201,7 +204,8 @@ protected:
         }
 
 
-        if(n_nonzero >= goal_tet_count) {
+        // output everything every frame
+        {
             fs::path indices_path = energy_model_dir / "indices.dmat";
             fs::path weights_path = energy_model_dir / "weights.dmat";
             igl::writeDMAT(indices_path.string(), Is);
@@ -211,7 +215,8 @@ protected:
             ofstream fout(details_path.string());
             fout << my_out.str();
             fout.close();
-
+        }
+        if(n_nonzero >= goal_tet_count) {
             cout << "Reached goal number of tets. Exiting." << endl;
             exit(0);
         }
@@ -393,6 +398,8 @@ std::vector<Eigen::VectorXd> get_forces_from_reduced_displacements(const std::ve
 }
 
 int main(int argc, char **argv) {
+    starting_time = igl::get_seconds();
+
     if(argc != 3) {
         cout << "Need to pass in a path to model root and a goal number of tets." << endl;
         exit(1);
@@ -402,7 +409,14 @@ int main(int argc, char **argv) {
     model_root = fs::path(argv[1]);
     goal_tet_count = std::stoi(argv[2]);
 
-    fs::path training_data_root = model_root / "training_data/training/";
+    fs::path model_config_path = model_root / "model_config.json";
+    std::ifstream fin_model(model_config_path.string());
+    json model_config;
+    fin_model >> model_config;
+
+    std::string tdr = model_config["training_dataset"];
+    fs::path training_data_root = tdr;
+    std::cout << training_data_root << std::endl;
     fs::path mesh_path = model_root / "tets.mesh";
     fs::path sim_config_path = model_root / "sim_config.json";
     fs::path reduced_basis_path = model_root / "pca_results" / "ae_pca_components.dmat";
@@ -461,11 +475,11 @@ int main(int argc, char **argv) {
     MyGreedyCubop cubop(V, T, U, YM, poisson, density, reduced_forces, red_displacements);
 
     // Params 
-    Real relErrTol = 0.0; // What's a good val?
-    int maxNumPoints = goal_tet_count * 2; // some sane limit, for overnight runs
-    int numCandsPerIter = 500;// default 100;  // |C|
+    Real relErrTol = 1e-4; // What's a good val?
+    int maxNumPoints = goal_tet_count * 5; // some sane limit, for overnight runs
+    int numCandsPerIter = 200;//100;//T.rows() / 100;  //100;// default 100;  // |C|
     int itersPerFullNNLS = r/2; // r/2 in the paper
-    int numSamplesPerSubtrain = 500; // default 50;   // T_s
+    int numSamplesPerSubtrain = 50; //training_poses.size() / 4; // default 50;   // T_s
     
     cout << "Working" << endl;
 

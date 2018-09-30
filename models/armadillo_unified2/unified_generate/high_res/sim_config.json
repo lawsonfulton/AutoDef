@@ -1,0 +1,54 @@
+{
+  "mesh": "meshes/25cm_armadillo_high.mesh",
+  "logging_enabled": true,
+  "save_objs": false,
+  "save_training_data": true,
+  "save_training_data_path": "models/armadillo_unified2/unified_generate/high_res/training_data/training/",
+  "alternative_full_space_mesh": "",
+  "material_config": {
+    "density": 1000,
+    "youngs_modulus": 10000,
+    "poissons_ratio": 0.47
+  },
+  "integrator_config": {
+    "reduced_space_type": "full",
+    "use_reduced_energy": false,
+    "use_partial_decode": false,
+    "reduced_energy_method": "full",
+    "use_preconditioner": true,
+    "pca_dim": 0,
+    "ae_encoded_dim": 0,
+    "ae_decoded_dim": 0,
+    "timestep": 0.005,
+    "lbfgs_config": {
+      "lbfgs_max_iterations": 500,
+      "lbfgs_epsilon": 1e-07,
+      "lbfgs_delta": 1e-08,
+      "lbfgs_delta_past": 0,
+      "lbfgs_m": 8
+    },
+    "gravity": -9.8,
+    "gravity_axis": 1,
+    "start_pose_from_training_data": -1,
+    "quasi_static": false,
+    "save_obj_every_iteration": false
+  },
+  "visualization_config": {
+    "gpu_decode": false,
+    "show_stress": false,
+    "show_energy": false,
+    "interaction_spring_stiffness": 10,
+    "spring_grab_radius": 0.03,
+    "full_space_constrained_axis": -1,
+    "constrained_axis_eps": 0.05,
+    "flip_constrained_axis": false,
+    "fixed_point_constraint": [
+      0,
+      0.124,
+      -0.1
+    ],
+    "fixed_point_radius": 0.12,
+    "print_every_n_frames": 1,
+    "max_frames": 0
+  }
+}

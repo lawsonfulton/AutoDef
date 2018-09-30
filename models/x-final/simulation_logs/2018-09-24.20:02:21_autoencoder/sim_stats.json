@@ -1,0 +1,8921 @@
+{
+  "sim_config": {
+    "alternative_full_space_mesh": "",
+    "integrator_config": {
+      "ae_decoded_dim": 30,
+      "ae_encoded_dim": 6,
+      "gravity": -9.8,
+      "lbfgs_config": {
+        "lbfgs_epsilon": 1e-06,
+        "lbfgs_m": 8,
+        "lbfgs_max_iterations": 1000
+      },
+      "pca_dim": 6,
+      "reduced_energy_method": "pcr",
+      "reduced_space_type": "autoencoder",
+      "save_obj_every_iteration": false,
+      "start_pose_from_training_data": -1,
+      "timestep": 0.0333333333333333,
+      "use_partial_decode": true,
+      "use_preconditioner": true,
+      "use_reduced_energy": false
+    },
+    "logging_enabled": true,
+    "material_config": {
+      "density": 1000.0,
+      "poissons_ratio": 0.45,
+      "youngs_modulus": 1000000.0
+    },
+    "mesh": "./models/x-final/tets.mesh",
+    "save_objs": false,
+    "visualization_config": {
+      "full_space_constrained_axis": 1,
+      "gpu_decode": true,
+      "interaction_spring_stiffness": 100000.0,
+      "max_frames": 0,
+      "print_every_n_frames": 10,
+      "show_energy": false,
+      "show_stress": false
+    }
+  },
+  "timesteps": [
+    {
+      "current_frame": 0,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          6.96550104060739,
+          2.15303921410066,
+          2.13502552528942,
+          2.1348789602111,
+          2.13487726261516,
+          2.1348772433548,
+          2.13487724331762,
+          2.13487724331747
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00109601020812988,
+      "tot_step_time_s": 0.190117120742798
+    },
+    {
+      "current_frame": 1,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          13.5896533093081,
+          1.56893313236078,
+          1.44717045322261,
+          1.44278974189795,
+          1.44277750450898,
+          1.44277747135328,
+          1.44277747121855,
+          1.44277747121734
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000534772872924805,
+      "tot_step_time_s": 0.146090507507324
+    },
+    {
+      "current_frame": 2,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          23.9749551929386,
+          5.78133814301438,
+          5.56329931042617,
+          5.55263295686882,
+          5.55260748594099,
+          5.55260740793879,
+          5.55260740773697,
+          5.5526074077364
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000597000122070312,
+      "tot_step_time_s": 0.145695209503174
+    },
+    {
+      "current_frame": 3,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          36.8738903162334,
+          12.4222015779473,
+          12.2050022466088,
+          12.1946226669837,
+          12.1946012428124,
+          12.1946011347181,
+          12.1946011340616,
+          12.1946011340578
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00104260444641113,
+      "tot_step_time_s": 0.119029760360718
+    },
+    {
+      "current_frame": 4,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          50.5129229334289,
+          20.1863804495748,
+          20.0312410857438,
+          20.0250997878592,
+          20.0250859042982,
+          20.0250858343396,
+          20.0250858340617,
+          20.025085834061
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00063323974609375,
+      "tot_step_time_s": 0.0578835010528564
+    },
+    {
+      "current_frame": 5,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          63.6964725635368,
+          28.6173339646571,
+          28.5279711662632,
+          28.5257544190297,
+          28.5257518071641,
+          28.5257517822284,
+          28.525751782214
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000760316848754883,
+      "tot_step_time_s": 0.133352756500244
+    },
+    {
+      "current_frame": 6,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          76.2110922330459,
+          37.8199230796224,
+          37.7755519597514,
+          37.7750083202259,
+          37.7750071375936,
+          37.7750071234741,
+          37.7750071234666
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000765085220336914,
+      "tot_step_time_s": 0.070659875869751
+    },
+    {
+      "current_frame": 7,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          88.0023375545172,
+          47.8851309559668,
+          47.8422300243978,
+          47.8419612696283,
+          47.8419611376225,
+          47.8419611362448,
+          47.8419611362434
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000797510147094727,
+      "tot_step_time_s": 0.0442640781402588
+    },
+    {
+      "current_frame": 8,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          98.8892684149688,
+          58.4866201144877,
+          58.3857677381816,
+          58.3851120465273,
+          58.385111743892,
+          58.385111742602
+        ]
+      },
+      "lbfgs_iterations": 5,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00068211555480957,
+      "tot_step_time_s": 0.102757453918457
+    },
+    {
+      "current_frame": 9,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          108.715951851286,
+          69.2786742936668,
+          69.0752835864076,
+          69.0745142540123,
+          69.0745128883163,
+          69.0745128830593,
+          69.0745128830552
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000895023345947266,
+      "tot_step_time_s": 0.0704276561737061
+    },
+    {
+      "current_frame": 10,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          117.290566355006,
+          80.4829306931252,
+          80.1594342109637,
+          80.1589686216335,
+          80.1589672304044,
+          80.1589672236606,
+          80.1589672236519
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00085139274597168,
+      "tot_step_time_s": 0.11906886100769
+    },
+    {
+      "current_frame": 11,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          124.638514327284,
+          92.8523746679675,
+          92.476981856238,
+          92.4767119231904,
+          92.4767106401907,
+          92.4767106301651
+        ]
+      },
+      "lbfgs_iterations": 5,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000623464584350586,
+      "tot_step_time_s": 0.059340238571167
+    },
+    {
+      "current_frame": 12,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          130.962824638707,
+          106.982858564139,
+          106.591365057172,
+          106.58908578682,
+          106.589043249485,
+          106.589043209891,
+          106.589043209077
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000414371490478516,
+      "tot_step_time_s": 0.0916614532470703
+    },
+    {
+      "current_frame": 13,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          136.408239495796,
+          121.103168349841,
+          120.788811965186,
+          120.788672723446,
+          120.788672392788,
+          120.788672388745,
+          120.788672388733
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000779390335083008,
+      "tot_step_time_s": 0.0554208755493164
+    },
+    {
+      "current_frame": 14,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          140.872870870673,
+          132.184038532479,
+          131.992672001967,
+          131.99178459822,
+          131.991779734509,
+          131.991779665082,
+          131.991779663139
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000837564468383789,
+      "tot_step_time_s": 0.0595762729644775
+    },
+    {
+      "current_frame": 15,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          143.710644771107,
+          139.090953118895,
+          139.013676162072,
+          139.012371216504,
+          139.012367908311,
+          139.012367741224,
+          139.012367741066
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00080418586730957,
+      "tot_step_time_s": 0.0908560752868652
+    },
+    {
+      "current_frame": 16,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          144.406622427903,
+          141.720662158643,
+          141.709273251234,
+          141.709030928289,
+          141.709025234102,
+          141.709025199277,
+          141.709025198477
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000433683395385742,
+      "tot_step_time_s": 0.0465407371520996
+    },
+    {
+      "current_frame": 17,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          142.920246575949,
+          140.248389756922,
+          140.226561435396,
+          140.226080171184,
+          140.226079087703,
+          140.226079076415
+        ]
+      },
+      "lbfgs_iterations": 5,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000679731369018555,
+      "tot_step_time_s": 0.0746991634368896
+    },
+    {
+      "current_frame": 18,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          139.428876518582,
+          135.42242511167,
+          135.326269308729,
+          135.32582727197,
+          135.325825105464,
+          135.325825075485,
+          135.325825074736
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000739336013793945,
+      "tot_step_time_s": 0.0869674682617188
+    },
+    {
+      "current_frame": 19,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          134.372915516291,
+          128.344651453657,
+          128.160227758665,
+          128.159930132088,
+          128.159927695479,
+          128.159927628964,
+          128.159927628689
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000464439392089844,
+      "tot_step_time_s": 0.0782854557037354
+    },
+    {
+      "current_frame": 20,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          128.112661995218,
+          120.00525240814,
+          119.756757618518,
+          119.756513728557,
+          119.75651111067,
+          119.756511050501,
+          119.756511050343
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000508308410644531,
+      "tot_step_time_s": 0.0912895202636719
+    },
+    {
+      "current_frame": 21,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          120.974917729039,
+          110.886604004726,
+          110.609752407207,
+          110.609511707368,
+          110.609509327644,
+          110.609509286417,
+          110.609509286308
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000467061996459961,
+      "tot_step_time_s": 0.0763001441955566
+    },
+    {
+      "current_frame": 22,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          113.187299337504,
+          101.071205662789,
+          100.802245868064,
+          100.802038210034,
+          100.802037009755,
+          100.802036991766,
+          100.802036991703
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000458478927612305,
+      "tot_step_time_s": 0.101172685623169
+    },
+    {
+      "current_frame": 23,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          104.820647176979,
+          90.44748600626,
+          90.2207440351865,
+          90.2204586216441,
+          90.2204582908055,
+          90.2204582903296,
+          90.2204582903208
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000769376754760742,
+      "tot_step_time_s": 0.0973193645477295
+    },
+    {
+      "current_frame": 24,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          95.893767352454,
+          79.0817349267929,
+          78.9342237064185,
+          78.9337965046866,
+          78.9337954995756,
+          78.933795490872,
+          78.9337954908664
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000593185424804688,
+      "tot_step_time_s": 0.0845704078674316
+    },
+    {
+      "current_frame": 25,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          86.4198670801088,
+          67.9921527859891,
+          67.8954977455281,
+          67.8950796790654,
+          67.8950789577574,
+          67.8950789536301
+        ]
+      },
+      "lbfgs_iterations": 5,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000901937484741211,
+      "tot_step_time_s": 0.0710537433624268
+    },
+    {
+      "current_frame": 26,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          76.8083920407085,
+          58.4610986415755,
+          58.3609041250513,
+          58.3606250186803,
+          58.3606245291831,
+          58.360624527536,
+          58.3606245275319
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000551939010620117,
+      "tot_step_time_s": 0.083728551864624
+    },
+    {
+      "current_frame": 27,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          67.6664630222794,
+          51.1698404119058,
+          51.0561751881319,
+          51.0558942860947,
+          51.0558940889034,
+          51.0558940887018
+        ]
+      },
+      "lbfgs_iterations": 5,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000390768051147461,
+      "tot_step_time_s": 0.0379703044891357
+    },
+    {
+      "current_frame": 28,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          59.6437105116102,
+          45.7132201072225,
+          45.6305905992628,
+          45.6300372393272,
+          45.630036979051,
+          45.6300369788447
+        ]
+      },
+      "lbfgs_iterations": 5,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000865459442138672,
+      "tot_step_time_s": 0.105463743209839
+    },
+    {
+      "current_frame": 29,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          53.031810685508,
+          41.4531262603942,
+          41.4152515747647,
+          41.4150716996851,
+          41.4150712333632,
+          41.4150712298511
+        ]
+      },
+      "lbfgs_iterations": 5,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000759601593017578,
+      "tot_step_time_s": 0.0561411380767822
+    },
+    {
+      "current_frame": 30,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          47.5419747039934,
+          38.2086036385142,
+          38.1906888345097,
+          38.1906209816295,
+          38.190620735361,
+          38.1906207346376
+        ]
+      },
+      "lbfgs_iterations": 5,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dragged_pos": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000503301620483398,
+      "tot_step_time_s": 0.0726094245910645
+    },
+    {
+      "current_frame": 31,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          42.9905086056987,
+          35.8200950397295,
+          35.8136856832114,
+          35.8136693216483,
+          35.8136692785762,
+          35.8136692785151
+        ]
+      },
+      "lbfgs_iterations": 5,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.97523414423782,
+          1.24281515625933,
+          0.909043890097874
+        ],
+        "dragged_pos": [
+          2.90290891459304,
+          1.27408756760576,
+          0.978433710196751
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000455141067504883,
+      "tot_step_time_s": 0.0699393749237061
+    },
+    {
+      "current_frame": 32,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          39.9656827764934,
+          33.6295518678278,
+          33.6281838549822,
+          33.6281785551702,
+          33.628178544778
+        ]
+      },
+      "lbfgs_iterations": 4,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.96973896871933,
+          1.27415722670611,
+          0.913500846180397
+        ],
+        "dragged_pos": [
+          2.03077041437942,
+          1.41482414750078,
+          1.61108313188865
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000520229339599609,
+      "tot_step_time_s": 0.0495405197143555
+    },
+    {
+      "current_frame": 33,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          40.5544321482829,
+          30.9683567072014,
+          30.9527202491098,
+          30.9524254785114,
+          30.9524254492424
+        ]
+      },
+      "lbfgs_iterations": 4,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.96185468595802,
+          1.30379476425298,
+          0.925946338731382
+        ],
+        "dragged_pos": [
+          0.807906263378445,
+          1.38354744461992,
+          2.3008185444863
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000725507736206055,
+      "tot_step_time_s": 0.108034133911133
+    },
+    {
+      "current_frame": 34,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          56.5191770790403,
+          21.6432510505252,
+          21.2970135796804,
+          21.2660644066766,
+          21.2659834311026,
+          21.2659833254069,
+          21.2659833250182
+        ]
+      },
+      "lbfgs_iterations": 6,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.94412112555321,
+          1.32884239314958,
+          0.956091972233178
+        ],
+        "dragged_pos": [
+          -2.28042352864426,
+          0.507864136972219,
+          3.35504685030295
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000355720520019531,
+      "tot_step_time_s": 0.117531299591064
+    },
+    {
+      "current_frame": 35,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          150.980609844497,
+          -0.845900621840102,
+          -4.16858836646901,
+          -4.38323741474397,
+          -4.38929248946464,
+          -4.38940352307546,
+          -4.38940408424271,
+          -4.38940408685103,
+          -4.38940408687334
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.89655702859169,
+          1.33166731200117,
+          1.0242237668639
+        ],
+        "dragged_pos": [
+          -6.37128580281418,
+          -0.618015627584666,
+          4.780900579551
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000637054443359375,
+      "tot_step_time_s": 0.109406709671021
+    },
+    {
+      "current_frame": 36,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          412.411989560133,
+          78.8590075613162,
+          73.8973097193286,
+          73.7594697568253,
+          73.7562152580836,
+          73.7561549775333,
+          73.7561541331607,
+          73.7561541279721,
+          73.7561541278277
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.78454925820615,
+          1.30359937867392,
+          1.16633754985551
+        ],
+        "dragged_pos": [
+          -7.71442449757737,
+          -0.790024618826121,
+          5.41965256319358
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000461578369140625,
+      "tot_step_time_s": 0.132364988327026
+    },
+    {
+      "current_frame": 37,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          746.892542471593,
+          196.906782701042,
+          171.426979753697,
+          170.990796328117,
+          170.981756260644,
+          170.981616381477,
+          170.981614644451,
+          170.981614627899,
+          170.981614627232
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.62654188070633,
+          1.25633645188182,
+          1.36985711255768
+        ],
+        "dragged_pos": [
+          -8.61434210011643,
+          -0.946395258627146,
+          5.81212196932151
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000925302505493164,
+      "tot_step_time_s": 0.141998291015625
+    },
+    {
+      "current_frame": 38,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1164.74152987148,
+          266.317952426614,
+          212.804019584532,
+          210.946231748178,
+          210.899943727005,
+          210.898605413236,
+          210.898586782543,
+          210.898586662051,
+          210.89858665952
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.44372004987938,
+          1.19820412263046,
+          1.65122312894134
+        ],
+        "dragged_pos": [
+          -9.3267196483342,
+          -1.27477488966963,
+          5.94619808779075
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000774860382080078,
+      "tot_step_time_s": 0.132569789886475
+    },
+    {
+      "current_frame": 39,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1632.70183435164,
+          366.013740641314,
+          260.657943121981,
+          247.760702689794,
+          246.793432510587,
+          246.772132685697,
+          246.77204894655,
+          246.772048409874,
+          246.772048400185,
+          246.772048400087
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.24474460602753,
+          1.128369873737,
+          2.01773248536783
+        ],
+        "dragged_pos": [
+          -9.73801601597946,
+          -1.69698033782026,
+          5.82282505617453
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000423192977905273,
+      "tot_step_time_s": 0.0767960548400879
+    },
+    {
+      "current_frame": 40,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          2124.72161384025,
+          693.340974216266,
+          476.058276264616,
+          434.23523413722,
+          429.474571218518,
+          429.183056569589,
+          429.178125980101,
+          429.177794204873,
+          429.177793785261,
+          429.177793780557
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.0152939196902,
+          1.0383954682643,
+          2.44542877862324
+        ],
+        "dragged_pos": [
+          -10.002968914005,
+          -2.08791337462446,
+          5.64067516908957
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000768184661865234,
+      "tot_step_time_s": 0.159469604492188
+    },
+    {
+      "current_frame": 41,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          2583.6853897601,
+          1282.47600701506,
+          1033.4112036197,
+          978.12540301776,
+          968.493229815898,
+          967.144996996232,
+          967.096043851017,
+          967.088953099806,
+          967.088916334782,
+          967.088915088987,
+          967.088915060486,
+          967.088915060141
+        ]
+      },
+      "lbfgs_iterations": 11,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.75547177940731,
+          0.909414286555926,
+          2.88746053432921
+        ],
+        "dragged_pos": [
+          -10.2898107833592,
+          -2.76031098814985,
+          5.22838745699241
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000438213348388672,
+      "tot_step_time_s": 0.13952374458313
+    },
+    {
+      "current_frame": 42,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          2829.1690657523,
+          1954.86187916206,
+          1725.80742709526,
+          1702.72786292769,
+          1697.47696268292,
+          1696.48305608014,
+          1696.40733472012,
+          1696.40667700699,
+          1696.40665963892,
+          1696.40665963225
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.5270360774724,
+          -3.47962365599653,
+          4.74653397188498
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000653743743896484,
+      "tot_step_time_s": 0.186578512191772
+    },
+    {
+      "current_frame": 43,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          2523.15817050292,
+          2167.03418857115,
+          2054.13720324563,
+          2040.40145761276,
+          2035.28703303675,
+          2034.85709818122,
+          2034.84152593294,
+          2034.84123638027,
+          2034.84123520025,
+          2034.84123519243
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00045013427734375,
+      "tot_step_time_s": 0.14261269569397
+    },
+    {
+      "current_frame": 44,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          2271.1681756862,
+          2063.0290514992,
+          1994.86761658338,
+          1981.34750639696,
+          1979.60527431439,
+          1979.1728406175,
+          1979.15635201432,
+          1979.15365428991,
+          1979.15351469111,
+          1979.15351398641,
+          1979.15351397748
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000436305999755859,
+      "tot_step_time_s": 0.0869858264923096
+    },
+    {
+      "current_frame": 45,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          2091.42134335849,
+          1710.81538728185,
+          1702.15674850483,
+          1698.30876800482,
+          1698.22038429417,
+          1698.17000315101,
+          1698.16252378327,
+          1698.16096542181,
+          1698.16094553885,
+          1698.1609452618,
+          1698.16094526024
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000785350799560547,
+      "tot_step_time_s": 0.192148208618164
+    },
+    {
+      "current_frame": 46,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1936.10023097547,
+          1384.01462006618,
+          1368.23103306609,
+          1362.93767688963,
+          1361.29524489373,
+          1361.14804071626,
+          1361.12658063254,
+          1361.12638448506,
+          1361.12637954196,
+          1361.12637950487
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000405550003051758,
+      "tot_step_time_s": 0.146816492080688
+    },
+    {
+      "current_frame": 47,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1802.10797360619,
+          1081.88026094897,
+          1059.23062212458,
+          1048.31803035344,
+          1046.50544610685,
+          1046.35985321831,
+          1046.35146860286,
+          1046.35144762694,
+          1046.35144748205
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000360012054443359,
+      "tot_step_time_s": 0.0957887172698975
+    },
+    {
+      "current_frame": 48,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1703.40280655769,
+          831.226713347716,
+          796.086456294501,
+          777.452683073445,
+          773.917409348481,
+          773.689506990334,
+          773.679482775225,
+          773.679366941751,
+          773.679366449614,
+          773.679366442577
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000541925430297852,
+      "tot_step_time_s": 0.195492506027222
+    },
+    {
+      "current_frame": 49,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1607.21720544336,
+          638.121708678551,
+          599.185539137053,
+          576.443679688546,
+          572.848778405172,
+          572.490951122432,
+          572.484774086155,
+          572.484704229886,
+          572.484704115388
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000498771667480469,
+      "tot_step_time_s": 0.166102409362793
+    },
+    {
+      "current_frame": 50,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1524.22554228926,
+          510.307647461948,
+          471.051175722717,
+          452.167446680539,
+          451.130958404902,
+          450.921435173616,
+          450.9127833624,
+          450.912688818149,
+          450.912687086767,
+          450.912687085578
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000890254974365234,
+      "tot_step_time_s": 0.150672912597656
+    },
+    {
+      "current_frame": 51,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1445.71519384686,
+          416.633259188988,
+          393.349874631589,
+          388.20982543609,
+          387.019413304093,
+          386.980537673941,
+          386.979316454182,
+          386.979311539112,
+          386.979311511505,
+          386.979311510823
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000544309616088867,
+      "tot_step_time_s": 0.198812961578369
+    },
+    {
+      "current_frame": 52,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1409.51100463111,
+          305.784668337629,
+          285.780366795097,
+          279.946075244708,
+          278.93704549252,
+          278.828642956991,
+          278.823377520925,
+          278.823143271897,
+          278.823137990733,
+          278.82313791446,
+          278.823137914029
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000621557235717773,
+      "tot_step_time_s": 0.109874963760376
+    },
+    {
+      "current_frame": 53,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1319.30744510228,
+          296.06375774375,
+          277.998686036157,
+          274.19449551639,
+          273.713312049897,
+          273.697207927648,
+          273.696540918226,
+          273.696503099605,
+          273.696502025224,
+          273.696502023614
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000551700592041016,
+      "tot_step_time_s": 0.109603881835938
+    },
+    {
+      "current_frame": 54,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1250.80222413031,
+          310.006148225621,
+          306.009186789883,
+          305.911749852123,
+          305.904562482886,
+          305.903611570369,
+          305.903604366365,
+          305.90360432113
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000867366790771484,
+      "tot_step_time_s": 0.0974032878875732
+    },
+    {
+      "current_frame": 55,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1191.3547615193,
+          393.914203596391,
+          365.708231191384,
+          363.075046064478,
+          362.939159251221,
+          362.932003142234,
+          362.931992030534,
+          362.931992005347
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000787258148193359,
+      "tot_step_time_s": 0.158233404159546
+    },
+    {
+      "current_frame": 56,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1124.02162094661,
+          478.74651865596,
+          440.538980143984,
+          437.333534712447,
+          437.23641598032,
+          437.231639345889,
+          437.230569084312,
+          437.230566221687,
+          437.230566201281
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000412464141845703,
+      "tot_step_time_s": 0.150452375411987
+    },
+    {
+      "current_frame": 57,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1077.44149458899,
+          554.741289356204,
+          490.803219341518,
+          488.420715400069,
+          488.158684169072,
+          488.152682558038,
+          488.152603403417,
+          488.152603317138,
+          488.152603316716
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000466823577880859,
+      "tot_step_time_s": 0.0867130756378174
+    },
+    {
+      "current_frame": 58,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1063.94224149873,
+          593.998297968197,
+          507.714988570974,
+          503.762438800132,
+          502.342463409528,
+          502.32167527258,
+          502.321014282441,
+          502.321013644833,
+          502.321013642963
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.0008544921875,
+      "tot_step_time_s": 0.158104419708252
+    },
+    {
+      "current_frame": 59,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1060.65636164916,
+          617.86474116602,
+          534.157253711692,
+          525.559599807276,
+          523.692473417738,
+          523.668925890395,
+          523.668253693976,
+          523.668247885021,
+          523.668247872974
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000448942184448242,
+      "tot_step_time_s": 0.14099907875061
+    },
+    {
+      "current_frame": 60,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1046.63783603345,
+          674.023547935236,
+          612.443594729795,
+          591.845734929582,
+          590.575265018679,
+          590.540566914697,
+          590.538352963806,
+          590.538307615788,
+          590.538307476394,
+          590.538307475909
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000502824783325195,
+      "tot_step_time_s": 0.109966516494751
+    },
+    {
+      "current_frame": 61,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1018.61342729833,
+          759.157177161463,
+          715.30294612745,
+          691.345437751143,
+          690.134292422541,
+          690.081271920665,
+          690.078610075612,
+          690.07858139606,
+          690.078581303128
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000395774841308594,
+      "tot_step_time_s": 0.0615320205688477
+    },
+    {
+      "current_frame": 62,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          978.024847949657,
+          824.630508885701,
+          792.940915918315,
+          774.110420257652,
+          773.36628926745,
+          773.197132521982,
+          773.196405268276,
+          773.196394726681,
+          773.196394725293
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000785112380981445,
+      "tot_step_time_s": 0.145394086837769
+    },
+    {
+      "current_frame": 63,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          939.224931782627,
+          838.92008616193,
+          815.057502701261,
+          807.358494752479,
+          806.345976734572,
+          806.252797793509,
+          806.252607319118,
+          806.252606331414,
+          806.252606330891
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000798940658569336,
+      "tot_step_time_s": 0.123390436172485
+    },
+    {
+      "current_frame": 64,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          910.874373057167,
+          795.061034157903,
+          785.864927091443,
+          779.591882275818,
+          778.951277329267,
+          778.888917546706,
+          778.888833303224,
+          778.888833130302,
+          778.888833128991
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00083613395690918,
+      "tot_step_time_s": 0.18077540397644
+    },
+    {
+      "current_frame": 65,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          893.775036080618,
+          729.090452870384,
+          726.50521575209,
+          724.95066499127,
+          724.754187081408,
+          724.74044971425,
+          724.740200580169,
+          724.740199986696,
+          724.74019997945
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000669717788696289,
+      "tot_step_time_s": 0.154894590377808
+    },
+    {
+      "current_frame": 66,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          883.091504952416,
+          682.03997625208,
+          680.9619288521,
+          680.007353842858,
+          679.94323292643,
+          679.927348430476,
+          679.92709099225,
+          679.927088490243,
+          679.927088485916
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000367879867553711,
+      "tot_step_time_s": 0.144412755966187
+    },
+    {
+      "current_frame": 67,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          873.86991350275,
+          657.250636505675,
+          656.794850364343,
+          656.473903516733,
+          656.47250019377,
+          656.472193982921,
+          656.47216383137,
+          656.472162037178,
+          656.472161952651,
+          656.47216195019
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00072026252746582,
+      "tot_step_time_s": 0.0945000648498535
+    },
+    {
+      "current_frame": 68,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          867.896508816641,
+          644.726845910535,
+          643.469084975473,
+          643.403680189044,
+          643.385380613979,
+          643.382805225223,
+          643.382351946559,
+          643.382341556931,
+          643.382341464469,
+          643.3823414636
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000834226608276367,
+      "tot_step_time_s": 0.185742378234863
+    },
+    {
+      "current_frame": 69,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          866.369223359404,
+          626.182730200812,
+          623.207591095876,
+          622.865822013877,
+          622.827645358806,
+          622.819531986467,
+          622.818188538041,
+          622.818177162775,
+          622.818176968333,
+          622.818176967662
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000475168228149414,
+      "tot_step_time_s": 0.124468088150024
+    },
+    {
+      "current_frame": 70,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          864.100388613123,
+          605.276566082203,
+          600.564718494119,
+          600.323745992847,
+          600.265856687227,
+          600.255005971594,
+          600.253700194766,
+          600.253688887564,
+          600.253688807325
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000544071197509766,
+      "tot_step_time_s": 0.144957304000854
+    },
+    {
+      "current_frame": 71,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          857.401350657036,
+          591.752540065138,
+          586.609565218548,
+          586.103348555835,
+          585.999188517032,
+          585.977521282757,
+          585.97663132691,
+          585.976620436196,
+          585.976620406048
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000441074371337891,
+      "tot_step_time_s": 0.178635358810425
+    },
+    {
+      "current_frame": 72,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          849.862401512215,
+          583.895290784759,
+          578.811636937432,
+          578.209951695025,
+          578.099927591442,
+          578.075476909061,
+          578.074844588677,
+          578.074836318891,
+          578.074836302082
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000638484954833984,
+      "tot_step_time_s": 0.112289667129517
+    },
+    {
+      "current_frame": 73,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          842.862244491917,
+          580.021866623647,
+          572.766804202607,
+          572.050453411321,
+          571.947062702232,
+          571.920260180384,
+          571.919693440953,
+          571.919679035254,
+          571.919678996525,
+          571.919678996147
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000422239303588867,
+      "tot_step_time_s": 0.143671989440918
+    },
+    {
+      "current_frame": 74,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          840.058714133425,
+          574.216398966189,
+          564.426452700543,
+          563.748328518648,
+          563.677298393591,
+          563.66417200272,
+          563.662324277868,
+          563.66227005665,
+          563.662269467761,
+          563.662269466477
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000825166702270508,
+      "tot_step_time_s": 0.18831729888916
+    },
+    {
+      "current_frame": 75,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          837.570439552747,
+          571.833646689417,
+          559.552594707662,
+          558.727725458482,
+          558.673874937607,
+          558.669434087599,
+          558.667802004651,
+          558.667796953197,
+          558.667796921276
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000575065612792969,
+      "tot_step_time_s": 0.117238759994507
+    },
+    {
+      "current_frame": 76,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          832.733515224156,
+          580.120865973699,
+          566.521600091815,
+          565.541961665536,
+          565.510351647682,
+          565.51004621612,
+          565.510006117959,
+          565.509993056405,
+          565.509992869907,
+          565.509992867091
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000598669052124023,
+      "tot_step_time_s": 0.158872365951538
+    },
+    {
+      "current_frame": 77,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          823.441831024517,
+          597.68424502073,
+          581.133120400548,
+          579.823867107556,
+          579.78967429473,
+          579.788720282934,
+          579.788424024915,
+          579.78839052897,
+          579.788389445583,
+          579.788389434904
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00043034553527832,
+      "tot_step_time_s": 0.129143714904785
+    },
+    {
+      "current_frame": 78,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          815.64794319872,
+          606.258738938817,
+          590.153226922911,
+          588.254393707975,
+          588.195059541431,
+          588.194248336019,
+          588.194232583709,
+          588.194229095789,
+          588.194228418012,
+          588.194228395752,
+          588.194228395429
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000518798828125,
+      "tot_step_time_s": 0.182807207107544
+    },
+    {
+      "current_frame": 79,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          805.678052189605,
+          606.474999950043,
+          592.55818820915,
+          590.562862630646,
+          590.383410862481,
+          590.378378016699,
+          590.377780642412,
+          590.377577895114,
+          590.37757422488,
+          590.377574161207
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000479459762573242,
+      "tot_step_time_s": 0.126692295074463
+    },
+    {
+      "current_frame": 80,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          795.544187286352,
+          600.6858846276,
+          590.10689957231,
+          589.11583713212,
+          588.949313213903,
+          588.925105952861,
+          588.920869242232,
+          588.920058130163,
+          588.920034028217,
+          588.920033694188,
+          588.920033693483
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000388622283935547,
+      "tot_step_time_s": 0.181758165359497
+    },
+    {
+      "current_frame": 81,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          780.803834288024,
+          599.671486867704,
+          591.506871697954,
+          590.825274367993,
+          590.643819344052,
+          590.614353384693,
+          590.609114078548,
+          590.608260511991,
+          590.60822916114,
+          590.608228744254,
+          590.608228743137
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00049138069152832,
+      "tot_step_time_s": 0.174468517303467
+    },
+    {
+      "current_frame": 82,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          765.432438443282,
+          605.564644173156,
+          599.60202293325,
+          598.684062256374,
+          598.339900684826,
+          598.28019122813,
+          598.272935491895,
+          598.271974408155,
+          598.271909952132,
+          598.271908525398,
+          598.271908515728
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000686883926391602,
+      "tot_step_time_s": 0.126839399337769
+    },
+    {
+      "current_frame": 83,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          755.338206010361,
+          610.94614891003,
+          606.670413635879,
+          604.370859803101,
+          604.101546747383,
+          603.993965102267,
+          603.991726946171,
+          603.991585866078,
+          603.99157077653,
+          603.991570405768,
+          603.991570401593
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000820398330688477,
+      "tot_step_time_s": 0.137640476226807
+    },
+    {
+      "current_frame": 84,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          749.170974555992,
+          613.893415026153,
+          610.954981942207,
+          608.472822533107,
+          608.134275096459,
+          608.013506977842,
+          608.01136137979,
+          608.011061417637,
+          608.011049822038,
+          608.011049564008,
+          608.011049562863
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000769853591918945,
+      "tot_step_time_s": 0.182647466659546
+    },
+    {
+      "current_frame": 85,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          741.155594831672,
+          619.255234551828,
+          615.508506707535,
+          614.590924062148,
+          613.944416421869,
+          613.89283978256,
+          613.886396325942,
+          613.885989658212,
+          613.885970750402,
+          613.885970639798,
+          613.885970639462
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000433206558227539,
+      "tot_step_time_s": 0.148611545562744
+    },
+    {
+      "current_frame": 86,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          730.20038105171,
+          629.571293072214,
+          622.950752828898,
+          620.325769290532,
+          620.033441933321,
+          619.90024914269,
+          619.878277728487,
+          619.877163487905,
+          619.877084195859,
+          619.877083789924,
+          619.877083787157
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000457525253295898,
+      "tot_step_time_s": 0.15742826461792
+    },
+    {
+      "current_frame": 87,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          719.410629366813,
+          635.833586511774,
+          626.193244769597,
+          622.48180113549,
+          622.160603400163,
+          621.727670734839,
+          621.710836633174,
+          621.708732233163,
+          621.708727808723,
+          621.708727740733
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000352144241333008,
+      "tot_step_time_s": 0.162289619445801
+    },
+    {
+      "current_frame": 88,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          708.723250376218,
+          637.89906562725,
+          626.308493234143,
+          622.455286595655,
+          620.161692918654,
+          619.941905696012,
+          619.90646171766,
+          619.905643411905,
+          619.905621730343,
+          619.905621669108,
+          619.90562166895
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000498294830322266,
+      "tot_step_time_s": 0.119447231292725
+    },
+    {
+      "current_frame": 89,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          700.857500984477,
+          635.406469917534,
+          625.477655929733,
+          616.566186354114,
+          615.067392155703,
+          614.687448032714,
+          614.672182451177,
+          614.670989871975,
+          614.670986919139,
+          614.67098690932
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000477075576782227,
+      "tot_step_time_s": 0.0917797088623047
+    },
+    {
+      "current_frame": 90,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          692.633721859417,
+          630.081046017263,
+          623.818959129885,
+          613.873108197987,
+          612.892246977855,
+          612.608952847491,
+          612.594553747156,
+          612.59334640467,
+          612.593341225158,
+          612.593341203111
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000835180282592773,
+      "tot_step_time_s": 0.101844072341919
+    },
+    {
+      "current_frame": 91,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          683.416552202315,
+          625.629737698737,
+          623.00898753735,
+          615.56946017036,
+          615.132063853928,
+          614.985774927796,
+          614.976801266355,
+          614.976232688474,
+          614.976229590065,
+          614.97622957776
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00039219856262207,
+      "tot_step_time_s": 0.113279581069946
+    },
+    {
+      "current_frame": 92,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          674.374124007253,
+          622.872340146271,
+          622.620625533497,
+          617.483970187901,
+          617.306367231433,
+          617.235722653018,
+          617.230379246198,
+          617.230075730346,
+          617.230073951369,
+          617.230073944979
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000545978546142578,
+      "tot_step_time_s": 0.127827882766724
+    },
+    {
+      "current_frame": 93,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          665.752900929044,
+          621.549065781723,
+          621.969308321944,
+          619.646147320226,
+          618.572823795815,
+          618.524633892136,
+          618.517672094455,
+          618.51545045744,
+          618.5152194451,
+          618.515212267645,
+          618.515212208968
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000601053237915039,
+      "tot_step_time_s": 0.162932157516479
+    },
+    {
+      "current_frame": 94,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          657.184523071174,
+          620.471654398571,
+          620.737995403877,
+          619.086526372357,
+          618.310926254935,
+          618.252260205829,
+          618.244070112002,
+          618.241851006448,
+          618.241516580627,
+          618.241506939211,
+          618.241506830661
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000888586044311523,
+      "tot_step_time_s": 0.154225826263428
+    },
+    {
+      "current_frame": 95,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          649.04974100702,
+          616.779464377958,
+          617.068805929107,
+          615.0768311761,
+          613.890964480348,
+          613.618128506802,
+          613.589089665516,
+          613.584186988111,
+          613.58395108119,
+          613.583947038623,
+          613.583947022834
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000542879104614258,
+      "tot_step_time_s": 0.141748189926147
+    },
+    {
+      "current_frame": 96,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          641.207885046179,
+          607.849751068525,
+          607.810338244311,
+          602.104480313219,
+          601.542389584235,
+          601.451023365313,
+          601.448793023534,
+          601.448617720536,
+          601.448611306922,
+          601.448611180562,
+          601.448611180112
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000411510467529297,
+      "tot_step_time_s": 0.120274066925049
+    },
+    {
+      "current_frame": 97,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          634.013665708597,
+          593.153066616641,
+          591.86142851608,
+          583.248932048851,
+          582.40944114124,
+          582.312591353672,
+          582.311535982198,
+          582.311493326516,
+          582.311490794124,
+          582.311490755019,
+          582.311490754809
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000991582870483398,
+      "tot_step_time_s": 0.146550178527832
+    },
+    {
+      "current_frame": 98,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          627.384530159813,
+          575.279246314468,
+          568.845839755208,
+          561.169085799449,
+          560.193185686907,
+          560.163814585149,
+          560.162644997783,
+          560.162568577072,
+          560.162564993136,
+          560.162564970975
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000572443008422852,
+      "tot_step_time_s": 0.133282661437988
+    },
+    {
+      "current_frame": 99,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          620.4184287936,
+          557.668690207936,
+          547.268201167869,
+          539.257969133339,
+          538.229414651131,
+          538.205499377153,
+          538.20297627695,
+          538.202885031488,
+          538.202882953989,
+          538.202882946853
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000582218170166016,
+      "tot_step_time_s": 0.112902402877808
+    },
+    {
+      "current_frame": 100,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          614.285419107474,
+          538.790967901087,
+          525.808615072439,
+          517.287703786281,
+          516.243018832479,
+          516.199330329717,
+          516.194057940178,
+          516.193939632998,
+          516.193937869055,
+          516.193937864448
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000986576080322266,
+      "tot_step_time_s": 0.0551297664642334
+    },
+    {
+      "current_frame": 101,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          608.085157119606,
+          519.952556027382,
+          503.603460782405,
+          495.35998392328,
+          494.299840852784,
+          494.234341129831,
+          494.22979660779,
+          494.229586438004,
+          494.229585304553,
+          494.229585300888
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000394821166992188,
+      "tot_step_time_s": 0.122760772705078
+    },
+    {
+      "current_frame": 102,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          602.223279212909,
+          502.781242480136,
+          482.738633436151,
+          474.390924916569,
+          473.043975151152,
+          472.933442294675,
+          472.927465955752,
+          472.927177446271,
+          472.927176443285,
+          472.927176440328
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000493288040161133,
+      "tot_step_time_s": 0.181212902069092
+    },
+    {
+      "current_frame": 103,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          592.505608980958,
+          489.066836491463,
+          464.929387452709,
+          456.391910659626,
+          454.799318925161,
+          454.670634474592,
+          454.662659978177,
+          454.662481078296,
+          454.662479741392,
+          454.662479739235
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000455856323242188,
+      "tot_step_time_s": 0.112759113311768
+    },
+    {
+      "current_frame": 104,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          579.999388178405,
+          475.574633904838,
+          447.450091324371,
+          438.810600930148,
+          437.252310172031,
+          437.131039220076,
+          437.12489132909,
+          437.124787515592,
+          437.124787022576,
+          437.124787021976
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000404834747314453,
+      "tot_step_time_s": 0.122240781784058
+    },
+    {
+      "current_frame": 105,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          565.450285330897,
+          456.872488611074,
+          426.184416211619,
+          417.911143935099,
+          416.406565013009,
+          416.298169542094,
+          416.292677797388,
+          416.292632535891,
+          416.29263227024,
+          416.292632270077
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000455379486083984,
+      "tot_step_time_s": 0.0913460254669189
+    },
+    {
+      "current_frame": 106,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          548.468221235397,
+          431.157918086093,
+          399.179721690855,
+          391.321218440873,
+          390.169035061504,
+          390.089326722704,
+          390.085632141634,
+          390.085603254959,
+          390.085603065295
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000613927841186523,
+      "tot_step_time_s": 0.123891353607178
+    },
+    {
+      "current_frame": 107,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          529.655889977941,
+          398.782493788517,
+          365.108352387021,
+          357.395403144926,
+          356.181011181267,
+          356.100224415062,
+          356.095607298173,
+          356.09552011063,
+          356.095517584345,
+          356.095517578784
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000622034072875977,
+      "tot_step_time_s": 0.145278453826904
+    },
+    {
+      "current_frame": 108,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          509.607115100476,
+          364.390265156067,
+          329.447754644665,
+          321.595269116667,
+          320.50203129816,
+          320.422151853047,
+          320.418864253084,
+          320.418821902133,
+          320.418821222721,
+          320.41882120882
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000500917434692383,
+      "tot_step_time_s": 0.111248254776001
+    },
+    {
+      "current_frame": 109,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          487.500895699688,
+          331.192108829676,
+          297.69329234683,
+          291.530569500972,
+          290.802778518194,
+          290.759089739043,
+          290.757231488106,
+          290.757212968404,
+          290.757212803739,
+          290.757212802443
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000818729400634766,
+      "tot_step_time_s": 0.176766157150269
+    },
+    {
+      "current_frame": 110,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          465.783764685139,
+          302.108959248639,
+          271.877286669806,
+          268.359851442897,
+          267.841955670187,
+          267.805688972018,
+          267.803383789328,
+          267.80336694879,
+          267.803366873234,
+          267.803366872636
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000467061996459961,
+      "tot_step_time_s": 0.172606468200684
+    },
+    {
+      "current_frame": 111,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          443.802542695907,
+          274.660889615559,
+          251.295745478772,
+          249.408259948121,
+          249.225784974848,
+          249.217741390987,
+          249.217261603476,
+          249.217259729915,
+          249.217259723263
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000446319580078125,
+      "tot_step_time_s": 0.147402048110962
+    },
+    {
+      "current_frame": 112,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          421.749369428518,
+          248.055347263709,
+          231.028513067245,
+          230.250636103696,
+          230.220054818674,
+          230.218293754416,
+          230.218108036638,
+          230.218106422022,
+          230.218106411364
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000816106796264648,
+      "tot_step_time_s": 0.0943784713745117
+    },
+    {
+      "current_frame": 113,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          400.963631006104,
+          221.68972902421,
+          209.203569091341,
+          208.727362577489,
+          208.717159489929,
+          208.716884789443,
+          208.716831590484,
+          208.716830915124,
+          208.716830905921
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000513792037963867,
+      "tot_step_time_s": 0.100765228271484
+    },
+    {
+      "current_frame": 114,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          382.264486989653,
+          193.79843540317,
+          186.73663228163,
+          186.400696426719,
+          186.372361933636,
+          186.372293682149,
+          186.372291326892,
+          186.372291319782
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000529050827026367,
+      "tot_step_time_s": 0.114163875579834
+    },
+    {
+      "current_frame": 115,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          363.353028043612,
+          182.872588361996,
+          178.056109019959,
+          177.711949154346,
+          177.70475205068,
+          177.704643169974,
+          177.704642706848,
+          177.704642706103
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000614404678344727,
+      "tot_step_time_s": 0.0787680149078369
+    },
+    {
+      "current_frame": 116,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          348.908136690014,
+          176.401608803045,
+          172.092124532811,
+          171.857300361457,
+          171.844094005527,
+          171.84400166412,
+          171.844000851191,
+          171.84400085067
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000423431396484375,
+      "tot_step_time_s": 0.0865237712860107
+    },
+    {
+      "current_frame": 117,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          337.783255154146,
+          166.612832894433,
+          164.659399147058,
+          164.622100407396,
+          164.61889727831,
+          164.618832094196,
+          164.618831408122,
+          164.618831406699
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000425338745117188,
+      "tot_step_time_s": 0.156877040863037
+    },
+    {
+      "current_frame": 118,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          328.264158483383,
+          159.372409037953,
+          157.529411167767,
+          157.51814846363,
+          157.517078399018,
+          157.517037181837,
+          157.517036611349,
+          157.51703660966
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000595331192016602,
+      "tot_step_time_s": 0.0617451667785645
+    },
+    {
+      "current_frame": 119,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          319.951188858046,
+          154.88482163699,
+          153.091880893562,
+          152.988782228077,
+          152.977071038251,
+          152.976838513241,
+          152.976833454051,
+          152.976833439739
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000461101531982422,
+      "tot_step_time_s": 0.0998475551605225
+    },
+    {
+      "current_frame": 120,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          312.174625407621,
+          153.961198788348,
+          151.877036697617,
+          151.605579267021,
+          151.581531040414,
+          151.580701154691,
+          151.580689632165,
+          151.580689579419,
+          151.580689579289
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000542640686035156,
+      "tot_step_time_s": 0.123456954956055
+    },
+    {
+      "current_frame": 121,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          306.038155324079,
+          154.735686111382,
+          153.274666246695,
+          153.070524336969,
+          153.055091088298,
+          153.054478928771,
+          153.054469822407,
+          153.054469782266,
+          153.054469782201
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000542879104614258,
+      "tot_step_time_s": 0.127814054489136
+    },
+    {
+      "current_frame": 122,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          300.571756219618,
+          157.900953822991,
+          156.797504311558,
+          156.676977025001,
+          156.667356644019,
+          156.666931006015,
+          156.666926269014,
+          156.666926249514
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000735044479370117,
+      "tot_step_time_s": 0.11341404914856
+    },
+    {
+      "current_frame": 123,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          296.473133690388,
+          163.102593543886,
+          162.39237430446,
+          162.327109529554,
+          162.32048400626,
+          162.320303059772,
+          162.320301247151,
+          162.320301244102
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000897407531738281,
+      "tot_step_time_s": 0.0921177864074707
+    },
+    {
+      "current_frame": 124,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          293.263752557214,
+          169.640956098197,
+          169.26284668005,
+          169.221809775486,
+          169.217633275683,
+          169.217552066508,
+          169.217551370317,
+          169.217551368983
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000753879547119141,
+      "tot_step_time_s": 0.13044810295105
+    },
+    {
+      "current_frame": 125,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          289.678034692264,
+          176.005326710888,
+          175.834261655037,
+          175.824683928367,
+          175.822869056967,
+          175.822855956885,
+          175.822855737308,
+          175.822855737041
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00044703483581543,
+      "tot_step_time_s": 0.13649582862854
+    },
+    {
+      "current_frame": 126,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          286.924760910702,
+          178.52113472175,
+          178.390693941641,
+          178.388805922198,
+          178.38858119098,
+          178.388559365808,
+          178.388558407136,
+          178.388558399786,
+          178.388558399739
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000460386276245117,
+      "tot_step_time_s": 0.0539271831512451
+    },
+    {
+      "current_frame": 127,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          284.050422973667,
+          178.586001337783,
+          178.273316943312,
+          178.238353888392,
+          178.234124092001,
+          178.233978425029,
+          178.233976464063,
+          178.233976455487,
+          178.233976455331
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000817537307739258,
+      "tot_step_time_s": 0.0711977481842041
+    },
+    {
+      "current_frame": 128,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          281.98116470168,
+          175.842372136992,
+          175.100921607743,
+          174.95969193606,
+          174.951757302886,
+          174.951393437262,
+          174.951390795676,
+          174.951390779809,
+          174.951390779689
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000392913818359375,
+      "tot_step_time_s": 0.0996215343475342
+    },
+    {
+      "current_frame": 129,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          279.765227742871,
+          172.979809310225,
+          171.948787658551,
+          171.696148987153,
+          171.692287736307,
+          171.692175259044,
+          171.69217386131,
+          171.692173845816
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000426530838012695,
+      "tot_step_time_s": 0.16900110244751
+    },
+    {
+      "current_frame": 130,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          275.546267772131,
+          173.644804565103,
+          171.789918530062,
+          171.363378131937,
+          171.359555638329,
+          171.359383418451,
+          171.359382285208,
+          171.359382272731
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000535488128662109,
+      "tot_step_time_s": 0.136976957321167
+    },
+    {
+      "current_frame": 131,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          272.535756252711,
+          173.677402173438,
+          170.878947772284,
+          170.295243447491,
+          170.290961555586,
+          170.290782668705,
+          170.290780445118,
+          170.290780414837,
+          170.2907804147
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00053715705871582,
+      "tot_step_time_s": 0.174191951751709
+    },
+    {
+      "current_frame": 132,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          271.496798219914,
+          171.564323933535,
+          168.083623332795,
+          167.489261835494,
+          167.484019910196,
+          167.483748051572,
+          167.483744309824,
+          167.483744250171,
+          167.483744249435
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000584125518798828,
+      "tot_step_time_s": 0.136865377426147
+    },
+    {
+      "current_frame": 133,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          270.033430736736,
+          170.148721776677,
+          166.040110494196,
+          165.435011506572,
+          165.429615247653,
+          165.429337380972,
+          165.429330355064,
+          165.429330272939,
+          165.429330272786
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000600337982177734,
+      "tot_step_time_s": 0.103476285934448
+    },
+    {
+      "current_frame": 134,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          266.587951831286,
+          168.290115203879,
+          163.992994131823,
+          163.431298971251,
+          163.427333824792,
+          163.427144250557,
+          163.427136269667,
+          163.427136194764
+        ]
+      },
+      "lbfgs_iterations": 7,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000782489776611328,
+      "tot_step_time_s": 0.0950067043304443
+    },
+    {
+      "current_frame": 135,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          261.360881795432,
+          163.192144505168,
+          159.615324256459,
+          159.228726730041,
+          159.226035954618,
+          159.225927962107,
+          159.225925131933,
+          159.225925096069,
+          159.225925095545
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          1.51281276384589,
+          0.714566870948272,
+          3.26123445997808
+        ],
+        "dragged_pos": [
+          -10.519478685352,
+          -3.68290505858442,
+          4.56663284883811
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000792026519775391,
+      "tot_step_time_s": 0.116652250289917
+    },
+    {
+      "current_frame": 136,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          255.58995685948,
+          155.339600898273,
+          152.813183768183,
+          152.575701142369,
+          152.573429276882,
+          152.573371734496,
+          152.573369467339,
+          152.573369435513,
+          152.5733694355
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          3.00779424250799,
+          1.33649808176605,
+          -1.01649884252582
+        ],
+        "dragged_pos": [
+          3.00779424250799,
+          1.33649808176605,
+          -1.01649884252582
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000420093536376953,
+      "tot_step_time_s": 0.163429260253906
+    },
+    {
+      "current_frame": 137,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          255.050862397863,
+          145.390392577334,
+          144.077637352738,
+          143.956366737649,
+          143.954414206861,
+          143.954394987522,
+          143.954394549355,
+          143.954394537513,
+          143.954394537471
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.99991653191232,
+          1.34144482817149,
+          -1.05718844110862
+        ],
+        "dragged_pos": [
+          2.98227248728949,
+          0.673022568307794,
+          -2.46769408254657
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.00178718566894531,
+      "tot_step_time_s": 0.155352830886841
+    },
+    {
+      "current_frame": 138,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          280.081234710985,
+          116.793061825167,
+          114.741335844766,
+          114.564109802309,
+          114.558317736308,
+          114.558203255625,
+          114.558199237702,
+          114.558199102351,
+          114.558199100942
+        ]
+      },
+      "lbfgs_iterations": 8,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.99686605827676,
+          1.34639007279946,
+          -1.11253651702106
+        ],
+        "dragged_pos": [
+          1.85109267771917,
+          -2.50059288731965,
+          -5.96118817596469
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000406980514526367,
+      "tot_step_time_s": 0.133772611618042
+    },
+    {
+      "current_frame": 139,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          431.246156909442,
+          143.992189259851,
+          128.900802516116,
+          127.055804750047,
+          127.041483985232,
+          127.039366527297,
+          127.039263572784,
+          127.039262866659,
+          127.039262852104,
+          127.039262852063
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.98882208757432,
+          1.29818218510022,
+          -1.24083895271256
+        ],
+        "dragged_pos": [
+          0.868726115829525,
+          -4.21456736318024,
+          -6.57867936162982
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000845670700073242,
+      "tot_step_time_s": 0.158387899398804
+    },
+    {
+      "current_frame": 140,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          701.922364857652,
+          257.10238158042,
+          217.997085261901,
+          215.297462709406,
+          214.776271660089,
+          214.770975207295,
+          214.770346489573,
+          214.770300192779,
+          214.770298998783,
+          214.770298983315,
+          214.770298983282
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.96821238406341,
+          1.1774260030054,
+          -1.45006077965955
+        ],
+        "dragged_pos": [
+          0.640639644271908,
+          -4.57947868100556,
+          -6.64543096094165
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000767946243286133,
+      "tot_step_time_s": 0.193721294403076
+    },
+    {
+      "current_frame": 141,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1018.96237944894,
+          438.270697425446,
+          371.863883314147,
+          365.43745342442,
+          365.142830465764,
+          365.103514576962,
+          365.098846782883,
+          365.09794503525,
+          365.097939185164,
+          365.097939173478,
+          365.097939173443
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.93523177551615,
+          0.992686859150687,
+          -1.70672296489895
+        ],
+        "dragged_pos": [
+          0.619902949935971,
+          -4.61265224210175,
+          -6.65149972705875
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000385522842407227,
+      "tot_step_time_s": 0.106235027313232
+    },
+    {
+      "current_frame": 142,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1358.77297738817,
+          694.574477067649,
+          595.034607799246,
+          579.886212799287,
+          579.039632574527,
+          579.018117569749,
+          579.017832052281,
+          579.017724206791,
+          579.017716861522,
+          579.017716811791,
+          579.017716811575
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.88714488974023,
+          0.761403555286231,
+          -1.98871327285823
+        ],
+        "dragged_pos": [
+          0.619902949935971,
+          -4.61265224210175,
+          -6.65149972705875
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.00074315071105957,
+      "tot_step_time_s": 0.187555313110352
+    },
+    {
+      "current_frame": 143,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1659.66889920634,
+          919.360546134646,
+          794.22608192404,
+          754.198890982573,
+          752.243267669364,
+          752.205883966569,
+          752.199283937668,
+          752.199064313655,
+          752.199004632723,
+          752.199002391038,
+          752.199002354248,
+          752.199002354157
+        ]
+      },
+      "lbfgs_iterations": 11,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.83327397402775,
+          0.517966319021944,
+          -2.27011325363375
+        ],
+        "dragged_pos": [
+          0.60928569377142,
+          -4.62371152631196,
+          -6.64085618524585
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.00077366828918457,
+      "tot_step_time_s": 0.105140447616577
+    },
+    {
+      "current_frame": 144,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          2028.55503587052,
+          985.696848371794,
+          841.077360683426,
+          762.948504719279,
+          760.945287952925,
+          760.73698524118,
+          760.714491694642,
+          760.71290312791,
+          760.712448497784,
+          760.712433070397,
+          760.712432774127,
+          760.712432773442
+        ]
+      },
+      "lbfgs_iterations": 11,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.574223857528744,
+          -4.66794008008393,
+          -6.62361762790713
+        ],
+        "is_dragging": true
+      },
+      "precondition_time": 0.000776052474975586,
+      "tot_step_time_s": 0.188449621200562
+    },
+    {
+      "current_frame": 145,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          2082.54215488604,
+          859.88405626132,
+          771.940066864042,
+          717.997215611525,
+          716.95098533021,
+          716.745211478257,
+          716.671156589405,
+          716.666280140848,
+          716.666216853503,
+          716.666216796736,
+          716.666216796657
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000853061676025391,
+      "tot_step_time_s": 0.126244783401489
+    },
+    {
+      "current_frame": 146,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1999.08633557561,
+          785.354009693609,
+          733.5947604339,
+          706.373253501937,
+          704.578747806309,
+          704.476482336849,
+          704.471521274408,
+          704.471136288774,
+          704.471121770927,
+          704.471121659292,
+          704.471121658932
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00040435791015625,
+      "tot_step_time_s": 0.160505294799805
+    },
+    {
+      "current_frame": 147,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1929.71293705114,
+          769.603854387492,
+          729.512994349248,
+          711.885756776326,
+          703.910452267781,
+          703.642708899406,
+          703.6325049654,
+          703.632195869244,
+          703.632135438481,
+          703.632134827154,
+          703.632134820715
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000653266906738281,
+      "tot_step_time_s": 0.201972007751465
+    },
+    {
+      "current_frame": 148,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1894.28609858879,
+          722.570189862316,
+          715.354501458324,
+          678.461881408221,
+          675.597447418711,
+          674.030002648533,
+          674.010884531132,
+          674.009961464474,
+          674.009708899876,
+          674.009702757292,
+          674.009702680481
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000501632690429688,
+      "tot_step_time_s": 0.216329336166382
+    },
+    {
+      "current_frame": 149,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1886.81440299169,
+          713.412287495982,
+          895.546375043424,
+          667.902413867661,
+          648.373540000006,
+          647.250143985461,
+          646.456827145071,
+          646.281852675782,
+          646.26859567759,
+          646.266547460336,
+          646.266430157687,
+          646.266427233204,
+          646.266427219729
+        ]
+      },
+      "lbfgs_iterations": 11,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000752687454223633,
+      "tot_step_time_s": 0.229216814041138
+    },
+    {
+      "current_frame": 150,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          13
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "lbfgs_obj_vals": [
+          1845.2338001457,
+          762.4651212537,
+          1078.99421137624,
+          704.97175682556,
+          660.672390633176,
+          657.122724870982,
+          656.151283339467,
+          655.677017342487,
+          655.609057595798,
+          655.601630772837,
+          655.60121967739,
+          655.601205858677,
+          655.601205686592,
+          655.601205685625,
+          655.601205685713,
+          655.60120568551
+        ]
+      },
+      "lbfgs_iterations": 13,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000776052474975586,
+      "tot_step_time_s": 0.164189100265503
+    },
+    {
+      "current_frame": 151,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1845.13024315593,
+          920.136628887509,
+          1251.66015021375,
+          748.844295291872,
+          708.848504564746,
+          702.847934087494,
+          701.109377046038,
+          700.525947300322,
+          700.44543006412,
+          700.440445647597,
+          700.440385732119,
+          700.44038545497
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000502824783325195,
+      "tot_step_time_s": 0.189274072647095
+    },
+    {
+      "current_frame": 152,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1842.78253727398,
+          987.544427749076,
+          1125.54650488563,
+          818.438041810122,
+          793.358985397729,
+          785.114068545122,
+          781.990885898544,
+          781.553103462617,
+          781.545528800337,
+          781.545403083289,
+          781.545402734901,
+          781.545402732593
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000480175018310547,
+      "tot_step_time_s": 0.191256046295166
+    },
+    {
+      "current_frame": 153,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1841.99937583479,
+          1104.77600853468,
+          1189.3963697635,
+          886.137932731359,
+          865.846070416575,
+          856.765005831442,
+          855.103350982208,
+          855.001484195155,
+          854.996282371149,
+          854.996016187723,
+          854.996016002004,
+          854.996015998946
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000516414642333984,
+      "tot_step_time_s": 0.169898509979248
+    },
+    {
+      "current_frame": 154,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1850.66641758546,
+          1191.68629233591,
+          1373.76647586876,
+          969.946551547311,
+          924.14996386812,
+          910.493199187306,
+          907.198184319425,
+          906.987981091171,
+          906.9863323574,
+          906.986316297787,
+          906.986316214022
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000775814056396484,
+      "tot_step_time_s": 0.184908628463745
+    },
+    {
+      "current_frame": 155,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1854.52861141727,
+          1257.51498968479,
+          1547.10807502806,
+          1050.61376764056,
+          982.325824915489,
+          965.988380958363,
+          961.805556411865,
+          961.35933695976,
+          961.357104935558,
+          961.35707118265,
+          961.357071125428
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000398397445678711,
+      "tot_step_time_s": 0.156308889389038
+    },
+    {
+      "current_frame": 156,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1870.89479162687,
+          1299.72877127519,
+          1811.78592302807,
+          1165.83734252003,
+          1054.26811088407,
+          1037.83018024714,
+          1033.13777027387,
+          1032.62241504149,
+          1032.62102768066,
+          1032.62100781723,
+          1032.62100779918
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000563859939575195,
+      "tot_step_time_s": 0.128426074981689
+    },
+    {
+      "current_frame": 157,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1879.62456924966,
+          1319.26436579624,
+          1842.14085442414,
+          1256.08454862751,
+          1128.07027260451,
+          1111.57266368349,
+          1107.42654266295,
+          1106.81724430476,
+          1106.81549907704,
+          1106.81547021876,
+          1106.81547020456
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.00056910514831543,
+      "tot_step_time_s": 0.111855745315552
+    },
+    {
+      "current_frame": 158,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1887.94173147798,
+          1348.34275045197,
+          1455.3219311694,
+          1282.60954616986,
+          1215.86172857088,
+          1184.87710461744,
+          1182.23350827136,
+          1181.81836562588,
+          1181.81552671332,
+          1181.81548705526,
+          1181.81548688367,
+          1181.81548688137
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000553369522094727,
+      "tot_step_time_s": 0.0931293964385986
+    },
+    {
+      "current_frame": 159,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1917.44080906463,
+          1390.36461551088,
+          1283.72712428631,
+          1393.42133069599,
+          1273.15377621075,
+          1243.7102432304,
+          1241.64512070704,
+          1241.36832526333,
+          1241.36359821724,
+          1241.36359115947,
+          1241.36359114778
+        ]
+      },
+      "lbfgs_iterations": 9,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000675678253173828,
+      "tot_step_time_s": 0.137574195861816
+    },
+    {
+      "current_frame": 160,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1944.27279944439,
+          1436.82047460282,
+          1331.43871200341,
+          1351.58494490737,
+          1319.52344205697,
+          1307.08026377221,
+          1301.44105333586,
+          1301.2042510787,
+          1301.1766071841,
+          1301.17628901793,
+          1301.17628573085,
+          1301.17628571555
+        ]
+      },
+      "lbfgs_iterations": 10,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000565528869628906,
+      "tot_step_time_s": 0.175570964813232
+    },
+    {
+      "current_frame": 161,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "lbfgs_line_iteration": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "lbfgs_obj_vals": [
+          1962.6642473398,
+          1509.48214285974,
+          1472.35155365301,
+          1469.67102358985,
+          1366.95933952612,
+          1362.67926233392,
+          1360.72510950199,
+          1360.65366150082,
+          1360.65320260612,
+          1360.65316126089,
+          1360.65315976141,
+          1360.65315973978
+        ]
+      },
+      "lbfgs_iterations": 11,
+      "mouse_info": {
+        "dragged_mesh_pos": [
+          2.76581998103446,
+          0.259378380046551,
+          -2.55392330914506
+        ],
+        "dragged_pos": [
+          0.492985110885678,
+          -4.75640577069672,
+          -6.55114541320834
+        ],
+        "is_dragging": false
+      },
+      "precondition_time": 0.000400304794311523,
+      "tot_step_time_s": 0.135025024414062
+    },
+    {
+      "current_frame": 162,
+      "iteration_info": {
+        "lbfgs_iteration": [
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          

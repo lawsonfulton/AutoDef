@@ -177,6 +177,30 @@ def decompose_ae(autoencoder, do_energy=False):
 
     return autoencoder, encoder, decoder
 
+def decompose_vae(autoencoder):
+    """ Takes a Keras autoencoder model and splits it into three seperate models """
+    import keras
+    from keras.layers import Input, Dense
+    from keras.models import Model, load_model
+    def get_encoded_layer_and_index(): # Stupid hack
+        for i, layer in enumerate(autoencoder.layers):
+            if layer.name == 'encoded_layer':
+                return layer, i
+
+    encoded_layer, encoded_layer_idx = get_encoded_layer_and_index()
+    encoder = Model(inputs=autoencoder.input, outputs=encoded_layer.output)
+
+    decoder_input = Input(shape=(encoded_layer.output_shape[-1],), name="decoder_input")
+    #old_decoder_layers = autoencoder.layers[encoded_layer_idx+1:] # Need to rebuild the tensor I guess
+    decoder_output = decoder_input
+    for layer in autoencoder.layers:
+        if 'decode' in layer.name:
+            decoder_output = layer(decoder_output)
+
+    decoder = Model(inputs=decoder_input, outputs=decoder_output)
+
+    return autoencoder, encoder, decoder
+
 
 ###
 # Numpy helpers

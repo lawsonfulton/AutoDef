@@ -1,13 +1,13 @@
 {
-  "mesh": "meshes/25cm_armadillo_very_low.mesh",
+  "mesh": "meshes/25cm_armadillo_low.mesh",
   "logging_enabled": true,
   "save_objs": false,
   "save_training_data": true,
-  "save_training_data_path": "models/unified_test/unified_generate/high_res/training_data/",
+  "save_training_data_path": "models/unified_test/unified_generate/high_res/training_data/training/",
   "alternative_full_space_mesh": "",
   "material_config": {
     "density": 200,
-    "youngs_modulus": 200000,
+    "youngs_modulus": 2000,
     "poissons_ratio": 0.47
   },
   "integrator_config": {
@@ -37,9 +37,9 @@
     "gpu_decode": false,
     "show_stress": false,
     "show_energy": false,
-    "interaction_spring_stiffness": 10,
+    "interaction_spring_stiffness": 5,
     "spring_grab_radius": 0.03,
-    "full_space_constrained_axis": 1,
+    "full_space_constrained_axis": -1,
     "constrained_axis_eps": 0.05,
     "flip_constrained_axis": false,
     "fixed_point_constraint": [
@@ -47,7 +47,7 @@
       0.124,
       -0.1
     ],
-    "fixed_point_radius": -1,
+    "fixed_point_radius": 0.12,
     "print_every_n_frames": 1,
     "max_frames": 0
   }
