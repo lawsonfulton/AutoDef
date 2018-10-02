@@ -86,15 +86,23 @@ def get_last_val_of_each_iteration(obj_vals, iteration_inds):
 def main():
     # Load
     names_to_paths = {
-    'Autoencoder Preconditioned': 'ae_precon_static/sim_stats.json', # 0.317946s
+    'Autoencoder (ours) 0.56s': 'ae_precon_rest/sim_stats.json',
     #'Autoencoder': 'ae_no_precon_static/sim_stats.json',
     
-    'Linear Space Preconditioned': 'pca_precon_static/sim_stats.json', # 1.01393s
+    'Linear Subspace 0.96s': 'linear_precon_rest/sim_stats.json', 
+    #'Linear Space Rest Preconditioned': 'linear_rest_precon/sim_stats.json', # 1.01393s
     # 'Linear Space': 'pca_no_precon_static/sim_stats.json',
-    'Full Space Preconditioned': 'full_precon_static/sim_stats.json', #16.8299s
+    'Full Space 4.38s': 'full_precon_rest/sim_stats.json', 
+    # 'Full Space No Preconditioned': 'full_no_precon_static/sim_stats.json', #16.8299s
+    # 'Full Space Rest Preconditioned': 'full_rest_pose_precon/sim_stats.json', #16.8299s
 
     # 'Autoencoder Preconditioned Delta': 'delta/sim_stats.json',
     }
+
+    # New times
+    # full 4.3763
+    # linear 0.961133
+    # ae 0.5633
     
     names_to_sim_stats = {}
     for name, path in names_to_paths.items():
@@ -112,13 +120,13 @@ def main():
         iteration_info = sim_stats['timesteps'][0]['iteration_info']
         iteration_inds = iteration_info['lbfgs_iteration']
         obj_vals = iteration_info['lbfgs_obj_vals']
-
         final_vals = get_last_val_of_each_iteration(obj_vals, iteration_inds)
+        print(name, len(final_vals))
         ax.plot(final_vals, linewidth=lw, color=CB_color_cycle[best_cols[color_ind]])
 
         color_ind += 1
     
-    ax.set_xlim(left=0)
+    ax.set_xlim(left=0, right=500)
     ax.set_ylim(top=0.00002)
 
     # ax.set_ylabel(r'Objective Value', rotation=0)

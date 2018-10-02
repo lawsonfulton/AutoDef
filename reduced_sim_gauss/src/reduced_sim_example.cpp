@@ -674,6 +674,7 @@ public:
         // Get parameters
         m_energy_method = energy_method_from_integrator_config(integrator_config);
         m_use_preconditioner = integrator_config["use_preconditioner"];
+        m_full_only_rest_prefactor = get_json_value(integrator_config, "full_only_rest_prefactor", false);
         m_is_full_space = integrator_config["reduced_space_type"] == "full";
         m_is_linear_space = integrator_config["reduced_space_type"] == "linear";
         m_h = integrator_config["timestep"];
@@ -795,7 +796,7 @@ public:
                 m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
                 m_H_solver_eigen.compute(m_H);//m_H.ldlt();
             }
-            if(m_is_full_space){ // Currently doing a FULL hessian update for the full space..
+            if(m_is_full_space && !m_full_only_rest_prefactor){ // Currently doing a FULL hessian update for the full space..
                 // getMassMatrix(m_M_asm, *m_world);
                 getStiffnessMatrix(m_K_asm, *m_world);
                 m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
@@ -936,6 +937,7 @@ public:
 
 private:
     bool m_use_preconditioner;
+    bool m_full_only_rest_prefactor;
     bool m_is_full_space;
     bool m_is_linear_space;
 
@@ -1453,6 +1455,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                 if(is_dragging && !was_dragging) { // Got a click
                     Eigen::MatrixXd curV = gplc_stepper.get_current_V();
                     dragged_verts = get_verts_in_sphere(dragged_mesh_pos, spring_grab_radius, curV);
+                    std::cout << "Grabbed " << dragged_verts.size() << std::endl;
                     // vis_vert_id = get closest point on mesh for dragged_mesh_pos using snap to
                     // dragged_face = current_mouse_info["dragged_face"];
                     // dragged_vert = current_mouse_info["dragged_vert"];
@@ -1651,7 +1654,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             case '=':
             case '+':
             {
-                gplc_stepper.switch_to_next_tets(++index_counter);
+                gplc_stepper.switch_to_next_tets(--index_counter);
                 break;
             }
             case 'n':
@@ -1899,12 +1902,15 @@ int main(int argc, char **argv) {
     V = V.rowwise() - centroid;
 
     // Hacky way of setting spring grab radius to zero for reduced space
-    if(reduced_space_string == "full") {
-        spring_grab_radius = get_json_value(config["visualization_config"], "spring_grab_radius", 0.03);
-    } else {
-        VectorXd R;
-        igl::circumradius(V, F, R);
-        spring_grab_radius = R.maxCoeff();//Make it slightly bigger than the biggest triangle
+    spring_grab_radius = get_json_value(config["visualization_config"], "spring_grab_radius", 0.03);
+    if(reduced_space_string != "full") {
+        bool use_spring_grab_radius_for_reduced = get_json_value(config["visualization_config"], "use_spring_grab_radius_for_reduced", false);
+        if(!use_spring_grab_radius_for_reduced) {
+            spring_grab_radius = get_json_value(config["visualization_config"], "spring_grab_radius", 0.03);
+            VectorXd R;
+            igl::circumradius(V, F, R);
+            spring_grab_radius = R.maxCoeff();//Make it slightly bigger than the biggest triangle
+        }
     }
 
     // Do this out here so we can still visualize the constrained verts

@@ -1,6 +1,6 @@
 {
     "low_res_mesh": "meshes/dragon_ultra_low.mesh",
-    "high_res_mesh": "meshes/dragon_low.mesh",
+    "high_res_mesh": "meshes/dragon_med.mesh",
 
     "sim_params": {
         "low_res_youngs_modulus":  100000,
@@ -30,15 +30,15 @@
     },
 
     "training_params": {
-        "pca_max_vert_error_meters": 0.003,
+        "pca_max_vert_error_meters": 0.005,
         
         "non_pca_layer_sizes": [200, 200],
-        "ae_encoded_dim": 40,
+        "ae_encoded_dim": 9,
         
         "activation": "elu",
         "learning_rate": 0.001,
         "batch_size": 256,
-        "training_epochs": 2000,
+        "training_epochs": 5000,
         "batch_size_increase": false,
 
         "cubature_type": "an08",

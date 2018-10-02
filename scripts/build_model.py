@@ -156,6 +156,7 @@ def build_model(config, model_root, force=False):
             'show_lines': False,
             'interaction_spring_stiffness': training_data_params.get('spring_strength', 100),
             'spring_grab_radius': training_data_params.get('spring_grab_radius', 0.03), # Note this is ignored for reduced spaces
+            'use_spring_grab_radius_for_reduced': False,
             'full_space_constrained_axis': training_data_params['fixed_axis'],
             'constrained_axis_eps': training_data_params['constrained_axis_eps'],
             'flip_constrained_axis': training_data_params['flip_fixed_axis'],

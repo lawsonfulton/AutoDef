@@ -456,6 +456,16 @@ def autoencoder_analysis(
             validation_data=(test_data, test_data),
             callbacks=[hist, callback]
             )
+        do_full_batch_tune = False
+        if do_full_batch_tune:
+            autoencoder.fit(
+                in_data, out_data,
+                epochs=1500,
+                batch_size=len(train_data),
+                shuffle=True,
+                validation_data=(test_data, test_data),
+                callbacks=[hist, callback]
+            )
 
     training_time = time.time() - model_start_time
     print("Total training time: ", training_time)
@@ -666,13 +676,16 @@ def generate_model(
             pred = flatten_data(decoded_pca_displacements)
             relative_error = compute_relative_percent_error(pred, actual)
             
-            max_distance_error = numpy.max(distance_errors(decoded_pca_displacements, displacements))
+            dist_errors = distance_errors(decoded_pca_displacements, displacements)
+            max_distance_error = numpy.max(dist_errors)
+            mean_distance_error = numpy.mean(dist_errors)
 
             if test_displacements is not None:
                 validation_mse = mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements))
             training_results['pca'][str(pca_dim) + '-components'] = {}
             training_results['pca'][str(pca_dim) + '-components']['training-mse'] = training_mse
             training_results['pca'][str(pca_dim) + '-components']['max-distance-error'] = max_distance_error
+            training_results['pca'][str(pca_dim) + '-components']['mean-distance-error'] = mean_distance_error
             # training_results['pca'][str(pca_dim) + '-components']['explained_var'] = numpy.sum(explained_var)
             # training_results['pca'][str(pca_dim) + '-components']['relative_percent_error'] = relative_error
             if test_displacements is not None:
@@ -680,6 +693,7 @@ def generate_model(
 
             print(str(pca_dim) + ' training MSE: ', training_mse)
             print(str(pca_dim) + ' training worst distance error: ', max_distance_error)
+            print(str(pca_dim) + ' training mean distance error: ', mean_distance_error)
             # print(str(pca_dim) + ' explained variance: ', numpy.sum(explained_var))
             # print(str(pca_dim) + ' relative percent error: ', relative_error)
             print()
@@ -736,44 +750,64 @@ def generate_model(
     ae_pca_basis_path = os.path.join(model_root, 'pca_results/ae_pca_components.dmat')
     print('Saving pca results to', ae_pca_basis_path)
     my_utils.save_numpy_mat_to_dmat(ae_pca_basis_path, numpy.ascontiguousarray(U_ae))
-    pca_basis_init = U_ae if train_in_full_space and use_pca_init else None
-    ae_encode, ae_decode, ae_train_time = autoencoder_analysis(
-                                    # displacements, # Uncomment to train in full space
-                                    # test_displacements, 
-                                    encoded_high_dim_pca_displacements,
-                                    encoded_high_dim_pca_test_displacements,
-                                    activation=activation,
-                                    latent_dim=ae_dim,
-                                    epochs=ae_epochs,
-                                    batch_size=batch_size,
-                                    batch_size_increase=batch_size_increase,
-                                    learning_rate=learning_rate,
-                                    layers=layers, # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
-                                    pca_basis=pca_basis_init,
-                                    do_fine_tuning=do_fine_tuning,
-                                    model_root=model_root,
-                                    autoencoder_config=autoencoder_config,
-                                    callback=my_hist_callback,
-                                    UTMU=UTMU,
-                                )
 
-    # decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
-    # decoded_autoencoder_test_displacements = ae_decode(ae_encode(test_displacements))
-    decoded_autoencoder_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(displacements))))
-    if test_displacements is not None:
-        decoded_autoencoder_test_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(test_displacements))))
-    ae_training_mse = mean_squared_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
-    ae_relative_percent_error = compute_relative_percent_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
-    ae_max_dist_error = numpy.max(distance_errors(decoded_autoencoder_displacements, displacements))
-    training_results['autoencoder']['training-mse'] = ae_training_mse
-    training_results['autoencoder']['relative_percent_error'] = ae_relative_percent_error
-    training_results['autoencoder']['max_distance_error'] = ae_max_dist_error
-    if test_displacements is not None:
-        training_results['autoencoder']['validation-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements))
+    # New Alg
+    # 1. Compute basis for outer dim max error
+    # 2. Train network For all dims in ae range
+    # 3. Stop when you find one that satisfies the inner dim max error
+    # 4. Compute smallest basis that matches the autoencoder error
+    # 5. Do cubature for network outer dim, inner dim, and best match linear dim
 
-    print('Finale ae training MSE:', ae_training_mse)
-    print('Finale ae relative percent error:', ae_relative_percent_error)
-    print('Finale ae max distance error:', ae_max_dist_error)
+
+
+    dim_to_error = {}
+    for ae_dim in [ae_dim]:#range(20, 50, 2):
+        pca_basis_init = U_ae if train_in_full_space and use_pca_init else None
+        ae_encode, ae_decode, ae_train_time = autoencoder_analysis(
+                                        # displacements, # Uncomment to train in full space
+                                        # test_displacements, 
+                                        encoded_high_dim_pca_displacements,
+                                        encoded_high_dim_pca_test_displacements,
+                                        activation=activation,
+                                        latent_dim=ae_dim,
+                                        epochs=ae_epochs,
+                                        batch_size=batch_size,
+                                        batch_size_increase=batch_size_increase,
+                                        learning_rate=learning_rate,
+                                        layers=layers, # [200, 200, 50] First two layers being wide seems best so far. maybe an additional narrow third 0.0055 see
+                                        pca_basis=pca_basis_init,
+                                        do_fine_tuning=do_fine_tuning,
+                                        model_root=model_root,
+                                        autoencoder_config=autoencoder_config,
+                                        callback=my_hist_callback,
+                                        UTMU=UTMU,
+                                    )
+
+        # decoded_autoencoder_displacements = ae_decode(ae_encode(displacements))
+        # decoded_autoencoder_test_displacements = ae_decode(ae_encode(test_displacements))
+        decoded_autoencoder_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(displacements))))
+        if test_displacements is not None:
+            decoded_autoencoder_test_displacements = high_dim_pca_decode(ae_decode(ae_encode(high_dim_pca_encode(test_displacements))))
+        ae_training_mse = mean_squared_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
+        ae_relative_percent_error = compute_relative_percent_error(flatten_data(decoded_autoencoder_displacements), flatten_data(displacements))
+        dist_errors = distance_errors(decoded_autoencoder_displacements, displacements)
+        ae_max_dist_error = numpy.max(dist_errors)
+        ae_mean_dist_error = numpy.mean(dist_errors)
+        training_results['autoencoder']['training-mse'] = ae_training_mse
+        training_results['autoencoder']['relative_percent_error'] = ae_relative_percent_error
+        training_results['autoencoder']['max_distance_error'] = ae_max_dist_error
+        training_results['autoencoder']['mean_distance_error'] = ae_mean_dist_error
+        if test_displacements is not None:
+            training_results['autoencoder']['validation-mse'] = mean_squared_error(flatten_data(decoded_autoencoder_test_displacements), flatten_data(test_displacements))
+
+        print('Finale ae training MSE:', ae_training_mse)
+        print('Finale ae relative percent error:', ae_relative_percent_error)
+        print('Finale ae max distance error:', ae_max_dist_error)
+        print('Finale ae mean distance error:', ae_mean_dist_error)
+
+        dim_to_error[ae_dim] = ae_max_dist_error
+    print(dim_to_error)
+    # exit()
 
     training_results['autoencoder']['ae_training_time_s'] = ae_train_time
     training_results['autoencoder']['pca_training_time_s'] = pca_train_time
