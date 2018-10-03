@@ -1,0 +1,8 @@
+n_tets: 5
+relErr: 0.0181698
+Selected tets: 5390, 2255, 5881, 7419, 5645, 
+Weights: 6465.94, 1412.07, 2848.4, 83926, 214564, 
+n_nonzero: 5
+
+Running time so far: 5.46392s
+

@@ -172,7 +172,7 @@ protected:
         Eigen::VectorXi Is = Eigen::Map<Eigen::VectorXi>(&nonzero_indices[0], nonzero_indices.size());
         Eigen::VectorXd Ws = Eigen::Map<Eigen::VectorXd>(&nonzero_weights[0], nonzero_weights.size());
 
-        fs::path energy_model_dir = model_root / "energy_model/an08/";
+        fs::path energy_model_dir = model_root / ("energy_model/an08/pca_dim_" + std::to_string(m_U.rows()) + "/");
         fs::path this_iteration_output_dir = energy_model_dir / (ZeroPadNumber(n_nonzero) + "_samples/");
         fs::create_directories(this_iteration_output_dir);
 
@@ -400,14 +400,24 @@ std::vector<Eigen::VectorXd> get_forces_from_reduced_displacements(const std::ve
 int main(int argc, char **argv) {
     starting_time = igl::get_seconds();
 
-    if(argc != 3) {
+    if(argc < 3) {
         cout << "Need to pass in a path to model root and a goal number of tets." << endl;
         exit(1);
     }
 
+ 
     // ---- Set Up
     model_root = fs::path(argv[1]);
     goal_tet_count = std::stoi(argv[2]);
+
+    fs::path reduced_basis_path = model_root / "pca_results" / "ae_pca_components.dmat";
+
+    int pca_dim;
+    if(argc == 4) {
+        pca_dim = std::stoi(argv[3]);
+        reduced_basis_path = model_root / "pca_results" / ("pca_components_" + std::to_string(pca_dim) + ".dmat");
+    }
+
 
     fs::path model_config_path = model_root / "model_config.json";
     std::ifstream fin_model(model_config_path.string());
@@ -419,7 +429,6 @@ int main(int argc, char **argv) {
     std::cout << training_data_root << std::endl;
     fs::path mesh_path = model_root / "tets.mesh";
     fs::path sim_config_path = model_root / "sim_config.json";
-    fs::path reduced_basis_path = model_root / "pca_results" / "ae_pca_components.dmat";
 
     // Load sim config
     std::ifstream fin(sim_config_path.string());
@@ -435,6 +444,7 @@ int main(int argc, char **argv) {
     Eigen::MatrixXd U;
     igl::readDMAT(reduced_basis_path.string(), U);
     U.transposeInPlace();
+    std::cout << U.rows() << " " << U.cols() << std::endl;
 
     // std::vector<Eigen::VectorXd> reduced_forces = load_forces(training_data_root, reduced_basis_path); // TODO maybe subsample?
     std::vector<Eigen::VectorXd> red_displacements = load_displacements(training_data_root, reduced_basis_path);
@@ -475,7 +485,7 @@ int main(int argc, char **argv) {
     MyGreedyCubop cubop(V, T, U, YM, poisson, density, reduced_forces, red_displacements);
 
     // Params 
-    Real relErrTol = 1e-4; // What's a good val?
+    Real relErrTol = 0.05; // What's a good val?
     int maxNumPoints = goal_tet_count * 5; // some sane limit, for overnight runs
     int numCandsPerIter = 200;//100;//T.rows() / 100;  //100;// default 100;  // |C|
     int itersPerFullNNLS = r/2; // r/2 in the paper

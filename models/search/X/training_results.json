@@ -1,0 +1,53 @@
+{
+  "autoencoder": {
+    "inner dim 4": {
+      "training-mse": 2.5073887934183983e-07,
+      "relative_percent_error": 3.1640684036159765,
+      "max_distance_error": 0.008740235488754971,
+      "mean_distance_error": 0.0006040687154129593,
+      "ae_training_time_s": 109.63716721534729,
+      "outer_pca_training_time_s": 1.8020753860473633
+    },
+    "inner dim 5": {
+      "training-mse": 9.786820461267647e-08,
+      "relative_percent_error": 2.0780274970637795,
+      "max_distance_error": 0.005555600482063689,
+      "mean_distance_error": 0.0003996300450293518,
+      "ae_training_time_s": 109.73056817054749,
+      "outer_pca_training_time_s": 1.8020753860473633
+    },
+    "inner dim 6": {
+      "training-mse": 5.531857277474262e-08,
+      "relative_percent_error": 1.5212060900054605,
+      "max_distance_error": 0.005343070786486652,
+      "mean_distance_error": 0.0002926739481640752,
+      "ae_training_time_s": 109.32272458076477,
+      "outer_pca_training_time_s": 1.8020753860473633
+    },
+    "inner dim 7": {
+      "training-mse": 2.821341907677596e-08,
+      "relative_percent_error": 1.098179067227571,
+      "max_distance_error": 0.004012257707540724,
+      "mean_distance_error": 0.0002115495524839616,
+      "ae_training_time_s": 110.31404638290405,
+      "outer_pca_training_time_s": 1.8020753860473633
+    }
+  },
+  "pca": {
+    "22-components": {
+      "training-mse": 3.1910688110044153e-09,
+      "max-distance-error": 0.0017381377402185853,
+      "mean-distance-error": 7.034939859020933e-05
+    },
+    "13-components": {
+      "training-mse": 4.030755032062089e-08,
+      "max-distance-error": 0.0045969910868269084,
+      "mean-distance-error": 0.00022329114750614724
+    },
+    "7-components": {
+      "training-mse": 4.501048674351567e-07,
+      "max-distance-error": 0.023775124135775257,
+      "mean-distance-error": 0.000782623869489082
+    }
+  }
+}

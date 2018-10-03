@@ -1,0 +1,8 @@
+n_tets: 1
+relErr: 0.259028
+Selected tets: 5390, 
+Weights: 8261.52, 
+n_nonzero: 1
+
+Running time so far: 2.18167s
+

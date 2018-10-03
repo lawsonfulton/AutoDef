@@ -30,10 +30,13 @@
     },
 
     "training_params": {
-        "pca_max_vert_error_meters": 0.005,
+        "search_for_dims": true,
+        "outer_dim_max_vert_error": 0.003,
+        "inner_dim_max_vert_error": 0.005,
         
-        "non_pca_layer_sizes": [200, 200],
-        "ae_encoded_dim": 9,
+        "non_pca_layer_sizes": [100, 100],
+        "ae_encoded_dim_min": 4,
+        "ae_encoded_dim_max": 15,
         
         "activation": "elu",
         "learning_rate": 0.001,

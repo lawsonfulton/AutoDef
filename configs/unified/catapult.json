@@ -30,18 +30,21 @@
     },
 
     "training_params": {
-        "pca_max_vert_error_meters": 0.003,
+        "search_for_dims": true,
+        "outer_dim_max_vert_error": 0.003,
+        "inner_dim_max_vert_error": 0.005,
         
-        "non_pca_layer_sizes": [50],
-        "ae_encoded_dim": 2,
+        "non_pca_layer_sizes": [100, 100],
+        "ae_encoded_dim_min": 1,
+        "ae_encoded_dim_max": 10,
         
         "activation": "elu",
         "learning_rate": 0.001,
         "batch_size": 256,
-        "training_epochs": 2000,
-        "batch_size_increase": true,
+        "training_epochs": 5000,
+        "batch_size_increase": false,
 
         "cubature_type": "an08",
-        "num_sample_tets": 40
+        "num_sample_tets": 1000
     }
 }

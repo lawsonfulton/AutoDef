@@ -339,7 +339,12 @@ public:
         else if(m_energy_method == AN08 || m_energy_method == NEW_PCR) {
             fs::path energy_model_dir;
             
-            if(m_energy_method == AN08) energy_model_dir = model_root / "energy_model/an08/";
+            if(m_energy_method == AN08) {
+                energy_model_dir = model_root / ("energy_model/an08/pca_dim_" + std::to_string(m_U.cols()));
+                if(!boost::filesystem::exists(energy_model_dir)) { // Old version
+                    energy_model_dir = model_root / "energy_model/an08/";
+                }
+            }
             if(m_energy_method == NEW_PCR) energy_model_dir = model_root / "energy_model/new_pcr/";
 
             fs::path indices_path = energy_model_dir / "indices.dmat";

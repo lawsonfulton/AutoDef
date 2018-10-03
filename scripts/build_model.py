@@ -90,7 +90,7 @@ def build_model(config, model_root, force=False):
     # Train model
     # TODO Record other model history, seed, etc
     if not config['learning_config']['skip_training']:
-        outer_layer_dim = learn.generate_model(model_root, config)
+        outer_layer_dim, best_match_pca_dim, ae_encoded_dim = learn.generate_model(model_root, config)
 
         # Convert to TF
         print('Converting Keras models to Tensorflow...')
@@ -131,8 +131,8 @@ def build_model(config, model_root, force=False):
             'use_partial_decode': True,
             'reduced_energy_method': config['learning_config']['energy_model_config'].get('type', 'full'), # options: an08, pcr, and not fullyimplemented: pred_weights_l1
             'use_preconditioner': True,
-            'pca_dim': config['learning_config']['autoencoder_config']['pca_compare_dims'][0], # Only used if reduced_space_type is linear
-            'ae_encoded_dim': config['learning_config']['autoencoder_config']['ae_encoded_dim'], # Shouldn't be change. Kind of a hack.
+            'pca_dim': best_match_pca_dim, # Only used if reduced_space_type is linear
+            'ae_encoded_dim': ae_encoded_dim, # Shouldn't be change. Kind of a hack.
             'ae_decoded_dim': outer_layer_dim, # Shouldn't be change. Kind of a hack.
             'timestep': training_data_params['time_step'],
             'lbfgs_config': {
@@ -177,7 +177,9 @@ def build_model(config, model_root, force=False):
         if(energy_type == 'pcr'):
             learn.build_energy_model(model_root, config)
         elif(energy_type == 'an08'):
-            subprocess.run(['cubacode/build/bin/Cubacode', model_root, str(num_sample_tets)])
+            for dim in [outer_layer_dim, best_match_pca_dim, ae_encoded_dim]:
+                print(dim)
+                subprocess.run(['cubacode/build/bin/Cubacode', model_root, str(num_sample_tets), str(dim)])
         else:
             raise("Energy type doesn't exist")
 

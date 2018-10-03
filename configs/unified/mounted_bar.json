@@ -30,15 +30,18 @@
     },
 
     "training_params": {
-        "pca_max_vert_error_meters": 0.003,
+        "search_for_dims": true,
+        "outer_dim_max_vert_error": 0.003,
+        "inner_dim_max_vert_error": 0.005,
         
-        "non_pca_layer_sizes": [200, 200],
-        "ae_encoded_dim": 6,
+        "non_pca_layer_sizes": [100, 100],
+        "ae_encoded_dim_min": 3,
+        "ae_encoded_dim_max": 20,
         
         "activation": "elu",
         "learning_rate": 0.001,
         "batch_size": 256,
-        "training_epochs": 2000,
+        "training_epochs": 5000,
         "batch_size_increase": false,
 
         "cubature_type": "an08",

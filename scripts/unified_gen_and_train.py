@@ -182,12 +182,18 @@ def create_learning_config(unified_config, training_data_ouput_path):
             'use_mass_pca': False,
             'record_full_loss': False,
             'autoencoder_config': {
-                'pca_compare_dims': [training_params['ae_encoded_dim']],
-                'pca_layer_err': training_params['pca_max_vert_error_meters'],
+                
+
+                "search_for_dims": training_params['search_for_dims'], # Otherwise just use outer dim error and min ae encoded size
+                "outer_dim_max_vert_error": training_params['outer_dim_max_vert_error'],
+                "inner_dim_max_vert_error": training_params['inner_dim_max_vert_error'],
+                
+                "non_pca_layer_sizes": training_params['non_pca_layer_sizes'],
+                "ae_encoded_dim_min": training_params['ae_encoded_dim_min'],
+                "ae_encoded_dim_max": training_params['ae_encoded_dim_max'],
+
                 'train_in_full_space': False,
                 'pca_init': True,
-                'non_pca_layer_sizes': training_params['non_pca_layer_sizes'],
-                'ae_encoded_dim': training_params['ae_encoded_dim'],
                 'activation': training_params['activation'],
 
                 'learning_rate': training_params['learning_rate'],
