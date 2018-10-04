@@ -12,12 +12,12 @@
     "poissons_ratio": 0.47
   },
   "integrator_config": {
-    "reduced_space_type": "autoencoder",
-    "use_reduced_energy": true,
+    "reduced_space_type": "linear",
+    "use_reduced_energy": false,
     "use_partial_decode": true,
     "reduced_energy_method": "an08",
     "use_preconditioner": true,
-    "pca_dim": 13,
+    "pca_dim": 7,
     "ae_encoded_dim": 7,
     "ae_decoded_dim": 22,
     "timestep": 0.005,

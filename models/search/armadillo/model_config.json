@@ -31,7 +31,7 @@
       "type": "an08",
       "enabled": true,
       "pca_dim": 40,
-      "num_sample_tets": 1000,
+      "num_sample_tets": 400,
       "brute_force_iterations": 100,
       "target_anneal_mins": 5
     }

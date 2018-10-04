@@ -1,7 +1,8 @@
 {
-  "mesh": "models/armadillo_unified2/tets.mesh",
+  "mesh": "models/search/armadillo/tets.mesh",
   "logging_enabled": false,
   "save_objs": false,
+  "save_pngs": false,
   "save_training_data": false,
   "save_training_data_path": "",
   "alternative_full_space_mesh": "",
@@ -14,10 +15,10 @@
     "reduced_space_type": "autoencoder",
     "use_reduced_energy": true,
     "use_partial_decode": true,
-    "reduced_energy_method": "an08_all",
+    "reduced_energy_method": "an08",
     "use_preconditioner": true,
-    "pca_dim": 99,
-    "ae_encoded_dim": 40,
+    "pca_dim": 72,
+    "ae_encoded_dim": 15,
     "ae_decoded_dim": 99,
     "timestep": 0.005,
     "lbfgs_config": {
@@ -34,11 +35,13 @@
     "save_obj_every_iteration": false
   },
   "visualization_config": {
-    "gpu_decode": false,
+    "gpu_decode": true,
     "show_stress": false,
     "show_energy": false,
+    "show_lines": false,
     "interaction_spring_stiffness": 10,
     "spring_grab_radius": 0.03,
+    "use_spring_grab_radius_for_reduced": false,
     "full_space_constrained_axis": -1,
     "constrained_axis_eps": 0.05,
     "flip_constrained_axis": false,

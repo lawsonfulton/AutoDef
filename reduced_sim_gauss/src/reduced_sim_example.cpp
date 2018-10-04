@@ -616,8 +616,8 @@ public:
     }
 
     void switch_to_next_tets(int i) { // This is an ugly dirty hack to get extra tets working for an08
-        m_cubature_weights = m_all_cubature_weights[m_all_cubature_weights.size() - i - 1];
-        m_cubature_indices = m_all_cubature_indices[m_all_cubature_weights.size() - i - 1];
+        m_cubature_weights = m_all_cubature_weights[m_all_cubature_weights.size() - (i % m_all_cubature_weights.size()) - 1];
+        m_cubature_indices = m_all_cubature_indices[m_all_cubature_weights.size() - (i % m_all_cubature_weights.size()) - 1];
 
         initialize_cubature();
 
@@ -1078,6 +1078,8 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
 
     GPLCTimeStepper<ReducedSpaceType, MatrixType> gplc_stepper(model_root, integrator_config, &world, tets, reduced_space);
 
+    int png_scale = get_json_value(config, "png_scale", 1);
+    bool show_camera_info = false;
     bool show_stress = visualization_config["show_stress"];
     bool show_energy = false;
     bool show_tets = false;
@@ -1113,36 +1115,52 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     viewer.core.animation_max_fps = 1000.0;
     viewer.core.background_color = Eigen::Vector4f(1.0, 1.0, 1.0, 1.0);
     viewer.core.shininess = 120.0;
-    // viewer.data.set_colors(Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]));
+
     viewer.data.set_colors(Eigen::RowVector3d(0.0, 0.0, 0.0));
-    
-    // Set the faces that contain only fixed verts to a different colour
-    if(!do_gpu_decode) {
 
-        // Per face
-        MatrixXd C(F.rows(), 3);
-        for(int i = 0; i < C.rows(); i++) {
-            C.row(i) = Eigen::RowVector3d(igl::CYAN_DIFFUSE[0], igl::CYAN_DIFFUSE[1], igl::CYAN_DIFFUSE[2]);
-        }
-        std::vector<std::vector<int>> VF;
-        std::vector<std::vector<int>> VFi;
-        igl::vertex_triangle_adjacency(V.rows(), F, VF, VFi);
 
-        std::set<int> fixed_vert_set(fixed_verts.begin(), fixed_verts.end());
-        for(const auto &fvi : fixed_verts) {
-            for(const auto &fi : VF[fvi]) {
-                bool all_in_set = true;
-                for(int i = 0; i < 3; i++) {
-                    all_in_set &= (bool)fixed_vert_set.count(F(fi, i));
-                }
-                if(all_in_set) {
-                    C.row(fi) = Eigen::RowVector3d(igl::FAST_RED_DIFFUSE[0], igl::FAST_RED_DIFFUSE[1], igl::FAST_RED_DIFFUSE[2]);
-                }
-            }
-        }
+    Eigen::RowVector3d free_color = Eigen::RowVector3d(94.0/255.0,185.0/255.0,238.0/255.0);
+    Eigen::RowVector3d pinned_color = Eigen::RowVector3d(51/255.0, 61.0/255.0, 123.0/255.0);
 
-        viewer.data.set_colors(C);
+    std::string space_type = integrator_config["reduced_space_type"];
+    if(space_type == "autoencoder") {
+        free_color = Eigen::RowVector3d(86.0/255.0,180.0/255.0,233.0/255.0);
+        pinned_color = Eigen::RowVector3d(51/255.0, 61.0/255.0, 123.0/255.0);
+    } else if(space_type == "linear") {
+        free_color = Eigen::RowVector3d(230.0/255.0,159.0/255.0,0.0/255.0);
+        pinned_color = Eigen::RowVector3d(138/255.0, 96.0/255.0, 0.0/255.0);
     } else {
+        free_color = Eigen::RowVector3d(209.0/255.0,41.0/255.0,61.0/255.0);
+        pinned_color = Eigen::RowVector3d(129/255.0, 25.0/255.0, 38.0/255.0);
+    }
+
+    // Set the faces that contain only fixed verts to a different colour
+    // if(!do_gpu_decode) {
+
+    //     // Per face
+    //     MatrixXd C(F.rows(), 3);
+    //     for(int i = 0; i < C.rows(); i++) {
+    //         C.row(i) = free_color;
+    //     }
+    //     std::vector<std::vector<int>> VF;
+    //     std::vector<std::vector<int>> VFi;
+    //     igl::vertex_triangle_adjacency(V.rows(), F, VF, VFi);
+
+    //     std::set<int> fixed_vert_set(fixed_verts.begin(), fixed_verts.end());
+    //     for(const auto &fvi : fixed_verts) {
+    //         for(const auto &fi : VF[fvi]) {
+    //             bool all_in_set = true;
+    //             for(int i = 0; i < 3; i++) {
+    //                 all_in_set &= (bool)fixed_vert_set.count(F(fi, i));
+    //             }
+    //             if(all_in_set) {
+    //                 C.row(fi) = pinned_color;
+    //             }
+    //         }
+    //     }
+
+    //     viewer.data.set_colors(C);
+    // } else {
 
         // Per vert
         MatrixXd C(V.rows(), 3);
@@ -1155,7 +1173,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
         }
 
         viewer.data.set_colors(C);
-    }
+    // }
 
     viewer.launch_init(true, false);    
     viewer.opengl.shader_mesh.free();
@@ -1189,6 +1207,13 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
             }
         }
     }
+
+    viewer.core.camera_zoom = get_json_value(visualization_config, "camera_zoom", 1.0);
+    std::vector<float> trackball_angle = get_json_value(visualization_config, "trackball_angle", std::vector<float>(4, 0.0));
+    viewer.core.trackball_angle.w() = trackball_angle[0];
+    viewer.core.trackball_angle.x() = trackball_angle[1];
+    viewer.core.trackball_angle.y() = trackball_angle[2];
+    viewer.core.trackball_angle.z() = trackball_angle[3];
 
     mesh_vertex_shader_string =
 R"(#version 150
@@ -1243,6 +1268,8 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 proj;
 uniform vec4 fixed_color;
+uniform vec4 free_color;
+uniform vec4 pinned_color;
 in vec3 position_eye;
 uniform vec3 light_position_world;
 vec3 Ls = vec3 (1, 1, 1);
@@ -1267,11 +1294,9 @@ vec3 direction_to_light_eye = normalize (vector_to_light_eye);
 float dot_prod = dot (direction_to_light_eye, normal_eye);
 float clamped_dot_prod = max (dot_prod, 0.0);
 
-vec4 cyan_diffuse = vec4(94.0/255.0,185.0/255.0,238.0/255.0,1.0);
-vec4 fast_red_diffuse = vec4(255.0/255.0, 65.0/255.0, 46.0/255.0, 1.0);
 
-float eps = 1e-5;
-vec4 KdiNew =  cyan_diffuse * step(Kdi.x, 1.0 - eps) + fast_red_diffuse * (1.0 - step(Kdi.x, 1.0 - eps));
+float eps = 1e-6;
+vec4 KdiNew = free_color * step(Kdi.x, 1.0 - eps) + pinned_color * (1.0 - step(Kdi.x, 1.0 - eps));
 vec3 Id = Ld * vec3(KdiNew) * clamped_dot_prod;    // Diffuse intensity
 
 vec3 reflection_eye = reflect (-direction_to_light_eye, normal_eye);
@@ -1279,7 +1304,7 @@ vec3 surface_to_viewer_eye = normalize (-position_eye);
 float dot_prod_specular = dot (reflection_eye, surface_to_viewer_eye);
 dot_prod_specular = float(abs(dot_prod)==dot_prod) * max (dot_prod_specular, 0.0);
 float specular_factor = pow (dot_prod_specular, specular_exponent);
-vec3 Kfi = 0.5*vec3(Ksi);
+vec3 Kfi = 0.5*vec3(Ksi); // vec3(1.0,1.0,1.0);//
 vec3 Lf = Ls;
 float fresnel_exponent = 2*specular_exponent;
 float fresnel_factor = 0;
@@ -1329,7 +1354,13 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
         // already dropped to 1fps
         //
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, s,s, 0, GL_RGB, GL_FLOAT, tex.data());
+
+        GLint cyan_diffuse_loc = glGetUniformLocation(prog_id,"free_color");
+        glUniform4f(cyan_diffuse_loc, free_color(0), free_color(1), free_color(2), 1.0);
+        GLint fast_red_diffuse_loc = glGetUniformLocation(prog_id,"pinned_color");
+        glUniform4f(fast_red_diffuse_loc, pinned_color(0), pinned_color(1), pinned_color(2), 1.0);
     }
+
 
 
     double cur_fps = 0.0;
@@ -1337,6 +1368,14 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
     std::vector<std::shared_future<bool>> VF;
     viewer.callback_pre_draw = [&](igl::viewer::Viewer & viewer)
     {
+        if(show_camera_info) {
+            std::cout << "camera_zoom: " << viewer.core.camera_zoom << std::endl;
+            std::cout << "trackball_angle: " << viewer.core.trackball_angle.w() << ", "
+                                             << viewer.core.trackball_angle.x() << ", "
+                                             << viewer.core.trackball_angle.y() << ", "
+                                             << viewer.core.trackball_angle.z() << std::endl;
+        }
+
         if(do_gpu_decode) {
             /////////////////////////////////////////////////////////
             // Send uniforms to shader
@@ -1356,7 +1395,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             VectorXf sub_q = sub_qd.cast<float>();
             GLint q_loc = glGetUniformLocation(prog_id,"q");
             glUniform1fv(q_loc,U.cols(),sub_q.data());
-            
+
             // Do this now so that we can stop texture from being loaded by viewer
             if (viewer.data.dirty)
             {
@@ -1365,8 +1404,6 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             }
             viewer.opengl.dirty &= ~igl::viewer::ViewerData::DIRTY_TEXTURE;
         }
-
-        
 
         if(is_dragging) {
             dragged_mesh_pos = gplc_stepper.get_current_vert_pos(vis_vert_id);
@@ -1407,10 +1444,10 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     // igl::png::render_to_png_async(png_file.string(), 4000, 4000, true, true);
                     // igl::png::render_to_png(png_file.string(), 640, 480, true, true);
                     // Allocate temporary buffers
-                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> R(1280,800);
-                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> G(1280,800);
-                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> B(1280,800);
-                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> A(1280,800);
+                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> R(1280*png_scale,800*png_scale);
+                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> G(1280*png_scale,800*png_scale);
+                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> B(1280*png_scale,800*png_scale);
+                    Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> A(1280*png_scale,800*png_scale);
 
                     // // Draw the scene in the buffers
                     viewer.core.draw_buffer(viewer.data, viewer.opengl, false,R,G,B,A);
@@ -1433,14 +1470,16 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     viewer.data.set_mesh(newV, F_sampled);
                 } else {
                     viewer.data.set_vertices(newV);
+                    // viewer.data.set_colors(C);
                 }
 
-                if(per_vertex_normals) {
-                    igl::per_vertex_normals(V,F,N);
-                } else {
-                    igl::per_corner_normals(V,F,40,N);
-                }
-                viewer.data.set_normals(N);
+                // if(per_vertex_normals) {
+                //     igl::per_vertex_normals(V,F,N);
+                // } else {
+                //     igl::per_corner_normals(V,F,40,N);
+                // }
+                // viewer.data.set_normals(N);
+
             }
 
             // Play back mouse interaction from previous sim
@@ -1649,6 +1688,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                 viewer.data.clear();
                 viewer.data.set_mesh(V, F);
                 show_tets = !show_tets;
+                viewer.data.set_colors(Eigen::RowVector3d(1.0, 1.0, 0.0));
                 break;
             }
             case '-':
@@ -1666,6 +1706,12 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             case 'N':
             {
                 per_vertex_normals = !per_vertex_normals;
+                break;
+            }
+            case 'c':
+            case 'C':
+            {
+                show_camera_info = !show_camera_info;
                 break;
             }
             default:

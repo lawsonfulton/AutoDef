@@ -45,6 +45,6 @@
         "batch_size_increase": false,
 
         "cubature_type": "an08",
-        "num_sample_tets": 1000
+        "num_sample_tets": 400
     }
 }
