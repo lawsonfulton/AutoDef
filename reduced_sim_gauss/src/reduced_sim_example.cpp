@@ -359,7 +359,10 @@ public:
             m_cubature_indices = Is;
             std::cout << "Done. Will sample from " << m_cubature_indices.size() << " tets." << std::endl;
         } else if(m_energy_method == AN08_ALL) {
-            fs::path energy_model_dir = model_root / "energy_model/an08/";
+            fs::path energy_model_dir = model_root / ("energy_model/an08/pca_dim_" + std::to_string(m_U.cols()));
+            if(!boost::filesystem::exists(energy_model_dir)) { // Old version
+                energy_model_dir = model_root / "energy_model/an08/";
+            }
             load_all_an08_indices_and_weights(energy_model_dir, m_all_cubature_indices, m_all_cubature_weights);
 
             m_cubature_weights = m_all_cubature_weights.back();
@@ -537,11 +540,28 @@ public:
             energy_forces_start_time = igl::get_seconds();
             #endif
 
+            // TWISTING
+            bool m_do_full_space_twisting = false;
+            if(m_do_full_space_twisting) {
+                auto max_verts = get_min_verts(0, false, 0.021);
+                Eigen::AngleAxis<double> rot(m_h * current_frame, Eigen::Vector3d(1.0,0.0,0.0));
+                for(int i = 0; i < max_verts.size(); i++) {
+                    int vi = max_verts[i];
+                    Eigen::Vector3d v = V.row(vi);
+                    Eigen::Vector3d new_q = rot * v - v;// + Eigen::Vector3d(1.0,0.0,0.0) * current_frame / 300.0;
+                    for(int j = 0; j < 3; j++) {
+                        q[vi * 3 + j] = new_q[j];
+                    }
+                }
+            }
+
             // Get energy and forces
             energy = m_tets->getStrainEnergy(m_world->getState());
             getInternalForceVector(m_internal_force_asm, *m_tets, *m_world);
             UT_internal_forces = m_U.transpose() * *m_internal_force_asm;
         }
+
+        
 
         #ifdef DO_TIMING
         double energy_forces_time = igl::get_seconds() - energy_forces_start_time;
@@ -596,19 +616,6 @@ public:
         }
 
         return obj_val;
-
-
-        // TWISTING
-        // auto max_verts = get_min_verts(0, true);
-        // Eigen::AngleAxis<double> rot(0.05 * current_frame, Eigen::Vector3d(1.0,0.0,0.0));
-        // for(int i = 0; i < max_verts.size(); i++) {
-        //     int vi = max_verts[i];
-        //     Eigen::Vector3d v = V.row(vi);
-        //     Eigen::Vector3d new_q = rot * v - v;// + Eigen::Vector3d(1.0,0.0,0.0) * current_frame / 300.0;
-        //     for(int j = 0; j < 3; j++) {
-        //         q[vi * 3 + j] = new_q[j];
-        //     }
-        // }
     }
 
     VectorXi get_current_tets() {
@@ -1111,7 +1118,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
         viewer.core.is_animating = false;
     }
     viewer.data.face_based = false;
-    viewer.core.line_width = 1;
+    viewer.core.line_width = get_json_value(visualization_config, "line_width", 2.0);
     viewer.core.animation_max_fps = 1000.0;
     viewer.core.background_color = Eigen::Vector4f(1.0, 1.0, 1.0, 1.0);
     viewer.core.shininess = 120.0;
@@ -1163,16 +1170,18 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     // } else {
 
         // Per vert
-        MatrixXd C(V.rows(), 3);
-        for(int i = 0; i < C.rows(); i++) {
-            C.row(i) = Eigen::RowVector3d(0.0, 0.0, 0.0);
-        }
-
+   
+    MatrixXd C(V.rows(), 3);
+    for(int i = 0; i < C.rows(); i++) {
+        C.row(i) = Eigen::RowVector3d(0.0, 0.0, 0.0);
+    }
+     if(!get_json_value(visualization_config, "disable_pinned_color", false)) {
         for(const auto &vi : fixed_verts) {
             C.row(vi) = Eigen::RowVector3d(1.0, 1.0, 1.0);
         }
+    }
 
-        viewer.data.set_colors(C);
+    viewer.data.set_colors(C);
     // }
 
     viewer.launch_init(true, false);    
@@ -1209,7 +1218,9 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     }
 
     viewer.core.camera_zoom = get_json_value(visualization_config, "camera_zoom", 1.0);
-    std::vector<float> trackball_angle = get_json_value(visualization_config, "trackball_angle", std::vector<float>(4, 0.0));
+    std::vector<float> default_angle(4, 0.0f);
+    default_angle[0] = 1.0;
+    std::vector<float> trackball_angle = get_json_value(visualization_config, "trackball_angle", default_angle);
     viewer.core.trackball_angle.w() = trackball_angle[0];
     viewer.core.trackball_angle.x() = trackball_angle[1];
     viewer.core.trackball_angle.y() = trackball_angle[2];
@@ -1364,6 +1375,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
 
     double cur_fps = 0.0;
+    double tot_time = 0.0; 
     double last_time = igl::get_seconds();
     std::vector<std::shared_future<bool>> VF;
     viewer.callback_pre_draw = [&](igl::viewer::Viewer & viewer)
@@ -1498,7 +1510,15 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
                 if(is_dragging && !was_dragging) { // Got a click
                     Eigen::MatrixXd curV = gplc_stepper.get_current_V();
-                    dragged_verts = get_verts_in_sphere(dragged_mesh_pos, spring_grab_radius, curV);
+
+                    MatrixXd C(1,3);
+                    C.row(0) = dragged_mesh_pos;
+                    MatrixXi I;
+                    igl::snap_points(C, curV, I);
+
+                    vis_vert_id = I(0,0);
+                    
+                    dragged_verts = get_verts_in_sphere(curV.row(vis_vert_id), spring_grab_radius, curV);
                     std::cout << "Grabbed " << dragged_verts.size() << std::endl;
                     // vis_vert_id = get closest point on mesh for dragged_mesh_pos using snap to
                     // dragged_face = current_mouse_info["dragged_face"];
@@ -1507,12 +1527,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     // MatrixXd P = 
                     // igl::point_mesh_squared_distance(P, V, F, sqrD, I, C);
                     // // Get closest point on mesh
-                    MatrixXd C(1,3);
-                    C.row(0) = dragged_mesh_pos;
-                    MatrixXi I;
-                    igl::snap_points(C, curV, I);
-
-                    vis_vert_id = I(0,0);
+                    
 
                 }
             }
@@ -1549,6 +1564,21 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                             igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
                         }
                     }
+
+                // Export the pointer line
+                MatrixXi pointerF(1, 2);
+                pointerF << 0, 1;
+                MatrixXd pointerV(2,3);
+                if(is_dragging) {
+
+                    pointerV.row(0) = newV.row(vis_vert_id);
+                    pointerV.row(1) = dragged_pos;
+                } else {
+                    pointerV << 10000, 10000, 10000, 10001, 10001, 10001; // Fix this and make it work
+                }
+
+                fs::path pointer_filename(int_to_padded_str(current_frame) + "_mouse_pointer.obj");
+                igl::writeOBJ((pointer_obj_dir / pointer_filename).string(), pointerV, pointerF);
                 }
 
                 if(SAVE_TRAINING_DATA) {
@@ -1561,26 +1591,20 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     igl::writeDMAT(displacements_file.string(), displacements, false); // Don't use ascii
                 }
 
-                // Export the pointer line
-                MatrixXi pointerF(1, 2);
-                pointerF << 0, 1;
-                MatrixXd pointerV(2,3);
-                if(is_dragging) {
-                    pointerV.row(0) = dragged_mesh_pos;
-                    pointerV.row(1) = dragged_pos;
-                } else {
-                    pointerV << 10000, 10000, 10000, 10001, 10001, 10001; // Fix this and make it work
-                }
-
-                fs::path pointer_filename(int_to_padded_str(current_frame) + "_mouse_pointer.obj");
-                igl::writeOBJ((pointer_obj_dir / pointer_filename).string(), pointerV, pointerF);
+                
             }
+
 
             if(current_frame % print_freq == 0) {   
                 double cur_time = igl::get_seconds();
+                if(current_frame >= 1) {
+                   tot_time += cur_time - last_time;
+                }
+                
                 cur_fps = print_freq / (cur_time - last_time);
                 last_time = cur_time;
                 std::cout << "Step time + rendering(Hz): "<< cur_fps << std::endl;
+                std::cout << "Avg Step time + rendering(s): "<< tot_time / (current_frame) << std::endl;
             }
 
             if(max_frames != 0 && current_frame + 1 >= max_frames) {

@@ -1,19 +1,29 @@
 {
   "autoencoder": {
-    "training-mse": 6.039897668764766e-08,
-    "relative_percent_error": 0.6578282283048151,
-    "max_distance_error": 0.0036082150022941307,
-    "ae_training_time_s": 45.79453229904175,
-    "pca_training_time_s": 10.874777555465698
+    "inner dim 3": {
+      "training-mse": 1.228519156895029e-06,
+      "relative_percent_error": 2.1640005781709775,
+      "max_distance_error": 0.025000602428574076,
+      "mean_distance_error": 0.001297003802393941,
+      "ae_training_time_s": 147.57768964767456,
+      "outer_pca_training_time_s": 10.963107347488403
+    }
   },
   "pca": {
-    "6-components": {
-      "training-mse": 1.1986623891143197e-07,
-      "max-distance-error": 0.00920794753017191
+    "21-components": {
+      "training-mse": 9.858201996801653e-09,
+      "max-distance-error": 0.005747385265430146,
+      "mean-distance-error": 0.0001018099304547974
     },
-    "12-components": {
-      "training-mse": 2.576845590563459e-09,
-      "max-distance-error": 0.0026077345370614947
+    "9-components": {
+      "training-mse": 6.598753276425651e-07,
+      "max-distance-error": 0.020342326670995496,
+      "mean-distance-error": 0.0008857608394838357
+    },
+    "3-components": {
+      "training-mse": 1.1351331616158512e-05,
+      "max-distance-error": 0.05696938421607095,
+      "mean-distance-error": 0.003775288089436382
     }
   }
 }

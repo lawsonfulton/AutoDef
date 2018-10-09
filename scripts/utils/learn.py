@@ -535,14 +535,15 @@ def pca_with_error_cutoff(samples, max_allowable_error, components=None, mem_=No
 
     dim_list = list(reversed(range(1, len(samples[0]))))
 
-    mem = mem_ or {}
+    mem = mem_ if mem_ is not None else {}
     def bisect_left():
         lo = len(dim_list) - 300 # we're never going to work with a basis bigger than 300 right?
         hi = len(dim_list)
         while lo < hi:
             mid = (lo+hi)//2
 
-            mem[dim_list[mid]] = get_for_dim(dim_list[mid])
+            if dim_list[mid] not in mem:
+                mem[dim_list[mid]] = get_for_dim(dim_list[mid])
             print(dim_list[mid], mem[dim_list[mid]][0])
             if mem[dim_list[mid]][0] < max_allowable_error:
                 lo = mid+1
@@ -707,6 +708,7 @@ def generate_model(
 
     ae_pca_basis_path = os.path.join(model_root, 'pca_results/ae_pca_components.dmat')
     print('Saving pca results to', ae_pca_basis_path)
+    my_utils.create_dir_if_not_exist(os.path.dirname(ae_pca_basis_path))
     my_utils.save_numpy_mat_to_dmat(ae_pca_basis_path, numpy.ascontiguousarray(U_ae))
 
     # New Alg
@@ -771,7 +773,7 @@ def generate_model(
 
 
     # Do this after now
-    U_best_match, _, _, _, _, _ = pca_with_error_cutoff(displacements, inner_dim_max_vert_error, components, mem)
+    U_best_match, _, _, _, _, _ = pca_with_error_cutoff(displacements, ae_max_dist_error, components, mem)
 
     # Add this dim to our list of compare_dims if it's not there already
     outer_layer_dim = U_ae.shape[1]

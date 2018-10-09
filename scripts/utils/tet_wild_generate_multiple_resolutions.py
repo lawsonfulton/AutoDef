@@ -9,10 +9,10 @@ def main():
     basename, extension = basename.split(".")
 
     name_to_params = {
-    "ultra_low": (20, 50),
-    "very_low": (10, 200), # edge length, epsilon
-    "low": (60, 250),
-    # "med": (120, 500),
+    #"ultra_low": (20, 50),
+    #"very_low": (10, 200), # edge length, epsilon
+    #"low": (60, 250),
+    "low": (50, 1500),
     # "high": (250, 1000),
     # "very_high": (500, 2000)
     }

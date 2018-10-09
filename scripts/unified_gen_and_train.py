@@ -54,8 +54,8 @@ def main():
 
     # --- Train the network and run cubature training ---
     start_training_time = time.time()
-    learning_config = create_learning_config(unified_config, training_data_ouput_path)
     if not options.skip_train:
+        learning_config = create_learning_config(unified_config, training_data_ouput_path)
         build_model(learning_config, model_path, force=True)
     total_training_time = time.time() - start_training_time
 
@@ -80,6 +80,17 @@ def parse_flag(flag):
         options.skip_delete = True
         options.skip_record = True
         options.skip_replay = True
+
+    if flag == '--replay':
+        options.skip_delete = True
+        options.skip_record = True
+        options.skip_replay = False
+
+    if flag == '--replay_only':
+        options.skip_delete = True
+        options.skip_record = True
+        options.skip_replay = False
+        options.skip_train = True
 
     return options
 
@@ -113,8 +124,9 @@ def create_sim_config(submodel_path, unified_config, type_str):
     sim_config = {
         'mesh': mesh_path, # TODO this might need to be relative to solver?
         'logging_enabled': True,
-        'save_objs': True,
+        'save_objs': False,
         'save_pngs': False,
+        'png_scale': 2,
         'save_training_data': training_data_ouput_path != '',
         'save_training_data_path': training_data_ouput_path,
         'alternative_full_space_mesh': '',
@@ -153,6 +165,7 @@ def create_sim_config(submodel_path, unified_config, type_str):
             'show_stress': False,
             'show_energy': False,
             'show_lines': True,
+            'line_width': 1.5,
             'interaction_spring_stiffness': sim_params['interaction_spring_stiffness'],
             'spring_grab_radius': sim_params['spring_grab_radius'],
             'full_space_constrained_axis': sim_params['full_space_constrained_axis'],
@@ -162,6 +175,8 @@ def create_sim_config(submodel_path, unified_config, type_str):
             'fixed_point_radius': sim_params['fixed_point_radius'],
             'print_every_n_frames': 1,
             'max_frames': 0,
+            "camera_zoom": 1.47338,
+            "trackball_angle": [  0.931922, 0.247646, 0.256052, 0.0680424]
         },
     }
 
@@ -209,7 +224,8 @@ def create_learning_config(unified_config, training_data_ouput_path):
                 'pca_dim': 40,
                 'num_sample_tets': training_params['num_sample_tets'],
                 'brute_force_iterations': 100,
-                'target_anneal_mins': 5
+                'target_anneal_mins': 5,
+                'rel_error_tol': training_params['rel_error_tol']
             }
         }
     }

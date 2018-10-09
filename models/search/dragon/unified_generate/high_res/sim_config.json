@@ -1,8 +1,9 @@
 {
   "mesh": "meshes/dragon_med.mesh",
   "logging_enabled": true,
-  "save_objs": true,
-  "save_pngs": false,
+  "save_objs": false,
+  "save_pngs": true,
+  "png_scale": 2,
   "save_training_data": true,
   "save_training_data_path": "models/search/dragon/unified_generate/high_res/training_data/training/",
   "alternative_full_space_mesh": "",
@@ -39,6 +40,7 @@
     "show_stress": false,
     "show_energy": false,
     "show_lines": true,
+    "line_width": 1.5,
     "interaction_spring_stiffness": 10,
     "spring_grab_radius": 0.03,
     "full_space_constrained_axis": 1,
@@ -51,6 +53,13 @@
     ],
     "fixed_point_radius": -1,
     "print_every_n_frames": 1,
-    "max_frames": 0
+    "max_frames": 0,
+    "camera_zoom": 1.47338,
+    "trackball_angle": [
+      0.931922,
+      0.247646,
+      0.256052,
+      0.0680424
+    ]
   }
 }

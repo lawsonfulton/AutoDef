@@ -3,8 +3,8 @@
     "high_res_mesh": "meshes/X_25cm_very_high.mesh",
 
     "sim_params": {
-        "low_res_youngs_modulus":  100000,
-        "high_res_youngs_modulus": 100000,
+        "low_res_youngs_modulus":  30000,
+        "high_res_youngs_modulus": 60000,
         "density": 1000,
         "poissons_ratio": 0.47,
 
@@ -31,20 +31,21 @@
 
     "training_params": {
         "search_for_dims": true,
-        "outer_dim_max_vert_error": 0.003,
-        "inner_dim_max_vert_error": 0.005,
+        "outer_dim_max_vert_error": 0.018,
+        "inner_dim_max_vert_error": 0.006,
         
-        "non_pca_layer_sizes": [100, 100],
-        "ae_encoded_dim_min": 4,
-        "ae_encoded_dim_max": 20,
+        "non_pca_layer_sizes": [200, 200],
+        "ae_encoded_dim_min": 6,
+        "ae_encoded_dim_max": 6,
         
-        "activation": "elu",
+        "activation": "relu",
         "learning_rate": 0.001,
-        "batch_size": 256,
-        "training_epochs": 5000,
+        "batch_size": 800,
+        "training_epochs": 3000,
         "batch_size_increase": false,
 
         "cubature_type": "an08",
-        "num_sample_tets": 1000
+        "num_sample_tets": 500,
+        "rel_error_tol": 0.05
     }
 }

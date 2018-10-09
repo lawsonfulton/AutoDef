@@ -31,11 +31,11 @@
 
     "training_params": {
         "search_for_dims": true,
-        "outer_dim_max_vert_error": 0.003,
-        "inner_dim_max_vert_error": 0.005,
+        "outer_dim_max_vert_error": 0.006,
+        "inner_dim_max_vert_error": 0.006,
         
         "non_pca_layer_sizes": [100, 100],
-        "ae_encoded_dim_min": 15,
+        "ae_encoded_dim_min": 20,
         "ae_encoded_dim_max": 60,
         
         "activation": "elu",

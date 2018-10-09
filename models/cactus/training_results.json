@@ -1,0 +1,29 @@
+{
+  "autoencoder": {
+    "inner dim 8": {
+      "training-mse": 3.144089321174891e-08,
+      "relative_percent_error": 0.8351172236925462,
+      "max_distance_error": 0.0039051657985019832,
+      "mean_distance_error": 0.00021276122362746413,
+      "ae_training_time_s": 97.3553831577301,
+      "outer_pca_training_time_s": 1.5564241409301758
+    }
+  },
+  "pca": {
+    "18-components": {
+      "training-mse": 1.3858884917963117e-08,
+      "max-distance-error": 0.0028232149231704946,
+      "mean-distance-error": 0.00013518715719054448
+    },
+    "16-components": {
+      "training-mse": 2.691286871643612e-08,
+      "max-distance-error": 0.0035076665467276007,
+      "mean-distance-error": 0.00017663953075626565
+    },
+    "8-components": {
+      "training-mse": 5.043237376779616e-07,
+      "max-distance-error": 0.01971130268392421,
+      "mean-distance-error": 0.0006612292175302272
+    }
+  }
+}

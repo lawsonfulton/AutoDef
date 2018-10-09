@@ -31,7 +31,7 @@
     "gravity": -9.8,
     "gravity_axis": 1,
     "start_pose_from_training_data": -1,
-    "quasi_static": false,
+    "quasi_static": true,
     "save_obj_every_iteration": false
   },
   "visualization_config": {

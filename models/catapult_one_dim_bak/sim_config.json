@@ -1,8 +1,8 @@
 {
   "mesh": "models/catapult_one_dim/tets.mesh",
-  "logging_enabled": true,
-  "save_objs": true,
-  "save_pngs": true,
+  "logging_enabled": false,
+  "save_objs": false,
+  "save_pngs": false,
   "png_scale": 3,
   "save_training_data": false,
   "save_training_data_path": "",
@@ -13,7 +13,7 @@
     "poissons_ratio": 0.47
   },
   "integrator_config": {
-    "reduced_space_type": "autoencoder",
+    "reduced_space_type": "linear",
     "use_reduced_energy": true,
     "use_partial_decode": true,
     "reduced_energy_method": "an08_all",
@@ -40,7 +40,7 @@
     "show_stress": false,
     "show_energy": false,
     "show_lines": false,
-    "interaction_spring_stiffness": 155,
+    "interaction_spring_stiffness": 255,
     "spring_grab_radius": 0.04,
     "full_space_constrained_axis": 1,
     "constrained_axis_eps": 0.051,

@@ -1,0 +1,41 @@
+Lin precon
+Averages for last 10 frames:
+L-BFGS Iterations: 19.5
+Step time(s): 0.00846431s
+Step time(Hz): 118.143s
+Total step time avg: 0.0104657s
+Step time + rendering(Hz): 60.2578
+Avg Step time + rendering(s): 0.0167207
+95.51Hz
+
+Lin no precon
+Averages for last 10 frames:
+L-BFGS Iterations: 23.5
+Step time(s): 0.0102591s
+Step time(Hz): 97.4749s
+Total step time avg: 0.00960338s
+Step time + rendering(Hz): 60.1517
+Avg Step time + rendering(s): 0.0167259
+
+
+
+
+
+AE with precon
+Averages for last 10 frames:
+L-BFGS Iterations: 8
+Step time(s): 0.00585463s
+Step time(Hz): 170.805s
+Total step time avg: 0.00629688s
+Step time + rendering(Hz): 60.083
+Avg Step time + rendering(s): 0.0167104
+158.98Hz
+
+AE no Precon
+Averages for last 10 frames:
+L-BFGS Iterations: 17.8
+Step time(s): 0.0112031s
+Step time(Hz): 89.2608s
+Total step time avg: 0.0106965s
+Step time + rendering(Hz): 59.3012
+Avg Step time + rendering(s): 0.0167914

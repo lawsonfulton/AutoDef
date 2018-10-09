@@ -9,7 +9,7 @@
     "poissons_ratio": 0.45
   },
   "integrator_config": {
-    "reduced_space_type": "autoencoder",
+    "reduced_space_type": "linear",
     "use_reduced_energy": true,
     "use_partial_decode": true,
     "reduced_energy_method": "an08",

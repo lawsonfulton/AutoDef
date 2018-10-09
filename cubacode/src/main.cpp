@@ -62,6 +62,17 @@ std::string ZeroPadNumber(int num)
     return ss.str();
 }
 
+template<typename T>
+T get_json_value(const json &j, const std::string &key, T def) {
+    try {
+        return j.at(key);
+    }
+    catch (nlohmann::detail::out_of_range& e){
+        return def;
+    }
+}
+
+
 class MyGreedyCubop : public GreedyCubop {
 public:
     MyGreedyCubop(const Eigen::MatrixXd &V, const Eigen::MatrixXi &T, const Eigen::MatrixXd &U, double YM, double poisson, double density, const std::vector<Eigen::VectorXd> &reduced_forces, const std::vector<Eigen::VectorXd> &red_displacements) : GreedyCubop(), m_reduced_forces(reduced_forces), m_red_displacements(red_displacements) {
@@ -485,12 +496,18 @@ int main(int argc, char **argv) {
     MyGreedyCubop cubop(V, T, U, YM, poisson, density, reduced_forces, red_displacements);
 
     // Params 
-    Real relErrTol = 0.05; // What's a good val?
+    Real relErrTol = get_json_value(model_config["learning_config"]["energy_model_config"], "rel_error_tol", 0.05);//0.05; // What's a good val?
     int maxNumPoints = goal_tet_count * 5; // some sane limit, for overnight runs
     int numCandsPerIter = 200;//100;//T.rows() / 100;  //100;// default 100;  // |C|
     int itersPerFullNNLS = r/2; // r/2 in the paper
     int numSamplesPerSubtrain = 50; //training_poses.size() / 4; // default 50;   // T_s
     
+    std::cout << "relErrTol: " << relErrTol << std::endl;    
+    std::cout << "maxNumPoints: " << maxNumPoints << std::endl;
+    std::cout << "numCandsPerIter: " << numCandsPerIter << std::endl;    
+    std::cout << "itersPerFullNNLS: " << itersPerFullNNLS << std::endl;
+    std::cout << "numSamplesPerSubtrain: " << numSamplesPerSubtrain << std::endl;
+
     cout << "Working" << endl;
 
     cubop.run(
