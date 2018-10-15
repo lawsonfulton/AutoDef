@@ -147,6 +147,13 @@ const int PARDISO_DOF_CUTOFF = 7000;
 const Eigen::RowVector3d sea_green(229./255.,211./255.,91./255.);
 
 #define DO_TIMING
+int total_evals = 0;
+double tf_decode_time_tot = 0.0;
+double tf_vjp_time_tot = 0.0;
+double cuba_decode_time_tot = 0.0;
+double cuba_eval_time_tot = 0.0;
+double obj_grad_time_tot_no_jvp = 0.0;
+double precon_time_tot = 0.0;
 
 std::vector<int> get_min_verts(int axis, bool flip_axis = false, double tol = 0.001) {
     int dim = axis; // x
@@ -484,10 +491,12 @@ public:
 
     double operator()(const VectorXd& new_z, VectorXd& grad, const int cur_iteration, const int cur_line_search_iteration)
     {
+
         // Update the tets with candidate configuration
         double obj_start_time = igl::get_seconds();
         VectorXd new_sub_q = sub_dec(new_z);
         double tf_time = igl::get_seconds() - obj_start_time;
+        tf_decode_time_tot += tf_time;
 
         double decode_start_time = igl::get_seconds();
         Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
@@ -497,11 +506,12 @@ public:
         VectorXd UT_internal_forces;
         
         #ifdef DO_TIMING
-        double energy_forces_start_time = igl::get_seconds();
+        double energy_forces_start_tim = 0.0;
         double predict_weight_time = 0.0;
         double decode_time;
         #endif
 
+        double energy_forces_start_time = igl::get_seconds();
         if(m_energy_method != FULL) {
             // If we are using cubature then we can leverage parallelism
             #pragma omp parallel num_threads(8) // TODO is it possible to move this out of the optimization loop?
@@ -524,10 +534,10 @@ public:
                     #pragma omp single
                     {
                         decode_time = igl::get_seconds() - decode_start_time;
+                        cuba_decode_time_tot += decode_time;
                         energy_forces_start_time = igl::get_seconds();
                     }
                 #endif
-                
                 // Get energy and forces
                 parallel_current_reduced_energy_and_forces(energy, UT_internal_forces);
             }
@@ -560,11 +570,12 @@ public:
             getInternalForceVector(m_internal_force_asm, *m_tets, *m_world);
             UT_internal_forces = m_U.transpose() * *m_internal_force_asm;
         }
-
         
 
         #ifdef DO_TIMING
         double energy_forces_time = igl::get_seconds() - energy_forces_start_time;
+        cuba_eval_time_tot += energy_forces_time;
+
         double obj_and_grad_time_start = igl::get_seconds();
         #endif
 
@@ -583,8 +594,12 @@ public:
             obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
                             + m_h * m_h * energy
                             - sub_q_tilde.transpose() * h_2_UT_external_forces;
+            VectorXd preGrad = UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces;
 
-            grad = jtvp(new_z, UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+            obj_grad_time_tot_no_jvp += igl::get_seconds() - obj_and_grad_time_start;
+            double vjp_start = igl::get_seconds();
+            grad = jtvp(new_z, preGrad);
+            tf_vjp_time_tot += igl::get_seconds() - vjp_start;
         }
 
         #ifdef DO_TIMING
@@ -615,6 +630,7 @@ public:
             }
         }
 
+        total_evals++;
         return obj_val;
     }
 
@@ -821,7 +837,7 @@ public:
                 }
             }
             precondition_compute_time = igl::get_seconds() - precondition_start_time;
-
+            precon_time_tot += precondition_compute_time;
             if(m_use_pardiso) {
                 niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_solver_pardiso);   
             } else {
@@ -858,6 +874,21 @@ public:
             // std::cout << "objective val = " << min_val_res << std::endl;
             // std::cout << "Current z: " << m_cur_z.transpose() << std::endl;
             // std::cout << "Activated tets: " << activated_tets << std::endl;
+
+            // std::cout << "tf_decode_time_tot: " << tf_decode_time_tot / total_evals << std::endl;
+            // std::cout << "tf_vjp_time_tot: " << tf_vjp_time_tot / total_evals << std::endl;
+            // std::cout << "cuba_decode_time_tot: " << cuba_decode_time_tot / total_evals << std::endl;
+            // std::cout << "cuba_eval_time_tot: " << cuba_eval_time_tot / total_evals << std::endl;
+            // std::cout << "obj_grad_time_tot_no_jvp: " << obj_grad_time_tot_no_jvp / total_evals << std::endl;
+            // std::cout << "precon_time_tot: " << precon_time_tot / total_evals << std::endl;
+            std::cout << "Avg evals / frame: " << total_evals / (current_frame + 1.0) << std::endl;
+            std::cout << "['cuba_eval_time_tot', 'cuba_decode_time_tot', 'obj_grad_time_tot_no_jvp', 'tf_decode_time_tot', 'tf_vjp_time_tot', 'precon_time_tot']" << std::endl;
+            std::cout << "["<<  cuba_eval_time_tot / total_evals << ", " 
+                           << cuba_decode_time_tot / total_evals <<  ", "
+                           << obj_grad_time_tot_no_jvp / total_evals << ", "
+                           << tf_decode_time_tot / total_evals << ", "
+                           << tf_vjp_time_tot / total_evals << ", "
+                           << precon_time_tot / total_evals << "]" << std::endl;
 
             m_total_time_since_last = 0.0;
             m_tot_its_since_last = 0;

@@ -1,6 +1,6 @@
 {
   "mesh": "models/search/armadillo2/tets.mesh",
-  "logging_enabled": false,
+  "logging_enabled": true,
   "save_objs": false,
   "save_pngs": false,
   "png_scale": 2,
