@@ -7,3 +7,9 @@
 [submodule "extern/tensorflow_cc"]
 	path = extern/tensorflow_cc
 	url = https://github.com/FloopCZ/tensorflow_cc
+[submodule "extern/GAUSS"]
+	path = extern/GAUSS
+	url = git@github.com:dilevin/GAUSS.git
+[submodule "extern/libigl"]
+	path = extern/libigl
+	url = git@github.com:zero-impact/libigl.git
