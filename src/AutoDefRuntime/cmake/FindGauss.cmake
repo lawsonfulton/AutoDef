@@ -94,8 +94,6 @@ endif(USE_SPECTRA)
 
 
 
-#define the initUI macro
-include(${UI_SOURCE_DIR}/UISetup.txt)
 
 #Currently for xcode builds 
 #libraries

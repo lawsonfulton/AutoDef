@@ -8,7 +8,7 @@
 
 // Third
 #include <tensorflow/core/public/session.h>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <boost/filesystem.hpp>
 
 using json = nlohmann::json;

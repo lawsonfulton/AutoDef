@@ -27,7 +27,7 @@ find_package(TensorflowCC REQUIRED)
 include_directories(${PROJECT_SOURCE_DIR}/../../extern/LBFGSpp/include)
 
 # JSON lib
-include_directories(${PROJECT_SOURCE_DIR}/../../extern/json/src)
+include_directories(${PROJECT_SOURCE_DIR}/../../extern/json/include)
 
 # BOOST
 set(Boost_USE_STATIC_LIBS OFF) 

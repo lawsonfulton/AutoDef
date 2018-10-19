@@ -6,10 +6,12 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <iomanip>
+
 
 #include <igl/readDMAT.h>
 #include <boost/filesystem.hpp>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 namespace fs = boost::filesystem;

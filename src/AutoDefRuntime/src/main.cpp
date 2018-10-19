@@ -1,8 +1,8 @@
 #define EIGEN_USE_MKL_ALL
 // #define MKL_DIRECT_CALL
-// #ifdef EIGEN_PARDISO_SUPPORT
+#ifdef EIGEN_USE_MKL_ALL
 #include <Eigen/PardisoSupport>
-// #endif
+#endif
 
 #include <vector>
 #include <set>
@@ -86,7 +86,7 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 #include <LBFGS.h>
 
 // JSON
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 
 
 #include <omp.h>
@@ -1002,10 +1002,18 @@ private:
         Eigen::SimplicialLDLT<SparseMatrix<double>> >::type m_H_solver_eigen;
     
     bool m_use_pardiso;
+    #ifdef EIGEN_USE_MKL_ALL
     typename std::conditional<
         std::is_same<MatrixType, MatrixXd>::value,
         Eigen::LDLT<MatrixXd>,
         Eigen::PardisoLDLT<SparseMatrix<double>, Eigen::Lower> >::type m_H_solver_pardiso;
+    #else
+    typename std::conditional<
+    typename std::conditional<
+        std::is_same<MatrixType, MatrixXd>::value,
+        Eigen::LDLT<MatrixXd>,
+        Eigen::SimplicialLDLT<SparseMatrix<double>> >::type  m_H_solver_pardiso;
+    #endif
 
     MatrixType m_H_inv;
     MatrixType m_UTKU;
