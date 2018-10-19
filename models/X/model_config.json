@@ -1,0 +1,40 @@
+{
+  "training_dataset": "models/X/unified_generate/high_res/training_data/training/",
+  "validation_dataset": "",
+  "learning_config": {
+    "save_objs": false,
+    "skip_training": false,
+    "skip_jacobian": false,
+    "use_mass_pca": false,
+    "record_full_loss": false,
+    "autoencoder_config": {
+      "search_for_dims": true,
+      "outer_dim_max_vert_error": 0.018,
+      "inner_dim_max_vert_error": 0.006,
+      "non_pca_layer_sizes": [
+        200,
+        200
+      ],
+      "ae_encoded_dim_min": 6,
+      "ae_encoded_dim_max": 6,
+      "train_in_full_space": false,
+      "pca_init": true,
+      "activation": "elu",
+      "learning_rate": 0.001,
+      "batch_size": 800,
+      "batch_size_increase": false,
+      "training_epochs": 1000,
+      "do_fine_tuning": false,
+      "loss_weight": 1.0
+    },
+    "energy_model_config": {
+      "type": "an08",
+      "enabled": true,
+      "pca_dim": 40,
+      "num_sample_tets": 500,
+      "brute_force_iterations": 100,
+      "target_anneal_mins": 5,
+      "rel_error_tol": 0.05
+    }
+  }
+}

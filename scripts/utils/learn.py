@@ -9,7 +9,11 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 
+import sys, os
+sys.path.insert(0,'extern/libigl/python')
+print(os.path.abspath('extern/libigl/python'))
 import pyigl as igl
+print(igl.__file__)
 from utils.iglhelpers import e2p, p2e
 from utils import my_utils
 from utils.gauss_utils import get_mass_matrix, mass_pca

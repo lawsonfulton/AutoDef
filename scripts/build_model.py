@@ -179,7 +179,7 @@ def build_model(config, model_root, force=False):
         elif(energy_type == 'an08'):
             for dim in [outer_layer_dim, best_match_pca_dim, ae_encoded_dim]:
                 print(dim)
-                subprocess.run(['cubacode/build/bin/Cubacode', model_root, str(num_sample_tets), str(dim)])
+                subprocess.run(['src/cubacode/build/bin/Cubacode', model_root, str(num_sample_tets), str(dim)])
         else:
             raise("Energy type doesn't exist")
 

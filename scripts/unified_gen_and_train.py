@@ -17,8 +17,8 @@ from build_model import build_model
 # Want to be able to rerun training
 # Solution -> Output generated configs to the model folder
 
-SOLVER_BIN_PATH = 'reduced_sim_gauss/build/bin/ReduceSimExample'
-CUBATURE_BIN_PATH = 'cubacode/build/bin/Cubacode'
+SOLVER_BIN_PATH = 'src/AutoDefRuntime/build/bin/AutoDefRuntime'
+CUBATURE_BIN_PATH = 'src/cubacode/build/bin/Cubacode'
 
 def main():
     config_path = sys.argv[1]
