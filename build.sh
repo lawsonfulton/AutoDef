@@ -1,10 +1,7 @@
 # Build GAUSS
 cd extern/GAUSS
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j8
-cd ../../../
+bash installGAUSS_Ubuntu.sh
+cd ../../
 
 # Build Libigl Python bindings
 cd extern/libigl/python
