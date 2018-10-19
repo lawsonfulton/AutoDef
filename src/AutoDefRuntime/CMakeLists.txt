@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.5)
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
-project(ReduceSimExample)
+project(AutoDefRuntime)
 
 set(CMAKE_BUILD_TYPE Release)#Release) #RelWithDebInfo
 set(CMAKE_CXX_STANDARD 14)
@@ -23,13 +23,11 @@ find_package(Eigen3 REQUIRED)
 #Tensorflow
 find_package(TensorflowCC REQUIRED)
 
-
-
 # Optimization lib
-include_directories("/home/lawson/Workspace/LBFGSpp/include")
+include_directories(${PROJECT_SOURCE_DIR}/../../extern/LBFGSpp/include)
 
 # JSON lib
-include_directories("/home/lawson/Workspace/json/src")
+include_directories(${PROJECT_SOURCE_DIR}/../../extern/json/src)
 
 # BOOST
 set(Boost_USE_STATIC_LIBS OFF) 
@@ -38,14 +36,14 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost COMPONENTS filesystem REQUIRED) 
 
 #Gauss
-set(LIBIGL_INCLUDE_PATH "/home/lawson/Workspace/libigl/include") # Weird that I have to do this for GAUSS seperately
+set(LIBIGL_INCLUDE_PATH ${PROJECT_SOURCE_DIR}/../../extern/libigl/include) # Weird that I have to do this for GAUSS seperately
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp")# -fno-inline")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-set(Gauss_ROOT_DIR "/home/lawson/Workspace/GAUSS/")
+set(Gauss_ROOT_DIR ${PROJECT_SOURCE_DIR}/../../extern/GAUSS/)
 find_package(Gauss REQUIRED)
 
 #Libigl
-set(LIBIGL_INCLUDE_DIR "/home/lawson/Workspace/libigl/include")
+set(LIBIGL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/../../extern/libigl/include)
 option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" ON)
 option(LIBIGL_WITH_ANTTWEAKBAR      "Use AntTweakBar"    OFF)
 option(LIBIGL_WITH_CGAL             "Use CGAL"           OFF)
@@ -69,14 +67,14 @@ find_package(LIBIGL REQUIRED QUIET)
 
 
 file(GLOB SRC_CODE
-    ${ReduceSimExample_SOURCE_DIR}/src/*.h
-    ${ReduceSimExample_SOURCE_DIR}/src/*.cpp
+    ${AutoDefRuntime_SOURCE_DIR}/src/*.h
+    ${AutoDefRuntime_SOURCE_DIR}/src/*.cpp
 )
 
 include_directories(${Gauss_INCLUDE_DIRS})
 
 #Example codes
 link_directories(${Gauss_LIB_DIR_RELEASE})
-add_executable(ReduceSimExample ${SRC_CODE})
-target_link_libraries(ReduceSimExample ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer igl::png TensorflowCC::Static Boost::filesystem -lgomp -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lm -ldl)
+add_executable(AutoDefRuntime ${SRC_CODE})
+target_link_libraries(AutoDefRuntime ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer igl::png TensorflowCC::Static Boost::filesystem -lgomp -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lm -ldl)
 

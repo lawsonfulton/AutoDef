@@ -1,9 +1,9 @@
-[submodule "libigl"]
-	path = extern/libigl
-	url = git@github.com:zero-impact/libigl.git
 [submodule "LBFGSpp"]
 	path = extern/LBFGSpp
 	url = git@github.com:zero-impact/LBFGSpp.git
 [submodule "extern/json"]
 	path = extern/json
 	url = https://github.com/nlohmann/json.git
+[submodule "extern/tensorflow_cc"]
+	path = extern/tensorflow_cc
+	url = https://github.com/FloopCZ/tensorflow_cc
