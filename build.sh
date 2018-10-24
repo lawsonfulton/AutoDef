@@ -1,6 +1,6 @@
 # Build GAUSS
 cd extern/GAUSS
-bash InstallGAUSS_Ubuntu.sh
+bash InstallGAUSS_Ubuntu_noqt.sh
 cd ../../
 
 # Build Libigl Python bindings
