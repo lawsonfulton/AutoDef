@@ -63,6 +63,7 @@ set(Gauss_INCLUDE_DIRS  ${Gauss_EXT_INCLUDE_DIRS}
                         ${ParticleSystem_SOURCE_DIR}/include
                         ${FEM_SOURCE_DIR}/include
                         ${Core_SOURCE_DIR}/include
+                        ${Embedding_SOURCE_DIR}/include
                         ${Collisions_SOURCE_DIR}/include
                         ${UI_SOURCE_DIR}/include
                         )
@@ -78,8 +79,8 @@ if(APPLE)
   endif(USE_OPENMP)
 else()
     find_package(OpenMP REQUIRED)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -fopenmp)
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -fopenmp)
     add_definitions(-DGAUSS_OPENMP)
 endif(APPLE)
 
@@ -94,6 +95,8 @@ endif(USE_SPECTRA)
 
 
 
+#define the initUI macro
+include(${UI_SOURCE_DIR}/UISetup.txt)
 
 #Currently for xcode builds 
 #libraries
