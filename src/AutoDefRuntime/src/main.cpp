@@ -1,5 +1,5 @@
-#define EIGEN_USE_MKL_ALL
-// #define MKL_DIRECT_CALL
+//#define EIGEN_USE_MKL_ALL
+
 #ifdef EIGEN_USE_MKL_ALL
 #include <Eigen/PardisoSupport>
 #endif

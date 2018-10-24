@@ -15,7 +15,7 @@ bash deps/anaconda.sh
 
 ### For tensorflow cc
 sudo apt-get install build-essential curl git cmake unzip autoconf autogen automake libtool mlocate \
-                     zlib1g-dev g++-7 python python3-numpy python3-dev python3-pip python3-wheel wget
+                     zlib1g-dev g++-7 python python3-numpy python3-dev python3-pip python3-wheel wget libboost-all-dev
 sudo updatedb
 
 cd extern/tensorflow_cc/tensorflow_cc
