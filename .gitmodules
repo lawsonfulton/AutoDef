@@ -9,7 +9,7 @@
 	url = git@github.com:zero-impact/tensorflow_cc.git
 [submodule "extern/GAUSS"]
 	path = extern/GAUSS
-	url = git@github.com:dilevin/GAUSS.git
+	url = git@github.com:zero-impact/GAUSS.git
 [submodule "extern/libigl"]
 	path = extern/libigl
 	url = git@github.com:zero-impact/libigl.git
