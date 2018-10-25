@@ -95,7 +95,7 @@ endif(USE_SPECTRA)
 
 
 #define the initUI macro
-include(${UI_SOURCE_DIR}/UISetup.txt)
+
 
 #Currently for xcode builds 
 #libraries
@@ -110,7 +110,6 @@ endif(APPLE)
 set(Gauss_LIBS  libBase.a
                 libCore.a
                 libFEM.a
-                libUI.a
                 libCollisions.a
                 ${Gauss_EXT_LIBS})
 

@@ -14,12 +14,13 @@ set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib )
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 #json
-include_directories("/home/lawson/Workspace/json/src")
+include_directories(${PROJECT_SOURCE_DIR}/../../extern/json/include)
 
 #Gauss
-set(LIBIGL_INCLUDE_PATH "/home/lawson/Workspace/libigl/include") # Weird that I have to do this for GAUSS seperately
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp -O3")
-set(Gauss_ROOT_DIR "/home/lawson/Workspace/GAUSS/")
+set(LIBIGL_INCLUDE_PATH ${PROJECT_SOURCE_DIR}/../../extern/libigl/include) # Weird that I have to do this for GAUSS seperately
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp")# -fno-inline")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(Gauss_ROOT_DIR ${PROJECT_SOURCE_DIR}/../../extern/GAUSS/)
 find_package(Gauss REQUIRED)
 
 find_package(OpenMP REQUIRED)
@@ -34,8 +35,8 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 find_package(Boost COMPONENTS filesystem REQUIRED) 
 
 #Libigl
-set(LIBIGL_INCLUDE_DIR "/home/lawson/Workspace/libigl/include")
-option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" OFF)
+set(LIBIGL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/../../extern/libigl/include)
+option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" ON)
 option(LIBIGL_WITH_ANTTWEAKBAR      "Use AntTweakBar"    OFF)
 option(LIBIGL_WITH_CGAL             "Use CGAL"           OFF)
 option(LIBIGL_WITH_COMISO           "Use CoMiso"         OFF)
@@ -47,7 +48,7 @@ option(LIBIGL_WITH_MOSEK            "Use MOSEK"          OFF)
 option(LIBIGL_WITH_NANOGUI          "Use Nanogui menu"   OFF)
 option(LIBIGL_WITH_OPENGL           "Use OpenGL"         ON)
 option(LIBIGL_WITH_OPENGL_GLFW      "Use GLFW"           ON)
-option(LIBIGL_WITH_PNG              "Use PNG"            OFF)
+option(LIBIGL_WITH_PNG              "Use PNG"            ON)
 option(LIBIGL_WITH_PYTHON           "Use Python"         OFF)
 option(LIBIGL_WITH_TETGEN           "Use Tetgen"         OFF)
 option(LIBIGL_WITH_TRIANGLE         "Use Triangle"       OFF)

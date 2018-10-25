@@ -10,7 +10,7 @@
 #include <ConstraintFixedPoint.h>
 
 #include <boost/filesystem.hpp>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 
 #include <omp.h>
 
