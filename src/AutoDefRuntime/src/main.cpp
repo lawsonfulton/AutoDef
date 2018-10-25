@@ -1009,7 +1009,6 @@ private:
         Eigen::PardisoLDLT<SparseMatrix<double>, Eigen::Lower> >::type m_H_solver_pardiso;
     #else
     typename std::conditional<
-    typename std::conditional<
         std::is_same<MatrixType, MatrixXd>::value,
         Eigen::LDLT<MatrixXd>,
         Eigen::SimplicialLDLT<SparseMatrix<double>> >::type  m_H_solver_pardiso;
