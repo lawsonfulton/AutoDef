@@ -25,7 +25,8 @@ configurations
 */*/*/*/*/details.txt
 */*/*/*/details.txt
 pathdef.m
-
+deps/
+extern/anaconda/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
