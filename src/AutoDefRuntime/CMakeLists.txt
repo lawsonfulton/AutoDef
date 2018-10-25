@@ -37,7 +37,8 @@ find_package(Boost COMPONENTS filesystem REQUIRED)
 
 #Gauss
 set(LIBIGL_INCLUDE_PATH ${PROJECT_SOURCE_DIR}/../../extern/libigl/include) # Weird that I have to do this for GAUSS seperately
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp")# -fno-inline")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")# -fno-inline")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(Gauss_ROOT_DIR ${PROJECT_SOURCE_DIR}/../../extern/GAUSS/)
 find_package(Gauss REQUIRED)
@@ -76,5 +77,5 @@ include_directories(${Gauss_INCLUDE_DIRS})
 #Example codes
 link_directories(${Gauss_LIB_DIR_RELEASE})
 add_executable(AutoDefRuntime ${SRC_CODE})
-target_link_libraries(AutoDefRuntime ${Gauss_LIBS} ${UI_LIBS} -lpthread igl::core igl::viewer igl::png TensorflowCC::Static Boost::filesystem -lgomp -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lm -ldl)
+target_link_libraries(AutoDefRuntime ${Gauss_LIBS} -lpthread igl::core igl::viewer igl::png TensorflowCC::Static Boost::filesystem -lgomp -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lm -ldl)
 
