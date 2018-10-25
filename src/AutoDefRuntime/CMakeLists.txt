@@ -6,6 +6,13 @@ project(AutoDefRuntime)
 set(CMAKE_BUILD_TYPE Release)#Release) #RelWithDebInfo
 set(CMAKE_CXX_STANDARD 14)
 
+set(USE_MKL NO)
+if(USE_MKL)
+	add_definitions(-DEIGEN_USE_MKL_ALL)
+	set(MKL_LIBS -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core)
+endif(USE_MKL)
+
+
 #Output directories
 set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin )
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib )
@@ -77,5 +84,7 @@ include_directories(${Gauss_INCLUDE_DIRS})
 #Example codes
 link_directories(${Gauss_LIB_DIR_RELEASE})
 add_executable(AutoDefRuntime ${SRC_CODE})
-target_link_libraries(AutoDefRuntime ${Gauss_LIBS} -lpthread igl::core igl::viewer igl::png TensorflowCC::Static Boost::filesystem -lgomp -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lm -ldl)
+
+
+target_link_libraries(AutoDefRuntime ${Gauss_LIBS} ${MKL_LIBS} -lpthread igl::core igl::viewer igl::png TensorflowCC::Static Boost::filesystem -lgomp  -lm -ldl)
 

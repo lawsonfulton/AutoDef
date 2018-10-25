@@ -43,7 +43,7 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 
 //#include <igl/png/render_to_png_async.h>
 //#include <igl/png/render_to_png.h>
-#include <igl/png/writePNG.h>
+//#include <igl/png/writePNG.h>
 
 #include <igl/writeDMAT.h>
 #include <igl/readDMAT.h>
@@ -1502,7 +1502,8 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     // // Draw the scene in the buffers
                     viewer.core.draw_buffer(viewer.data, viewer.opengl, false,R,G,B,A);
                     // // Save it to a PNG
-                    VF.push_back(std::async(std::launch::async, igl::png::writePNG, R,G,B,A,png_file.string()));
+		    std::cout << "WRITE TO PNG DISABLED" << std::endl;
+//                    VF.push_back(std::async(std::launch::async, igl::png::writePNG, R,G,B,A,png_file.string()));
                      // igl::png::writePNG(R,G,B,A,png_file.string());
                 }
 
