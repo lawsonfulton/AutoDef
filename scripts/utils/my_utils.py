@@ -7,6 +7,9 @@ import shutil
 
 import numpy
 
+
+sys.path.insert(0,'extern/libigl/python')
+print(os.path.abspath('extern/libigl/python'))
 import pyigl as igl
 from utils.iglhelpers import e2p, p2e
 

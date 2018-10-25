@@ -3,7 +3,9 @@
 CONTREPO=https://repo.continuum.io/archive/
 # Stepwise filtering of the html at $CONTREPO
 # Get the topmost line that matches our requirements, extract the file name.
-ANACONDAURL=$(wget -q -O - $CONTREPO index.html | grep "Anaconda3-" | grep "Linux" | grep "86_64" | head -n 1 | cut -d \" -f 2)
+ANACONDAURL=Anaconda3-5.3.0-Linux-x86_64.sh # Fixed version
+
+#$(wget -q -O - $CONTREPO index.html | grep "Anaconda3-" | grep "Linux" | grep "86_64" | head -n 1 | cut -d \" -f 2)
 mkdir deps/
 wget -O deps/anaconda.sh $CONTREPO$ANACONDAURL
 bash deps/anaconda.sh
