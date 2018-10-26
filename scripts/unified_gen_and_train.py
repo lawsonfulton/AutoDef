@@ -1,4 +1,7 @@
 #! extern/anaconda/bin/python
+import keras.backend as K
+# K.set_floatx('float64') # Override keras.json
+
 import sys
 import subprocess
 import os

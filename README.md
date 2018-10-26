@@ -9,3 +9,9 @@ $ ./build.sh
 ```
 
 Uncomment #define EIGEN_USE_MKL_ALL in src/AutoDefRuntime/src/main.cpp if MKL is installed you want to enable MKL support.
+
+
+TODO
+- See if tensorflow_cc built the python module
+- Need a way of setting kers float64 in keras.json
+- Make sure that I can run tensorflow from tensorflowcc

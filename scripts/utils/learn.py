@@ -60,6 +60,7 @@ def autoencoder_analysis_vae(
 
     import keras
     import keras.backend as K
+
     from keras.layers import Input, Dense, Lambda
     from keras.models import Model, load_model
     from keras.engine.topology import Layer
@@ -311,6 +312,7 @@ def autoencoder_analysis(
 
     import keras
     import keras.backend as K
+    
     from keras.layers import Input, Dense, Lambda
     from keras.models import Model, load_model
     from keras.engine.topology import Layer
@@ -728,6 +730,7 @@ def generate_model(
     for ae_dim in range(ae_encoded_dim_min, ae_encoded_dim_max + 1):
         this_training_results = {}
         pca_basis_init = U_ae if train_in_full_space and use_pca_init else None
+        # print(encoded_high_dim_pca_displacements.dtype)
         ae_encode, ae_decode, ae_train_time = autoencoder_analysis(
                                         # displacements, # Uncomment to train in full space
                                         # test_displacements, 

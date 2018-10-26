@@ -1,24 +1,19 @@
-
 ### install Anaconda
-CONTREPO=https://repo.continuum.io/archive/
-# Stepwise filtering of the html at $CONTREPO
-# Get the topmost line that matches our requirements, extract the file name.
-ANACONDAURL=Anaconda3-5.3.0-Linux-x86_64.sh # Fixed version
-
-#$(wget -q -O - $CONTREPO index.html | grep "Anaconda3-" | grep "Linux" | grep "86_64" | head -n 1 | cut -d \" -f 2)
 mkdir deps/
-wget -O deps/anaconda.sh $CONTREPO$ANACONDAURL
+wget -O deps/anaconda.sh https://repo.continuum.io/archive/Anaconda3-5.0.0-Linux-x86_64.sh
 bash deps/anaconda.sh -b -p ./extern/anaconda
 
-
-# Keras stuff? Libigl python bindinggsss
+# Other Deps
+sudo apt-get install build-essential curl git cmake unzip autoconf autogen automake libtool mlocate zlib1g-dev g++-7 python python3-numpy python3-dev python3-pip python3-wheel wget libboost-all-dev pkg-config zip g++ zlib1g-dev unzip python
+sudo updatedb
 
 
 
 ### For tensorflow cc
-sudo apt-get install build-essential curl git cmake unzip autoconf autogen automake libtool mlocate \
-                     zlib1g-dev g++-7 python python3-numpy python3-dev python3-pip python3-wheel wget libboost-all-dev
-sudo updatedb
+
+#Bazel
+wget -O deps/bazel.sh https://github.com/bazelbuild/bazel/releases/download/0.18.0/bazel-0.18.0-installer-linux-x86_64.sh
+bash deps/bazel.sh --user
 
 cd extern/tensorflow_cc/tensorflow_cc
 mkdir build && cd build
@@ -26,3 +21,6 @@ mkdir build && cd build
 cmake ..
 make -j8 && sudo make install
 
+
+#TODO Make sure that I can run tensorflow from tensorflowcc
+extern/anaconda/bin/pip install keras==2.0.8 #tensorflow==1.8.0

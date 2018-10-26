@@ -26,7 +26,6 @@ def fd_jacobian(f_orig, x, eps=None, is_keras=False):
 
 def generate_jacobian_for_tf_model(model_input_path, jacobian_output_path):
     import tensorflow as tf
-    from tensorflow_forward_ad import forward_gradients
     from tensorflow.python.platform import gfile
     from tensorflow.core.protobuf import saved_model_pb2
     from tensorflow.python.util import compat
@@ -86,7 +85,6 @@ def generate_jacobian_for_tf_model(model_input_path, jacobian_output_path):
 
 def generate_vjp(model_input_path, vjp_output_path):
     import tensorflow as tf
-    from tensorflow_forward_ad import forward_gradients
     from tensorflow.python.platform import gfile
     from tensorflow.core.protobuf import saved_model_pb2
     from tensorflow.python.util import compat
@@ -140,7 +138,6 @@ def generate_vjp(model_input_path, vjp_output_path):
 
 def generate_energy_vjp(model_input_path, vjp_output_path):
     import tensorflow as tf
-    from tensorflow_forward_ad import forward_gradients
     from tensorflow.python.platform import gfile
     from tensorflow.core.protobuf import saved_model_pb2
     from tensorflow.python.util import compat
@@ -206,7 +203,6 @@ def generate_jvp(model_input_path, jvp_output_path):
     """WARNING THIS IS GIVING BAD VALUES FOR PLAIN ELU"""
 
     import tensorflow as tf
-    from tensorflow_forward_ad import forward_gradients
     from tensorflow.python.platform import gfile
     from tensorflow.core.protobuf import saved_model_pb2
     from tensorflow.python.util import compat
@@ -272,7 +268,6 @@ def generate_JTJ(model_input_path, JTJ_output_path):
     """WARNING THIS IS GIVING BAD VALUES"""
 
     import tensorflow as tf
-    from tensorflow_forward_ad import forward_gradients
     from tensorflow.python.platform import gfile
     from tensorflow.core.protobuf import saved_model_pb2
     from tensorflow.python.util import compat

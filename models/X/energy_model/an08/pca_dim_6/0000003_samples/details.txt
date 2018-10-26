@@ -1,8 +1,0 @@
-n_tets: 3
-relErr: 0.184437
-Selected tets: 6184, 24829, 21277, 
-Weights: 47103.4, 2973.29, 12403.3, 
-n_nonzero: 3
-
-Running time so far: 0.420346s
-
