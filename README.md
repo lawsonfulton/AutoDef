@@ -3,10 +3,10 @@ If your system is not a clean install, there may be dependency conflicts.
 
 # Build Instructions
 ```
-$ git clone --recursive git@github.com:zero-impact/AutoDef.git
-$ cd AutoDef
-$ sudo ./installDependencies.sh # When Anaconda asks if you would like to update .bashrc answer 'yes'
-$ ./build.sh
+git clone --recursive https://github.com/zero-impact/AutoDef.git
+cd AutoDef
+sudo ./installDependencies.sh # When Anaconda asks if you would like to update .bashrc answer 'yes'
+./build.sh
 ```
 
 WARNING: installDependencies.sh will overwrite your `~/.keras/keras.json` file if it is present. The default float type will be set to 64 bits from the default 32.
@@ -25,7 +25,7 @@ To interactively generate training data and subsequently train a reduced model, 
 
 Example:
 ```
-$ ./scripts/unified_gen_and_train.py configs/X.json models/X
+./scripts/unified_gen_and_train.py configs/X.json models/X
 ```
 
 Training parameters can be changed by editing `<config>.json`.
@@ -35,11 +35,7 @@ After training has completed, the model can be run using `src/AutoDefRuntime/bui
 
 Continuing from the example above
 ```
-$ ./src/AutoDefRuntime/build/bin/AutoDefRuntime models/X
+./src/AutoDefRuntime/build/bin/AutoDefRuntime models/X
 ```
 
 The simulation parameters (such as the type of reduced space) can be changed by editing `<model_dir>/sim_config.json`
-
-
-TODO:
-Can I avoid running make install for tensorflow cc? Just keep all of that entirely local?
