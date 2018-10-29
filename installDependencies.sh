@@ -30,4 +30,5 @@ extern/anaconda/bin/pip install --upgrade extern/tensorflow_cc/tensorflow_cc/bui
 extern/anaconda/bin/pip install keras==2.0.8 
 
 # Now I need to set the default in keras
+mkdir ~/.keras/
 cp ./keras.json ~/.keras/

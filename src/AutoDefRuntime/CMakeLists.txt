@@ -86,5 +86,5 @@ link_directories(${Gauss_LIB_DIR_RELEASE})
 add_executable(AutoDefRuntime ${SRC_CODE})
 
 
-target_link_libraries(AutoDefRuntime ${Gauss_LIBS} ${MKL_LIBS} -lpthread igl::core igl::viewer igl::png TensorflowCC::Static Boost::filesystem -lgomp  -lm -ldl)
+target_link_libraries(AutoDefRuntime ${Gauss_LIBS} ${MKL_LIBS} -lpthread igl::core igl::viewer igl::png TensorflowCC::Shared Boost::filesystem -lgomp  -lm -ldl)
 
