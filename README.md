@@ -11,9 +11,35 @@ $ ./build.sh
 
 WARNING: installDependencies.sh will overwrite your `~/.keras/keras.json` file if it is present. The default float type will be set to 64 bits from the default 32.
 
+The build process may take a long time (30-60 minutes) depending on your hardware. This is due to the fact that we use a modified version of Tensorflow and must build from source.
+
 
 ### MKL Support
 Uncomment #define EIGEN_USE_MKL_ALL in src/AutoDefRuntime/src/main.cpp if MKL is installed you want to enable MKL support.
 
 
 # Usage Instructions
+
+### Training a Model
+To interactively generate training data and subsequently train a reduced model, use the script `scripts/unified_gen_and_train.py <config>.json <model_output_dir>`
+
+Example:
+```
+$ ./scripts/unified_gen_and_train.py configs/X.json models/X
+```
+
+Training parameters can be changed by editing `<config>.json`.
+
+### Running a Model
+After training has completed, the model can be run using `src/AutoDefRuntime/build/bin/AutoDefRuntime <model_dir>`.
+
+Continuing from the example above
+```
+$ ./src/AutoDefRuntime/build/bin/AutoDefRuntime models/X
+```
+
+The simulation parameters (such as the type of reduced space) can be changed by editing `<model_dir>/sim_config.json`
+
+
+TODO:
+Can I avoid running make install for tensorflow cc? Just keep all of that entirely local?
