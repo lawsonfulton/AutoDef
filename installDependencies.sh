@@ -4,7 +4,7 @@ wget -O deps/anaconda.sh https://repo.continuum.io/archive/Anaconda3-5.0.0-Linux
 bash deps/anaconda.sh -b -p ./extern/anaconda
 
 # Other Deps
-sudo apt-get install build-essential curl git cmake unzip autoconf autogen automake libtool mlocate zlib1g-dev g++-7 python python3-numpy python3-dev python3-pip python3-wheel wget libboost-all-dev pkg-config zip g++ zlib1g-dev unzip python
+sudo apt-get install build-essential curl git cmake unzip autoconf autogen automake libtool mlocate zlib1g-dev g++-7 python python3-numpy python3-dev python3-pip python3-wheel wget libboost-all-dev pkg-config zip g++ zlib1g-dev unzip python -y
 sudo updatedb
 
 
