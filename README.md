@@ -5,8 +5,12 @@ If your system is not a clean install, there may be dependency conflicts.
 ```
 git clone --recursive https://github.com/zero-impact/AutoDef.git
 cd AutoDef
-sudo ./installDependencies.sh # When Anaconda asks if you would like to update .bashrc answer 'yes'
-./build.sh
+sudo ./installDependencies.sh # This could take a while (building tensorflow from source)
+
+# Now build the main project
+cd src/AutoDefRuntime
+mkdir build && cd build
+cmake .. && make -j8
 ```
 
 WARNING: installDependencies.sh will overwrite your `~/.keras/keras.json` file if it is present. The default float type will be set to 64 bits from the default 32.

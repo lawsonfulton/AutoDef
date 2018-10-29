@@ -10,7 +10,6 @@ sudo updatedb
 
 
 ### For tensorflow cc
-
 # Bazel
 wget -O deps/bazel.sh https://github.com/bazelbuild/bazel/releases/download/0.10.0/bazel-0.10.0-installer-linux-x86_64.sh
 sudo bash deps/bazel.sh
@@ -32,3 +31,24 @@ extern/anaconda/bin/pip install keras==2.0.8
 # Now I need to set the default in keras
 mkdir ~/.keras/
 cp ./keras.json ~/.keras/
+
+
+### Now the rest of the related code
+# Build GAUSS
+cd extern/GAUSS
+bash InstallGAUSS_Ubuntu_noqt.sh
+cd ../../
+
+# Build Libigl Python bindings
+cd extern/libigl/python
+mkdir build
+cd build; cmake ..; make -j8;
+cd ../../../../
+
+# Build Cubacode
+cd src/cubacode
+mkdir build
+cd build
+cmake ..
+make -j8
+cd ../../../
