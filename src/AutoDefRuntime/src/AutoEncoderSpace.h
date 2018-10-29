@@ -5,7 +5,7 @@
 
 // Autodef
 #include "TypeDefs.h"
-
+#include "AutoDefUtils.h"
 // Third
 #include <tensorflow/core/public/session.h>
 #include <nlohmann/json.hpp>
