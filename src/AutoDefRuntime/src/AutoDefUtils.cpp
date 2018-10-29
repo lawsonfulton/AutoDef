@@ -31,14 +31,14 @@ T get_json_value(const json &j, const std::string &key, T def) {
     }
 }
 
-std::string ZeroPadNumber(int num, int N = 5)
+std::string ZeroPadNumber(int num, int N)
 {
     std::ostringstream ss;
     ss << std::setw( N ) << std::setfill( '0' ) << num;
     return ss.str();
 }
 
-double approxRollingAverage (double avg, double new_sample, int N=20) {
+double approxRollingAverage (double avg, double new_sample, int N) {
     avg -= avg / N;
     avg += new_sample / N;
 
