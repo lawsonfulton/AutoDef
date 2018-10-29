@@ -12,15 +12,19 @@ sudo updatedb
 ### For tensorflow cc
 
 #Bazel
-wget -O deps/bazel.sh https://github.com/bazelbuild/bazel/releases/download/0.18.0/bazel-0.18.0-installer-linux-x86_64.sh
-bash deps/bazel.sh --user
+wget -O deps/bazel.sh https://github.com/bazelbuild/bazel/releases/download/0.10.0/bazel-0.10.0-installer-linux-x86_64.sh
+sudo bash deps/bazel.sh
 
 cd extern/tensorflow_cc/tensorflow_cc
 mkdir build && cd build
 # for static library only:
-cmake ..
+#cmake ..
+cmake -DTENSORFLOW_STATIC=OFF -DTENSORFLOW_SHARED=ON ..
 make -j8 && sudo make install
-
+cd tensorflow
+./bazel-bin/tensorflow/tools/pip_package/build_pip_package ./pip_package_build
+cd ../../../../../ # back to AutoDef/
+extern/anaconda/bin/pip install --upgrade extern/tensorflow_cc/tensorflow_cc/build/tensorflow/pip_package_build/tensorflow-1.8.0-cp36-cp36m-linux_x86_64.whl
 
 #TODO Make sure that I can run tensorflow from tensorflowcc
 extern/anaconda/bin/pip install keras==2.0.8 #tensorflow==1.8.0
