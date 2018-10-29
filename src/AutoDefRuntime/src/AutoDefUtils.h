@@ -19,7 +19,15 @@ namespace fs = boost::filesystem;
 EnergyMethod energy_method_from_integrator_config(const json &integrator_config);
 
 template<typename T>
-T get_json_value(const json &j, const std::string &key, T def);
+T get_json_value(const json &j, const std::string &key, T def) {
+    try {
+        return j.at(key);
+    }
+    catch (nlohmann::detail::out_of_range& e){
+        return def;
+    }
+}
+
 
 std::string ZeroPadNumber(int num, int N = 5);
 
