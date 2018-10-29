@@ -36,7 +36,7 @@ find_package(Boost COMPONENTS filesystem REQUIRED)
 
 #Libigl
 set(LIBIGL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/../../extern/libigl/include)
-option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" ON)
+option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" OFF)
 option(LIBIGL_WITH_ANTTWEAKBAR      "Use AntTweakBar"    OFF)
 option(LIBIGL_WITH_CGAL             "Use CGAL"           OFF)
 option(LIBIGL_WITH_COMISO           "Use CoMiso"         OFF)
