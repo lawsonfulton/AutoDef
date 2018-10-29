@@ -1,4 +1,4 @@
-#include <AutoDefUtils.h>
+#include "AutoDefUtils.h"
 
 EnergyMethod energy_method_from_integrator_config(const json &integrator_config) {
     try {
