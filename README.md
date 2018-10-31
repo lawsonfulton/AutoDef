@@ -35,7 +35,7 @@ Example:
 Instructions:
 1. When the opengl viewer opens, press 'a' to start recording the low resolution simulation.
 2. Click and drag on the model to interact. Click and drag on the background to change viewing angle.
-3. Press 'q' to end recording. A new viewer will open and show the full-resolution model being played-back.
+3. Press 'q' to end recording (Do not close the window manually!). A new viewer will open and show the full-resolution model being played-back.
 4. Wait for simulation to finish. Training will begin and finish automatically.
 
 Training parameters can be changed by editing `<config>.json`.
@@ -47,5 +47,9 @@ Continuing from the example above
 ```
 ./src/AutoDefRuntime/build/bin/AutoDefRuntime models/X
 ```
+
+Instructions:
+1. Press 'a' to start the simulation.
+2. Click and drag the model to interact.
 
 The simulation parameters (such as the type of reduced space) can be changed by editing `<model_dir>/sim_config.json`
