@@ -13,7 +13,7 @@ mkdir build && cd build
 cmake .. && make -j8
 ```
 
-WARNING: installDependencies.sh will overwrite your `~/.keras/keras.json` file if it is present. The default float type will be set to 64 bits from the default 32.
+WARNING: installDependencies.sh will overwrite your `~/.keras/keras.json` file if it is present. The default float type will be set to 64 bi+ts from the default 32.
 
 The build process may take a long time (30-60 minutes) depending on your hardware. This is due to the fact that we use a modified version of Tensorflow and must build from source.
 
@@ -31,6 +31,12 @@ Example:
 ```
 ./scripts/unified_gen_and_train.py configs/X.json models/X
 ```
+
+Instructions:
+1. When the opengl viewer opens, press 'a' to start recording the low resolution simulation.
+2. Click and drag on the model to interact. Click and drag on the background to change viewing angle.
+3. Press 'q' to end recording. A new viewer will open and show the full-resolution model being played-back.
+4. Wait for simulation to finish. Training will begin and finish automatically.
 
 Training parameters can be changed by editing `<config>.json`.
 
