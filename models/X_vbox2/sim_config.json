@@ -12,8 +12,9 @@
     "poissons_ratio": 0.47
   },
   "integrator_config": {
+    "use_newton": true,
     "reduced_space_type": "linear",
-    "use_reduced_energy": true,
+    "use_reduced_energy": fa,
     "use_partial_decode": true,
     "reduced_energy_method": "an08_all",
     "use_preconditioner": true,
@@ -51,7 +52,7 @@
       -0.1
     ],
     "fixed_point_radius": -1,
-    "print_every_n_frames": 10,
+    "print_every_n_frames": 1,
     "max_frames": 0
   }
 }

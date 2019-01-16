@@ -1,0 +1,64 @@
+{
+    "data": [
+        {
+            "n_layers": 1,
+            "avg_time": 0.00335982,
+            "training-mse": 7.529700375760642e-07,
+            "relative_percent_error": 3.560832008904079,
+            "max_distance_error": 0.031084671942422985,
+            "mean_distance_error": 0.0010090873099676094,
+            "ae_training_time_s": 52.1795494556427,
+            "outer_pca_training_time_s": 3.114178419113159
+        },
+        {
+            "n_layers": 2,
+            "avg_time": 0.0034844,
+            "training-mse": 5.963666754710503e-07,
+            "relative_percent_error": 3.4015961633200416,
+            "max_distance_error": 0.02024453173380684,
+            "mean_distance_error": 0.0009607385821787847,
+            "ae_training_time_s": 81.221200466156,
+            "outer_pca_training_time_s": 4.5944178104400635
+        },
+        {
+            "n_layers": 3,
+            "avg_time": 0.00476127,
+            "training-mse": 4.6111849243279156e-07,
+            "relative_percent_error": 3.0002926914336405,
+            "max_distance_error": 0.02009359459870261,
+            "mean_distance_error": 0.0008403195005223611,
+            "ae_training_time_s": 112.0972809791565,
+            "outer_pca_training_time_s": 3.141073226928711
+        },
+        {
+            "n_layers": 4,
+            "avg_time": 0.00527553,
+            "training-mse": 5.682111411431282e-07,
+            "relative_percent_error": 3.345685186889871,
+            "max_distance_error": 0.017066778375091764,
+            "mean_distance_error": 0.0009316216950626752,
+            "ae_training_time_s": 145.85910844802856,
+            "outer_pca_training_time_s": 3.120382785797119
+        },
+        {
+            "n_layers": 5,
+            "avg_time": 0.0055254,
+            "training-mse": 1.028116770914201e-06,
+            "relative_percent_error": 4.3324419330844375,
+            "max_distance_error": 0.01709058943924569,
+            "mean_distance_error": 0.001220186181554618,
+            "ae_training_time_s": 173.82777285575867,
+            "outer_pca_training_time_s": 3.3114559650421143
+        },
+        {
+            "n_layers": 6,
+            "avg_time": 0.00643502,
+            "training-mse": 6.217679936743325e-07,
+            "relative_percent_error": 3.5108048230828692,
+            "max_distance_error": 0.017542597842941616,
+            "mean_distance_error": 0.000998120859968641,
+            "ae_training_time_s": 202.4018144607544,
+            "outer_pca_training_time_s": 3.376984119415283
+        }
+    ]
+}

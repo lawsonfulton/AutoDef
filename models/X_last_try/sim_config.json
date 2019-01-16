@@ -12,6 +12,7 @@
     "poissons_ratio": 0.47
   },
   "integrator_config": {
+    "use_newton": false,
     "reduced_space_type": "full",
     "use_reduced_energy": false,
     "use_partial_decode": true,
@@ -35,7 +36,7 @@
     "save_obj_every_iteration": false
   },
   "visualization_config": {
-    "gpu_decode": true,
+    "gpu_decode": false,
     "show_stress": false,
     "show_energy": false,
     "show_lines": false,

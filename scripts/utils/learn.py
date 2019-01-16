@@ -9,7 +9,11 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 
+import sys, os
+sys.path.insert(0,'extern/libigl/python')
+print(os.path.abspath('extern/libigl/python'))
 import pyigl as igl
+print(igl.__file__)
 from utils.iglhelpers import e2p, p2e
 from utils import my_utils
 from utils.gauss_utils import get_mass_matrix, mass_pca
@@ -56,6 +60,7 @@ def autoencoder_analysis_vae(
 
     import keras
     import keras.backend as K
+
     from keras.layers import Input, Dense, Lambda
     from keras.models import Model, load_model
     from keras.engine.topology import Layer
@@ -307,6 +312,7 @@ def autoencoder_analysis(
 
     import keras
     import keras.backend as K
+    
     from keras.layers import Input, Dense, Lambda
     from keras.models import Model, load_model
     from keras.engine.topology import Layer
@@ -508,7 +514,7 @@ def distance_errors(samples, reencoded):
     dist_errors = numpy.sum(numpy.abs(per_vert_error_vec)**2,axis=-1)**(1./2)
     return dist_errors
 
-def pca_with_error_cutoff(samples, max_allowable_error, components=None, mem_=None):
+def pca_with_error_cutoff(samples, max_allowable_error, components=None, mem_=None, fixed_outer_dim=None):
     from scipy import linalg
 
     print('Doing SVD on', len(samples), 'samples')
@@ -551,7 +557,12 @@ def pca_with_error_cutoff(samples, max_allowable_error, components=None, mem_=No
                 hi = mid
         return mem[dim_list[lo - 1]] if dim_list[lo - 1] in mem else get_for_dim(dim_list[lo - 1])
 
-    max_err, U, explained_variance_ratio, encode, decode = bisect_left()
+    if fixed_outer_dim is None:
+        max_err, U, explained_variance_ratio, encode, decode = bisect_left()
+    else:
+        mem[fixed_outer_dim] = get_for_dim(fixed_outer_dim)
+        max_err, U, explained_variance_ratio, encode, decode = mem[fixed_outer_dim]
+
     print("PCA basis of size", len(U[0]), " has max distance error of", max_err, "<", max_allowable_error)
     return U, explained_variance_ratio, encode, decode, components, mem
 
@@ -593,6 +604,10 @@ def mass_pca_analysis(samples, pca_dim, mesh_path, density):
 def generate_model(
     model_root, # This is the root of the standard formatted directory created by build-model.py
     config, # Comes from the training config file
+    mem,
+    components,
+    files,
+    do_pca_compare = True
     ):
     learning_config = config['learning_config']
     autoencoder_config = learning_config['autoencoder_config']
@@ -613,7 +628,10 @@ def generate_model(
     face_indices_eig = p2e(face_indices)
 
     # Loading displacements for training data
-    displacements = my_utils.load_displacement_dmats_to_numpy(training_data_path)
+    if files is None:
+        files = my_utils.load_displacement_dmats_to_numpy(training_data_path)
+    displacements = files
+
     if os.path.exists(validation_data_path):
         test_displacements = my_utils.load_displacement_dmats_to_numpy(validation_data_path)
     else:
@@ -634,12 +652,24 @@ def generate_model(
         mass_matrix = get_mass_matrix(mesh_path, density)
 
     # Do the training
-
-    outer_dim_max_vert_error = autoencoder_config.get('outer_dim_max_vert_error', None) or autoencoder_config['pca_layer_err']
-    inner_dim_max_vert_error = autoencoder_config.get('inner_dim_max_vert_error', None) or autoencoder_config['pca_layer_err']
-    # pca_compare_dims = autoencoder_config['pca_compare_dims']
+    search_for_dims = autoencoder_config.get('search_for_dims', True)
     ae_encoded_dim_min = autoencoder_config['ae_encoded_dim_min']
     ae_encoded_dim_max = autoencoder_config['ae_encoded_dim_max']
+    outer_dim_max_vert_error = autoencoder_config.get('outer_dim_max_vert_error', None) or autoencoder_config['pca_layer_err']
+    inner_dim_max_vert_error = autoencoder_config.get('inner_dim_max_vert_error', None) or autoencoder_config['pca_layer_err']
+    
+    if not search_for_dims:
+        print("not searching")
+        print(autoencoder_config)
+        fixed_inner_dim = autoencoder_config.get('fixed_inner_dim')
+        fixed_outer_dim = autoencoder_config.get('fixed_outer_dim')
+        ae_encoded_dim_min = fixed_inner_dim
+        ae_encoded_dim_max = fixed_inner_dim
+        print(fixed_inner_dim)
+        print(fixed_outer_dim)
+        print(ae_encoded_dim_min)
+        print(ae_encoded_dim_max)
+
     ae_epochs = autoencoder_config['training_epochs']
     batch_size = autoencoder_config['batch_size'] if autoencoder_config['batch_size'] > 0 else len(displacements)
     batch_size_increase = autoencoder_config.get('batch_size_increase', False)
@@ -659,7 +689,8 @@ def generate_model(
     # else:
     #     #U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode = pca_no_centering(displacements, pca_ae_train_dim)
     #     U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode, components = pca_with_error_cutoff(displacements, pca_ae_train_err)
-    U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode, components, mem = pca_with_error_cutoff(displacements, outer_dim_max_vert_error)
+
+    U_ae, explained_var, high_dim_pca_encode, high_dim_pca_decode, components, mem = pca_with_error_cutoff(displacements, outer_dim_max_vert_error, components = components, mem_= mem, fixed_outer_dim=fixed_outer_dim)
     pca_train_time = time.time() - pca_start_time
 
 ###
@@ -724,6 +755,7 @@ def generate_model(
     for ae_dim in range(ae_encoded_dim_min, ae_encoded_dim_max + 1):
         this_training_results = {}
         pca_basis_init = U_ae if train_in_full_space and use_pca_init else None
+        # print(encoded_high_dim_pca_displacements.dtype)
         ae_encode, ae_decode, ae_train_time = autoencoder_analysis(
                                         # displacements, # Uncomment to train in full space
                                         # test_displacements, 
@@ -773,7 +805,7 @@ def generate_model(
 
 
     # Do this after now
-    U_best_match, _, _, _, _, _ = pca_with_error_cutoff(displacements, ae_max_dist_error, components, mem)
+    U_best_match, _, _, _, _, _ = pca_with_error_cutoff(displacements, ae_max_dist_error, components, mem, fixed_outer_dim=fixed_outer_dim)
 
     # Add this dim to our list of compare_dims if it's not there already
     outer_layer_dim = U_ae.shape[1]
@@ -783,49 +815,51 @@ def generate_model(
     pca_compare_dims = [outer_layer_dim, best_match_pca_dim, ae_encoded_dim]
 
     # Normal low dim pca first
-    for pca_dim in pca_compare_dims:
-        # if use_mass_pca:
-        #     raise("This needs to be debugged")
-        #     U, explained_var, pca_encode, pca_decode = mass_pca_analysis(displacements, pca_dim, mesh_path, density)
-        # else:
-        U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim, components)
+    
+    if do_pca_compare:
+        for pca_dim in pca_compare_dims:
+            # if use_mass_pca:
+            #     raise("This needs to be debugged")
+            #     U, explained_var, pca_encode, pca_decode = mass_pca_analysis(displacements, pca_dim, mesh_path, density)
+            # else:
+            U, explained_var, pca_encode, pca_decode = pca_no_centering(displacements, pca_dim, components)
 
-        encoded_pca_displacements = pca_encode(displacements)
-        decoded_pca_displacements = pca_decode(encoded_pca_displacements)
-        if test_displacements is not None:
-            encoded_pca_test_displacements = pca_encode(test_displacements)
-            decoded_pca_test_displacements = pca_decode(encoded_pca_test_displacements)
-
-        if save_pca_components:
-            pca_results_filename = os.path.join(model_root, 'pca_results/pca_components_' + str(pca_dim) + '.dmat')
-            print('Saving pca results to', pca_results_filename)
-            my_utils.create_dir_if_not_exist(os.path.dirname(pca_results_filename))
-            my_utils.save_numpy_mat_to_dmat(pca_results_filename, numpy.ascontiguousarray(U))
-
-            training_mse = mean_squared_error(flatten_data(decoded_pca_displacements), flatten_data(displacements))
-
-            actual = flatten_data(displacements)
-            pred = flatten_data(decoded_pca_displacements)
-            relative_error = compute_relative_percent_error(pred, actual)
-            
-            dist_errors = distance_errors(decoded_pca_displacements, displacements)
-            max_distance_error = numpy.max(dist_errors)
-            mean_distance_error = numpy.mean(dist_errors)
-
+            encoded_pca_displacements = pca_encode(displacements)
+            decoded_pca_displacements = pca_decode(encoded_pca_displacements)
             if test_displacements is not None:
-                validation_mse = mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements))
-            training_results['pca'][str(pca_dim) + '-components'] = {}
-            training_results['pca'][str(pca_dim) + '-components']['training-mse'] = training_mse
-            training_results['pca'][str(pca_dim) + '-components']['max-distance-error'] = max_distance_error
-            training_results['pca'][str(pca_dim) + '-components']['mean-distance-error'] = mean_distance_error
+                encoded_pca_test_displacements = pca_encode(test_displacements)
+                decoded_pca_test_displacements = pca_decode(encoded_pca_test_displacements)
 
-            if test_displacements is not None:
-                training_results['pca'][str(pca_dim) + '-components']['validation-mse'] = validation_mse
+            if save_pca_components:
+                pca_results_filename = os.path.join(model_root, 'pca_results/pca_components_' + str(pca_dim) + '.dmat')
+                print('Saving pca results to', pca_results_filename)
+                my_utils.create_dir_if_not_exist(os.path.dirname(pca_results_filename))
+                my_utils.save_numpy_mat_to_dmat(pca_results_filename, numpy.ascontiguousarray(U))
 
-            print(str(pca_dim) + ' training MSE: ', training_mse)
-            print(str(pca_dim) + ' training worst distance error: ', max_distance_error)
-            print(str(pca_dim) + ' training mean distance error: ', mean_distance_error)
-            print()
+                training_mse = mean_squared_error(flatten_data(decoded_pca_displacements), flatten_data(displacements))
+
+                actual = flatten_data(displacements)
+                pred = flatten_data(decoded_pca_displacements)
+                relative_error = compute_relative_percent_error(pred, actual)
+                
+                dist_errors = distance_errors(decoded_pca_displacements, displacements)
+                max_distance_error = numpy.max(dist_errors)
+                mean_distance_error = numpy.mean(dist_errors)
+
+                if test_displacements is not None:
+                    validation_mse = mean_squared_error(flatten_data(decoded_pca_test_displacements), flatten_data(test_displacements))
+                training_results['pca'][str(pca_dim) + '-components'] = {}
+                training_results['pca'][str(pca_dim) + '-components']['training-mse'] = training_mse
+                training_results['pca'][str(pca_dim) + '-components']['max-distance-error'] = max_distance_error
+                training_results['pca'][str(pca_dim) + '-components']['mean-distance-error'] = mean_distance_error
+
+                if test_displacements is not None:
+                    training_results['pca'][str(pca_dim) + '-components']['validation-mse'] = validation_mse
+
+                print(str(pca_dim) + ' training MSE: ', training_mse)
+                print(str(pca_dim) + ' training worst distance error: ', max_distance_error)
+                print(str(pca_dim) + ' training mean distance error: ', mean_distance_error)
+                print()
 
 
     # UTMU = None
@@ -855,7 +889,7 @@ def generate_model(
             obj_path = os.path.join(obj_dir, "decoded_%05d.obj" % i)
             igl.writeOBJ(obj_path, decoded_verts_eig, face_indices_eig)
 
-    return outer_layer_dim, best_match_pca_dim, ae_encoded_dim
+    return outer_layer_dim, best_match_pca_dim, ae_encoded_dim, training_results, mem, components, files
 
 
 

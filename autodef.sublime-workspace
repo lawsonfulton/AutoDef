@@ -4,6 +4,150 @@
 		"selected_items":
 		[
 			[
+				"errs",
+				"errs_df"
+			],
+			[
+				"fix",
+				"fixed_outer_dim"
+			],
+			[
+				"m_tot",
+				"m_total_time"
+			],
+			[
+				"do_",
+				"do_grad"
+			],
+			[
+				"sk",
+				"skip_hessian"
+			],
+			[
+				"skip",
+				"skip_grad"
+			],
+			[
+				"skip_",
+				"skip_grad"
+			],
+			[
+				"m_cached",
+				"m_cachedX"
+			],
+			[
+				"m_ca",
+				"m_cachedHessian"
+			],
+			[
+				"m_cac",
+				"m_cachedGrad"
+			],
+			[
+				"Sampled",
+				"sampled_K"
+			],
+			[
+				"tranp",
+				"transpose"
+			],
+			[
+				"t",
+				"true"
+			],
+			[
+				"ele",
+				"element_reduced_force"
+			],
+			[
+				"U_",
+				"U_block_i"
+			],
+			[
+				"hess",
+				"hessian"
+			],
+			[
+				"samp",
+				"sampled_K"
+			],
+			[
+				"K",
+				"K_asm"
+			],
+			[
+				"sampled",
+				"sampled_force"
+			],
+			[
+				"sampl",
+				"sampled_force"
+			],
+			[
+				"sample",
+				"sampled_K"
+			],
+			[
+				"reduc",
+				"reduced_K"
+			],
+			[
+				"Spare",
+				"SparseMatrix"
+			],
+			[
+				"m_U",
+				"m_UTMU"
+			],
+			[
+				"get",
+				"getStiffnessMatrix"
+			],
+			[
+				"newt",
+				"newton_solver"
+			],
+			[
+				"cpp",
+				"cppoptlib"
+			],
+			[
+				"m_new",
+				"m_newton_objective"
+			],
+			[
+				"m_us",
+				"m_use_newton"
+			],
+			[
+				"New",
+				"NewtonObjective"
+			],
+			[
+				"gplc",
+				"gplc_objective"
+			],
+			[
+				"full",
+				"full_energy_and_forces"
+			],
+			[
+				"zD",
+				"zDot_param"
+			],
+			[
+				"z",
+				"z_param"
+			],
+			[
+				"stiff",
+				"stiffnessMatrix"
+			],
+			[
+				"m_M",
+				"m_M_asm"
+			],
+			[
 				"se",
 				"series_labels"
 			],
@@ -102,10 +246,6 @@
 			[
 				"Vector",
 				"Vector4f"
-			],
-			[
-				"fix",
-				"fixed_color"
 			],
 			[
 				"auto",
@@ -308,10 +448,6 @@
 				"displacements_"
 			],
 			[
-				"do_",
-				"do_twist"
-			],
-			[
 				"confi",
 				"config_path"
 			],
@@ -378,142 +514,6 @@
 			[
 				"energy_me",
 				"m_energy_method"
-			],
-			[
-				"en",
-				"eng"
-			],
-			[
-				"dis",
-				"displacements"
-			],
-			[
-				"d",
-				"displacements"
-			],
-			[
-				"get_",
-				"get_mass_matrix"
-			],
-			[
-				"gau",
-				"gauss_utils"
-			],
-			[
-				"de",
-				"density"
-			],
-			[
-				"use_",
-				"use_mass_pca"
-			],
-			[
-				"sample",
-				"samples_path"
-			],
-			[
-				"wor",
-				"workspace"
-			],
-			[
-				"pca",
-				"pca_dim"
-			],
-			[
-				"row",
-				"row_d"
-			],
-			[
-				"mes",
-				"mesh_path"
-			],
-			[
-				"fin",
-				"final_filenames"
-			],
-			[
-				"fil",
-				"filename"
-			],
-			[
-				"dma",
-				"dmat_prefix"
-			],
-			[
-				"filen",
-				"filenames"
-			],
-			[
-				"numer",
-				"numbers_strings"
-			],
-			[
-				"get_cur",
-				"get_current_vert_pos"
-			],
-			[
-				"sub",
-				"sub_q"
-			],
-			[
-				"vert",
-				"vert_index"
-			],
-			[
-				"drag",
-				"dragged_vert"
-			],
-			[
-				"m_tota",
-				"m_total_time_since_last"
-			],
-			[
-				"pritn",
-				"print_freq"
-			],
-			[
-				"upd",
-				"update_time"
-			],
-			[
-				"print",
-				"print_freq"
-			],
-			[
-				"fps",
-				"fps_window"
-			],
-			[
-				"cur_",
-				"cur_time"
-			],
-			[
-				"avg",
-				"avg_fps"
-			],
-			[
-				"get_cu",
-				"get_current_z"
-			],
-			[
-				"gpl",
-				"gplc_stepper"
-			],
-			[
-				"redu",
-				"reduced_space_type"
-			],
-			[
-				"end",
-				"end_date"
-			],
-			[
-				"dates",
-				"dates_per_half_hour"
-			],
-			[
-				"load",
-				"load_obj"
 			]
 		]
 	},
@@ -523,107 +523,115 @@
 			"file": "reduced_sim_gauss/src/reduced_sim_example.cpp",
 			"settings":
 			{
-				"buffer_size": 81770,
+				"buffer_size": 109856,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "figure data/profile/plot.py",
+			"file": "configs/unified/X_depth/X_1.json",
 			"settings":
 			{
-				"buffer_size": 7495,
+				"buffer_size": 1418,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "reduced_sim_gauss/src/AutoEncoderSpace.h",
+			"file": "configs/unified/X_depth/X_2.json",
 			"settings":
 			{
-				"buffer_size": 1634,
+				"buffer_size": 1424,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "reduced_sim_gauss/src/AutoEncoderSpace.cpp",
+			"file": "configs/unified/X_depth/X_3.json",
 			"settings":
 			{
-				"buffer_size": 12296,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/home/lawson/Workspace/LBFGSpp/include/LBFGS.h",
-			"settings":
-			{
-				"buffer_size": 9932,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/search/armadillo2/training_results.json",
-			"settings":
-			{
-				"buffer_size": 724,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/elephant/energy_model/an08/pca_dim_24_small/details.txt",
-			"settings":
-			{
-				"buffer_size": 920,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "models/elephant/energy_model/an08/pca_dim_28/details.txt",
-			"settings":
-			{
-				"buffer_size": 1105,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "scripts/unified_gen_and_train.py",
-			"settings":
-			{
-				"buffer_size": 8932,
+				"buffer_size": 1428,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "models/mounted_bar2/model_config.json",
+			"file": "configs/unified/X_depth/X_4.json",
 			"settings":
 			{
-				"buffer_size": 1059,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "cubacode/src/main.cpp",
-			"settings":
-			{
-				"buffer_size": 19989,
+				"buffer_size": 1433,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "cubacode/src/GreedyCubop.cpp",
+			"file": "configs/unified/X_depth/X_5.json",
 			"settings":
 			{
-				"buffer_size": 24038,
+				"buffer_size": 1438,
+				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "scripts/build-model.py",
+			"file": "configs/unified/X_depth/X_6.json",
 			"settings":
 			{
-				"buffer_size": 8264,
+				"buffer_size": 1443,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "models/search/armadillo2/sim_config.json",
+			"settings":
+			{
+				"buffer_size": 1602,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/lawson/Downloads/notes.txt",
+			"settings":
+			{
+				"buffer_size": 4138,
+				"encoding": "UTF-8",
+				"line_ending": "Unix",
+				"name": "LBFGS"
+			}
+		},
+		{
+			"file": "scripts/build_model.py",
+			"settings":
+			{
+				"buffer_size": 8219,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "scripts/generate_error_heatmap_data.py",
+			"settings":
+			{
+				"buffer_size": 10011,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "figure data/error_heatmap/heatmap.py",
+			"settings":
+			{
+				"buffer_size": 4366,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "models/X_depth/X_6/sim_config.json",
+			"settings":
+			{
+				"buffer_size": 1458,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
@@ -632,24 +640,33 @@
 			"file": "scripts/utils/learn.py",
 			"settings":
 			{
-				"buffer_size": 67499,
+				"buffer_size": 68784,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "reduced_sim_gauss/src/AutoDefUtils.h",
+			"file": "/home/lawson/.cache/.fr-H0fRwY/egPublStyle-EG-full-star-short-edu-tut-posters-2019/EGauthorGuidelines-conf-fin_with_teaser.tex",
 			"settings":
 			{
-				"buffer_size": 7192,
+				"buffer_size": 2959,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "models/X_depth/X_2/sim_config.json",
+			"settings":
+			{
+				"buffer_size": 1458,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "scripts/utils/my_utils.py",
+			"file": "scripts/unified_gen_and_train.py",
 			"settings":
 			{
-				"buffer_size": 9440,
+				"buffer_size": 9118,
+				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		}
@@ -750,6 +767,43 @@
 	],
 	"file_history":
 	[
+		"/home/lawson/Workspace/AutoDef/configs/unified/X_heatmap.json",
+		"/home/lawson/Workspace/AutoDef/scripts/utils/compute_tf_jacobian_models.py",
+		"/home/lawson/Workspace/AutoDef/configs/unified/mounted_bar_heatmap.json",
+		"/home/lawson/Workspace/LBFGSpp/include/LBFGS.h",
+		"/home/lawson/Workspace/AutoDef/models/X_vbox2/sim_config.json",
+		"/home/lawson/.cache/.fr-rVGYcP/simple_joint/generated_files/joint_indices.dmat",
+		"/home/lawson/Workspace/AutoDef/figure data/profile/plot.py",
+		"/home/lawson/Workspace/AutoDef/scripts/utils/learn.py",
+		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/GaussSystemWrapperImpl.cpp",
+		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/GaussSystemWrapper.h",
+		"/home/lawson/.cache/.fr-oaJ1kH/realistic_upper_arm/objs/shoulder_joint.obj",
+		"/home/lawson/.cache/.fr-AvNArU/realistic_upper_arm/objs/elbow_joint.obj",
+		"/home/lawson/.cache/.fr-MtlO1T/realistic_upper_arm/config.json",
+		"/home/lawson/Workspace/curv/BUILD.md",
+		"/home/lawson/Workspace/curv/README.rst",
+		"/home/lawson/Workspace/curv/docs/README.rst",
+		"/home/lawson/.cache/.fr-yHhNpM/realistic_upper_arm/generated_files/tet_mesh_T.dmat",
+		"/home/lawson/Workspace/AutoDef/models/dragon_unified_highres_lower_dim/sim_config.json",
+		"/home/lawson/Workspace/AutoDef/models/search/armadillo2/sim_config.json",
+		"/home/lawson/Workspace/AutoDef/models/armadillo_unified/sim_config.json",
+		"/home/lawson/Workspace/AutoDef/models/armadillo_unified2/sim_config.json",
+		"/home/lawson/Workspace/AutoDef/models/search/armadillo/sim_config.json",
+		"/home/lawson/Workspace/AutoDef/figure data/error_heatmap/X/training_results_1_12_5.json",
+		"/home/lawson/Workspace/AutoDef/models/mounted_bar2/model_config.json",
+		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/AutoEncoderSpace.cpp",
+		"/home/lawson/Workspace/AutoDef/models/elephant/energy_model/an08/pca_dim_28/details.txt",
+		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/AutoEncoderSpace.h",
+		"/home/lawson/Workspace/AutoDef/models/X_last_try/sim_config.json",
+		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/CMakeLists.txt",
+		"/home/lawson/Workspace/AutoDef/scripts/utils/my_utils.py",
+		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/AutoDefUtils.h",
+		"/home/lawson/Workspace/AutoDef/scripts/build-model.py",
+		"/home/lawson/Workspace/AutoDef/cubacode/src/GreedyCubop.cpp",
+		"/home/lawson/Workspace/AutoDef/cubacode/src/main.cpp",
+		"/home/lawson/Workspace/AutoDef/scripts/unified_gen_and_train.py",
+		"/home/lawson/Workspace/AutoDef/models/elephant/energy_model/an08/pca_dim_24_small/details.txt",
+		"/home/lawson/Workspace/AutoDef/models/search/armadillo2/training_results.json",
 		"/home/lawson/Workspace/AutoDef/profile/plot.py",
 		"/home/lawson/Workspace/libigl/include/igl/viewer/OpenGL_state.cpp",
 		"/home/lawson/Workspace/libigl/include/igl/viewer/ViewerCore.cpp",
@@ -758,7 +812,6 @@
 		"/home/lawson/Workspace/AutoDef/training_data/experimental/squirrel/training/mouse.json",
 		"/home/lawson/Workspace/AutoDef/models/squirrel/training_data/training/parameters.json",
 		"/home/lawson/Workspace/AutoDef/regenerate_forces/src/interactive.cpp",
-		"/home/lawson/Workspace/LBFGSpp/include/LBFGS.h",
 		"/home/lawson/Workspace/AutoDef/overnight.sh",
 		"/home/lawson/Workspace/AutoDef/models/search/X/training_results.json",
 		"/home/lawson/Workspace/AutoDef/models/search/dragon/training_results.json",
@@ -767,10 +820,8 @@
 		"/home/lawson/Workspace/AutoDef/models/search/dragon/energy_model/an08/pca_dim_29/0000200_samples/details.txt",
 		"/home/lawson/Workspace/AutoDef/models/dragon_unified_highres_lower_dim/energy_model/an08/0000062_samples/details.txt",
 		"/home/lawson/Workspace/AutoDef/scripts/utils/tet_wild_generate_multiple_resolutions.py",
-		"/home/lawson/Workspace/AutoDef/cubacode/src/GreedyCubop.cpp",
 		"/home/lawson/Workspace/AutoDef/figure data/bfgs convergence/new_plot.py",
 		"/home/lawson/Workspace/AutoDef/scripts/build_model.py",
-		"/home/lawson/Workspace/AutoDef/scripts/utils/learn.py",
 		"/home/lawson/Workspace/AutoDef/models/search/dragon/energy_model/an08/0000014_samples/details.txt",
 		"/home/lawson/Workspace/AutoDef/models/search/dragon/energy_model/an08/details.txt",
 		"/home/lawson/Workspace/AutoDef/models/dragon_unified_highres_lower_dim/energy_model/an08/0000200_samples/details.txt",
@@ -780,10 +831,8 @@
 		"/home/lawson/Workspace/RS_Subspace/CommonFile/CMakeLists.txt",
 		"/home/lawson/Workspace/AutoDef/scripts/utils/convert_keras_models_to_tf.py",
 		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/TypeDefs.h",
-		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/AutoDefUtils.h",
 		"/home/lawson/Workspace/RS_Subspace/CMakeLists.txt",
 		"/home/lawson/Workspace/LBFGSpp/include/LBFGS/Param.h",
-		"/home/lawson/Workspace/AutoDef/scripts/utils/my_utils.py",
 		"/home/lawson/Workspace/LBFGSpp/include/LBFGS/LineSearch.h",
 		"/home/lawson/Workspace/AutoDef/generate_training/src/interactive.cpp",
 		"/home/lawson/Workspace/AutoDef/models/beam_simple_fall_28k/model_config.json",
@@ -823,7 +872,6 @@
 		"/home/lawson/Workspace/AutoDef/figure data/bfgs_convergence/sc.sh",
 		"/home/lawson/Documents/build_mode.py.bak",
 		"/home/lawson/Documents/learn.py.bak",
-		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/CMakeLists.txt",
 		"/home/lawson/Documents/interactive.cpp.bak",
 		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/LinearSpace.cpp",
 		"/home/lawson/Workspace/libigl/include/igl/writePLY.cpp",
@@ -831,11 +879,9 @@
 		"/home/lawson/Documents/reduced_sim.cpp.bak",
 		"/home/lawson/Workspace/AutoDef/.gitignore",
 		"/home/lawson/Workspace/AutoDef/training_data/new_25cm_bar_11k_twist_and_bend/twist_bar.json",
-		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/GaussSystemWrapper.h",
 		"/home/lawson/Workspace/AutoDef/meshes/X.1.mesh",
 		"/home/lawson/Workspace/AutoDef/training_data/x-with-forces/training/parameters.json",
 		"/home/lawson/Workspace/AutoDef/scripts/configs.json",
-		"/home/lawson/Workspace/AutoDef/scripts/build-model.py",
 		"/home/lawson/Workspace/AutoDef/scripts/NonlinearHandleModes.m",
 		"/home/lawson/Workspace/cubacode/models/fine_beam_final/energy_model/an08/390_samples/details.txt",
 		"/home/lawson/Workspace/AutoDef/meshes/31kdragon.mesh",
@@ -848,44 +894,15 @@
 		"/home/lawson/Workspace/GAUSS/src/MATLAB/CMakeLists.txt",
 		"/home/lawson/Workspace/AutoDef/meshes/Fine_beam.mesh",
 		"/home/lawson/Workspace/AutoDef/training_data/fine_beam_handle_modes/all_states/parameters.json",
-		"/home/lawson/Workspace/AutoDef/configs/fine_beam_handle_modes.json",
-		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/AutoEncoderSpace.cpp",
-		"/home/lawson/Dropbox/untitled.py",
-		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/AutoDefViewer.h",
-		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/GaussTypeDefs.h",
-		"/home/lawson/Workspace/AutoDef/models/10k-armadillo/model_config.json",
-		"/home/lawson/Workspace/AutoDef/meshes/one.1.mesh",
-		"/home/lawson/Workspace/AutoDef/models/x-final/simulation_logs/simple_pull/compare_error.py",
-		"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/ReducedCubature/LoboCubatureTraining.cpp",
-		"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/cubacode/GreedyCubop.cpp",
-		"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/ReducedCubatureTrainingOptimization.cpp",
-		"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/src/cubature/ReducedCubatureTraining.h",
-		"/home/lawson/Workspace/AutoDef/reduced_sim_gauss/src/reduced_sim_example.cpp",
-		"/home/lawson/Workspace/blender_scripts/import_autodef_sequence.py",
-		"/home/lawson/Downloads/test.py",
-		"/home/lawson/Downloads/mesh_sequence_controller.py",
-		"/home/lawson/Workspace/AutoDef/meshes/Coarse_beam.mesh",
-		"/home/lawson/Workspace/AutoDef/models/very_coarse_bar/tets.mesh",
-		"/home/lawson/Workspace/GAUSS/README.md",
-		"/home/lawson/Workspace/GAUSS/InstallGAUSS_Ubuntu.sh",
-		"/home/lawson/Workspace/research-experiments/fem-sim/generate_energy_models.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/meshes/one.stl",
-		"/home/lawson/Workspace/blender_scripts/skin_frames.py",
-		"/home/lawson/.config/blender/2.79/scripts/addons/import_autodef_sequence.py",
-		"/home/lawson/Workspace/LoboModalDerivative/LoboSimulator/3dmodel/tongueshape/tongueshape01.obj",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/learn.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/utils/my_utils.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/training_data/very_coarse_bar/training/parameters.json",
-		"/home/lawson/Workspace/research-experiments/fem-sim/build-model.py",
-		"/home/lawson/Workspace/research-experiments/fem-sim/models/x-final/simulation_logs/2018-04-12.16:33:43/sim_stats.json"
+		"/home/lawson/Workspace/AutoDef/configs/fine_beam_handle_modes.json"
 	],
 	"find":
 	{
-		"height": 40.0
+		"height": 65.8461538462
 	},
 	"find_in_files":
 	{
-		"height": 115.0,
+		"height": 169.230769231,
 		"where_history":
 		[
 			"/home/lawson/Workspace/libigl/include/igl/",
@@ -903,6 +920,95 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"X_depth",
+			"json",
+			"ae_e",
+			"ae_encoded_dim_max",
+			"ae_encoded_dim_min",
+			"search_for_dims",
+			"ae_encoded_dim_min",
+			"current_frame",
+			"total_evals",
+			"skip_grad",
+			"full_energy_and_forces",
+			"my_val_and_grad",
+			"hessian(",
+			"Solve",
+			"check",
+			"epsilon",
+			"check",
+			"m_cachedHessian",
+			";",
+			"j",
+			"k",
+			"vert_id",
+			"m_U_cubature_sampled",
+			"my_val_and_grad",
+			"full_energy_and_forces",
+			"parallel_current_reduced_energy_and_forces",
+			"full_energy_and_forces",
+			"my_val_and_grad",
+			"sampled_force",
+			"getStiffnessMatrix",
+			"m_U_cubature_sampled.block(i*12, 0, 12, d)",
+			"hessian(",
+			"m_UTMU",
+			"setParameters",
+			"setDensity",
+			"NeohookeanHFixedTet",
+			"m_U_cubature_sampled",
+			"m_cur_z, 6",
+			"tive->check",
+			"grad_ok",
+			"element_reduced_force",
+			"sampled_force",
+			"m_UTMU",
+			"K_asm",
+			"AssemblerParallel",
+			"getInternalForceVector",
+			"m_internal_force_asm",
+			"newton_solver",
+			"my_val_and_grad",
+			"m_gplc_objective",
+			"reset_zs",
+			"*this",
+			"grad);",
+			"value(",
+			"m_newton_objective",
+			"m_gplc_objective",
+			"m_solver",
+			"m_newton_objective",
+			"m_gplc_objective",
+			"NewtonObjective",
+			"Vector",
+			"GPLCObjective",
+			"cppoptlib",
+			"massmatrix",
+			"pardi",
+			"m_world",
+			"newton_step",
+			"parallel_current_reduced_energy_and_forces",
+			"m_",
+			"m_UTMU",
+			"m_U",
+			"m_forceVector",
+			"&",
+			"m_newton",
+			"newton_step",
+			"AssemblerParallel",
+			"&",
+			"world",
+			"VectorAssembler",
+			"MatrixAssembler",
+			"m_newton",
+			"qDot",
+			"constraint",
+			"m_M_asm",
+			" &",
+			"MatrixAssembler",
+			"m_num_iterations",
+			"min_val_res",
+			"GPLCObjective",
 			",",
 			"linear_times",
 			"_",
@@ -941,96 +1047,7 @@
 			"dragged_mesh_pos",
 			"pointer",
 			"an08_",
-			"hz",
-			"aver",
-			"hz",
-			"vis_vert_id",
-			"current_frame",
-			"rot",
-			"get_min_verts",
-			"{\n",
-			"get_min_verts",
-			"twist",
-			"grabbed",
-			"pca_with_error_cutoff",
-			"components",
-			"\"",
-			"\": ",
-			"camera_zoom\":",
-			"\"",
-			"mode",
-			"nnls",
-			"solveRowMajor",
-			"nnlser",
-			"nnls",
-			"create_learning_config",
-			"=",
-			" =",
-			"goal_tet_count",
-			"maxNumPoints = ",
-			" =",
-			"model_config",
-			"U_ae",
-			"trackball_angle",
-			"3",
-			"800*3",
-			"*3",
-			"m_all_cubature_weights",
-			"\"-",
-			"1280",
-			"draw_buffer",
-			"eps = ",
-			"show_camera_info",
-			"viewer",
-			"trackball_angle",
-			"show_camera_info",
-			"per_vertex_normals",
-			"rotati",
-			"RotationType",
-			" rotation",
-			": \" <",
-			";",
-			"orthographic;\n",
-			";",
-			"angl",
-			"show_tet",
-			"show_tets",
-			"set_c",
-			"kdi",
-			"set_co",
-			"KdiNew",
-			"fixed_color",
-			"set_colors",
-			"eps",
-			"pinned_color",
-			"o",
-			"Ksi",
-			"Kfi",
-			"fresnel_factor",
-			"fresnel_exponent",
-			"specular_exponent",
-			"fresnel_exponent",
-			"ka",
-			"V_material_ambient",
-			"RowVector3d",
-			"uniform_colors",
-			"ambient",
-			"free_color",
-			"shininess",
-			"fast_red_diffuse",
-			"cyan_diffuse",
-			"Vector4f",
-			"VF",
-			"cyan_diffuse",
-			"fixed_color",
-			"vec4",
-			"KdiNew",
-			"fixed_color",
-			"CYAN_DIFFUSE",
-			"free_color",
-			"pinned_color",
-			"fixed",
-			"fixed_color"
+			"hz"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1049,7 +1066,7 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 10,
 			"sheets":
 			[
 				{
@@ -1058,15 +1075,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 81770,
+						"buffer_size": 109856,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								18146,
-								18146
+								36723,
+								36723
 							]
 						],
 						"settings":
@@ -1076,62 +1093,32 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 9225.0,
+						"translation.y": 25838.1538462,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 15,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "figure data/profile/plot.py",
+					"file": "configs/unified/X_depth/X_1.json",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 7495,
+						"buffer_size": 1418,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								5877,
-								5877
+								581,
+								581
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 2268.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
-					"file": "reduced_sim_gauss/src/AutoEncoderSpace.h",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1634,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1292,
-								1292
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
@@ -1139,90 +1126,60 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
+					"stack_index": 5,
 					"type": "text"
 				},
 				{
-					"buffer": 3,
-					"file": "reduced_sim_gauss/src/AutoEncoderSpace.cpp",
+					"buffer": 2,
+					"file": "configs/unified/X_depth/X_2.json",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 12296,
+						"buffer_size": 1424,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								6658,
-								6658
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 2134.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "/home/lawson/Workspace/LBFGSpp/include/LBFGS.h",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 9932,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								2861,
-								2861
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 939.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 4,
-					"type": "text"
-				},
-				{
-					"buffer": 5,
-					"file": "models/search/armadillo2/training_results.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 724,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								724,
-								724
+								1423,
+								1423
 							]
 						],
 						"settings":
 						{
 							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
-							"tab_size": 2,
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 13,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "configs/unified/X_depth/X_3.json",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1428,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1428,
+								1428
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
@@ -1233,25 +1190,87 @@
 					"type": "text"
 				},
 				{
-					"buffer": 6,
-					"file": "models/elephant/energy_model/an08/pca_dim_24_small/details.txt",
+					"buffer": 4,
+					"file": "configs/unified/X_depth/X_4.json",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 920,
+						"buffer_size": 1433,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								1433,
+								1433
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/Text/Plain text.tmLanguage"
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "configs/unified/X_depth/X_5.json",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1438,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1438,
+								1438
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 11,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "configs/unified/X_depth/X_6.json",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1443,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1443,
+								1443
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
@@ -1262,77 +1281,19 @@
 				},
 				{
 					"buffer": 7,
-					"file": "models/elephant/energy_model/an08/pca_dim_28/details.txt",
+					"file": "models/search/armadillo2/sim_config.json",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1105,
+						"buffer_size": 1602,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1105,
-								1105
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Text/Plain text.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 12,
-					"type": "text"
-				},
-				{
-					"buffer": 8,
-					"file": "scripts/unified_gen_and_train.py",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 8932,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								6596,
-								6596
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Python/Python.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 1899.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 11,
-					"type": "text"
-				},
-				{
-					"buffer": 9,
-					"file": "models/mounted_bar2/model_config.json",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1059,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
+								461,
+								461
 							]
 						],
 						"settings":
@@ -1345,83 +1306,53 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 14,
+					"stack_index": 16,
 					"type": "text"
 				},
 				{
-					"buffer": 10,
-					"file": "cubacode/src/main.cpp",
+					"buffer": 8,
+					"file": "/home/lawson/Downloads/notes.txt",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 19989,
+						"buffer_size": 4138,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								16529,
-								16529
+								4138,
+								4138
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"auto_name": "LBFGS",
+							"syntax": "Packages/Text/Plain text.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 7768.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 13,
-					"type": "text"
-				},
-				{
-					"buffer": 11,
-					"file": "cubacode/src/GreedyCubop.cpp",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 24038,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								3020,
-								3020
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 910.0,
+						"translation.y": 1377.23076923,
 						"zoom_level": 1.0
 					},
 					"stack_index": 9,
 					"type": "text"
 				},
 				{
-					"buffer": 12,
-					"file": "scripts/build-model.py",
+					"buffer": 9,
+					"file": "scripts/build_model.py",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 8264,
+						"buffer_size": 8219,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								5792,
-								5792
+								2642,
+								2642
 							]
 						],
 						"settings":
@@ -1431,10 +1362,100 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 2128.0,
+						"translation.y": 1430.76923077,
 						"zoom_level": 1.0
 					},
-					"stack_index": 7,
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "scripts/generate_error_heatmap_data.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 10011,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2316,
+								2316
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1134.15384615,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "figure data/error_heatmap/heatmap.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4366,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								305,
+								305
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 12,
+					"file": "models/X_depth/X_6/sim_config.json",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1458,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1068,
+								1068
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
 					"type": "text"
 				},
 				{
@@ -1443,15 +1464,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 67499,
+						"buffer_size": 68784,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								12243,
-								12243
+								21510,
+								21510
 							]
 						],
 						"settings":
@@ -1461,34 +1482,32 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 5842.0,
+						"translation.y": 15596.3076923,
 						"zoom_level": 1.0
 					},
-					"stack_index": 5,
+					"stack_index": 4,
 					"type": "text"
 				},
 				{
 					"buffer": 14,
-					"file": "reduced_sim_gauss/src/AutoDefUtils.h",
+					"file": "/home/lawson/.cache/.fr-H0fRwY/egPublStyle-EG-full-star-short-edu-tut-posters-2019/EGauthorGuidelines-conf-fin_with_teaser.tex",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 7192,
+						"buffer_size": 2959,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								172,
-								172
+								2187,
+								2187
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/C++/C++.sublime-syntax",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"syntax": "Packages/LaTeX/LaTeX.sublime-syntax"
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
@@ -1499,19 +1518,49 @@
 				},
 				{
 					"buffer": 15,
-					"file": "scripts/utils/my_utils.py",
+					"file": "models/X_depth/X_2/sim_config.json",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 9440,
+						"buffer_size": 1458,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								418,
+								418
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 16,
+					"file": "scripts/unified_gen_and_train.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 9118,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								8719,
+								8719
 							]
 						],
 						"settings":
@@ -1521,10 +1570,10 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 4848.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 15,
+					"stack_index": 14,
 					"type": "text"
 				}
 			]
@@ -1532,7 +1581,7 @@
 	],
 	"incremental_find":
 	{
-		"height": 27.0
+		"height": 57.8461538462
 	},
 	"input":
 	{
@@ -1573,7 +1622,7 @@
 	"project": "autodef.sublime-project",
 	"replace":
 	{
-		"height": 50.0
+		"height": 109.538461538
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -1582,6 +1631,30 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"lea",
+				"scripts/utils/learn.py"
+			],
+			[
+				"unif",
+				"scripts/unified_gen_and_train.py"
+			],
+			[
+				"uni",
+				"scripts/unified_gen_and_train.py"
+			],
+			[
+				"jaco",
+				"scripts/utils/compute_tf_jacobian_models.py"
+			],
+			[
+				"heat",
+				"scripts/generate_error_heatmap_data.py"
+			],
+			[
+				"cma",
+				"reduced_sim_gauss/CMakeLists.txt"
+			],
 			[
 				"learn",
 				"scripts/utils/learn.py"
@@ -1611,20 +1684,12 @@
 				"scripts/utils/tet_wild_generate_multiple_resolutions.py"
 			],
 			[
-				"unif",
-				"scripts/unified_gen_and_train.py"
-			],
-			[
 				"redu",
 				"reduced_sim_gauss/src/reduced_sim_example.cpp"
 			],
 			[
 				"ov",
 				"overnight.sh"
-			],
-			[
-				"uni",
-				"scripts/unified_gen_and_train.py"
 			],
 			[
 				"new",
@@ -1641,10 +1706,6 @@
 			[
 				"red",
 				"reduced_sim_gauss/src/reduced_sim_example.cpp"
-			],
-			[
-				"lea",
-				"scripts/utils/learn.py"
 			],
 			[
 				"b",
@@ -1703,16 +1764,8 @@
 				"generate_energy_models.py"
 			],
 			[
-				"jaco",
-				"utils/compute_tf_jacobian_models.py"
-			],
-			[
 				"c",
 				"generate_training/CMakeLists.txt"
-			],
-			[
-				"cma",
-				"reduced_sim_gauss/CMakeLists.txt"
 			],
 			[
 				"",

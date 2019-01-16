@@ -194,6 +194,7 @@ def main():
             raise("Energy type doesn't exist")
 
     print('Done.')
+    return training_results
     
 if __name__ == '__main__':
     main()

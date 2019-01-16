@@ -1,0 +1,13 @@
+{
+  "autoencoder": {
+    "inner dim 1": {
+      "training-mse": 0.000418651695240723,
+      "relative_percent_error": 35.26969650560458,
+      "max_distance_error": 0.3076918162519489,
+      "mean_distance_error": 0.021302683146434753,
+      "ae_training_time_s": 23.5721378326416,
+      "outer_pca_training_time_s": 0.9405734539031982
+    }
+  },
+  "pca": {}
+}

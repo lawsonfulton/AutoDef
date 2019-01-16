@@ -75,7 +75,7 @@ def main():
     build_model(config, model_root, force)
 
 # Everything is relative to AutoDef/ root
-def build_model(config, model_root, force=False):
+def build_model(config, model_root, force=False, mem={}, components=None, files=None, do_pca_compare = True):
     # Make the output directory and load the config file
     my_utils.make_dir_with_confirmation(model_root, force)
 
@@ -90,7 +90,7 @@ def build_model(config, model_root, force=False):
     # Train model
     # TODO Record other model history, seed, etc
     if not config['learning_config']['skip_training']:
-        outer_layer_dim, best_match_pca_dim, ae_encoded_dim = learn.generate_model(model_root, config)
+        outer_layer_dim, best_match_pca_dim, ae_encoded_dim, training_results, mem, components, files = learn.generate_model(model_root, config, mem, components, files, do_pca_compare)
 
         # Convert to TF
         print('Converting Keras models to Tensorflow...')
@@ -184,6 +184,7 @@ def build_model(config, model_root, force=False):
             raise("Energy type doesn't exist")
 
     print('Done.')
+    return training_results, mem,components, files
     
 if __name__ == '__main__':
     main()

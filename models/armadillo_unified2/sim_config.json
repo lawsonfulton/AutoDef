@@ -22,7 +22,7 @@
     "timestep": 0.005,
     "lbfgs_config": {
       "lbfgs_max_iterations": 1000,
-      "lbfgs_epsilon": 1e-08,
+      "lbfgs_epsilon": 1e-06,
       "lbfgs_delta": 1e-08,
       "lbfgs_delta_past": 0,
       "lbfgs_m": 8

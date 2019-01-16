@@ -1,5 +1,5 @@
 #define EIGEN_USE_MKL_ALL
-// #define MKL_DIRECT_CALL
+#define MKL_DIRECT_CALL
 // #ifdef EIGEN_PARDISO_SUPPORT
 #include <Eigen/PardisoSupport>
 // #endif
@@ -21,6 +21,8 @@
 #include <ConstraintFixedPoint.h>
 #include <TimeStepperEulerImplicitLinear.h>
 #include <AssemblerParallel.h>
+#include <SolverPardiso.h>
+#include <GaussOptimizationAdapters.h>
 
 
 
@@ -92,6 +94,18 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 #include <omp.h>
 
 #include<Eigen/SparseCholesky>
+
+
+// Newton
+#include "meta.h"
+#include "problem.h"
+// #include "solver/bfgssolver.h"
+// #include "solver/conjugatedgradientdescentsolver.h"
+#include "solver/newtondescentsolver.h"
+// #include "solver/neldermeadsolver.h"
+#include "solver/lbfgssolver.h"
+// #include "solver/cmaessolver.h"
+
 
 using json = nlohmann::json;
 namespace fs = boost::filesystem;
@@ -487,7 +501,11 @@ public:
         }
     }
 
-
+    double full_energy_and_forces(double &energy, VectorXd &UT_forces) {
+        energy = m_tets->getStrainEnergy(m_world->getState());
+        getInternalForceVector(m_internal_force_asm, *m_tets, *m_world);
+        UT_forces = m_U.transpose() * *m_internal_force_asm;
+    }
 
     double operator()(const VectorXd& new_z, VectorXd& grad, const int cur_iteration, const int cur_line_search_iteration)
     {
@@ -566,9 +584,7 @@ public:
             }
 
             // Get energy and forces
-            energy = m_tets->getStrainEnergy(m_world->getState());
-            getInternalForceVector(m_internal_force_asm, *m_tets, *m_world);
-            UT_internal_forces = m_U.transpose() * *m_internal_force_asm;
+            full_energy_and_forces(energy, UT_internal_forces);
         }
         
 
@@ -694,12 +710,588 @@ private:
 };
 
 template <typename ReducedSpaceType, typename MatrixType>
+class NewtonObjective : public cppoptlib::Problem<double>
+{
+public:
+    NewtonObjective(
+        fs::path model_root,
+        json integrator_config,
+        VectorXd cur_z,
+        VectorXd prev_z,
+        MyWorld *world,
+        NeohookeanTets *tets,
+        ReducedSpaceType *reduced_space ) : 
+            m_cur_z(cur_z),
+            m_prev_z(prev_z),
+            m_world(world),
+            m_tets(tets),
+            m_reduced_space(reduced_space)
+    {
+        m_save_obj_every_iteration = get_json_value(integrator_config, "save_obj_every_iteration", false);
+        m_cur_sub_q = sub_dec(cur_z);
+        m_prev_sub_q = sub_dec(prev_z);
+
+        m_h = integrator_config["timestep"];
+        // Construct mass matrix and external forces
+        getMassMatrix(m_M_asm, *m_world);
+
+        m_M = *m_M_asm;
+
+        m_U = m_reduced_space->outer_jacobian();
+        std::cout << "Constructing reduced mass matrix..." << std::endl;
+        m_UTMU = m_U.transpose() * m_M * m_U;
+
+        // Check if m_UTMU is identity (mass pca)
+        if(integrator_config["reduced_space_type"] != "full") { // Only check for non-full (dense) spaces
+            if(MatrixXd(m_UTMU).isIdentity(1e-6)) {
+                m_UTMU_is_identity = true;
+                std::cout << "UTMU is Identity!!! Removing from calculations." << std::endl;
+            } else {
+                std::cout << "UTMU is not Identity!!!" << std::endl;
+            }
+        }
+
+        std::cout << "Done." << std::endl;
+
+        VectorXd g(m_M.cols());
+        int gravity_axis = get_json_value(integrator_config, "gravity_axis", 1);
+        for(int i=0; i < g.size(); i += 3) {
+            g[i] = 0.0;
+            g[i+1] = 0.0;
+            g[i+2] = 0.0;
+            g[i + gravity_axis] = integrator_config["gravity"];
+        }
+
+        m_F_ext = m_M * g;
+
+        m_UT_F_ext = m_U.transpose() * m_F_ext;
+        m_interaction_force = SparseVector<double>(m_F_ext.size());
+
+        m_energy_method = energy_method_from_integrator_config(integrator_config);
+        m_use_partial_decode =  (m_energy_method == PCR || m_energy_method == AN08 || m_energy_method == AN08_ALL || m_energy_method == NEW_PCR) && get_json_value(integrator_config, "use_partial_decode", true);
+
+        m_do_quasi_static = get_json_value(integrator_config, "quasi_static", false);
+
+        if(m_energy_method == PCR){
+            fs::path pca_components_path("pca_results/energy_pca_components.dmat");
+            fs::path sample_tets_path("pca_results/energy_indices.dmat");
+
+            MatrixXd U;
+            igl::readDMAT((model_root / pca_components_path).string(), U);
+
+            Eigen::VectorXi Is;
+            igl::readDMAT((model_root /sample_tets_path).string(), Is); //TODO do I need to sort this?
+            m_cubature_indices = Is;
+
+            // Other stuff?
+            m_energy_basis = U;
+            m_energy_sampled_basis = igl::slice(m_energy_basis, m_cubature_indices, 1);
+            m_summed_energy_basis = m_energy_basis.colwise().sum();
+            MatrixXd S_barT_S_bar = m_energy_sampled_basis.transpose() * m_energy_sampled_basis;
+            // m_energy_sampled_basis_qr = m_energy_sampled_basis.fullPivHouseholderQr();
+            
+            m_cubature_weights = m_energy_sampled_basis * S_barT_S_bar.ldlt().solve(m_summed_energy_basis); //U_bar(A^-1*u)
+            std::cout << "Done. Will sample from " << m_cubature_indices.size() << " tets." << std::endl;
+        }
+        else if(m_energy_method == AN08 || m_energy_method == NEW_PCR) {
+            fs::path energy_model_dir;
+            
+            if(m_energy_method == AN08) {
+                energy_model_dir = model_root / ("energy_model/an08/pca_dim_" + std::to_string(m_U.cols()));
+                if(!boost::filesystem::exists(energy_model_dir)) { // Old version
+                    energy_model_dir = model_root / "energy_model/an08/";
+                }
+            }
+            if(m_energy_method == NEW_PCR) energy_model_dir = model_root / "energy_model/new_pcr/";
+
+            fs::path indices_path = energy_model_dir / "indices.dmat";
+            fs::path weights_path = energy_model_dir / "weights.dmat";
+
+            Eigen::VectorXi Is;
+            Eigen::VectorXd Ws;
+            igl::readDMAT(indices_path.string(), Is); //TODO do I need to sort this?
+            igl::readDMAT(weights_path.string(), Ws); 
+
+            m_cubature_weights = Ws;
+            m_cubature_indices = Is;
+            std::cout << "Done. Will sample from " << m_cubature_indices.size() << " tets." << std::endl;
+        } else if(m_energy_method == AN08_ALL) {
+            fs::path energy_model_dir = model_root / ("energy_model/an08/pca_dim_" + std::to_string(m_U.cols()));
+            if(!boost::filesystem::exists(energy_model_dir)) { // Old version
+                energy_model_dir = model_root / "energy_model/an08/";
+            }
+            load_all_an08_indices_and_weights(energy_model_dir, m_all_cubature_indices, m_all_cubature_weights);
+
+            m_cubature_weights = m_all_cubature_weights.back();
+            m_cubature_indices = m_all_cubature_indices.back();
+        }
+
+        // Computing the sampled verts
+        if (m_energy_method == AN08 || m_energy_method == PCR || m_energy_method == NEW_PCR || m_energy_method == AN08_ALL) {
+            initialize_cubature();
+        }
+    }
+
+    void updateCache(const VectorXd &x, bool do_energy = true, bool do_grad = true, bool do_hessian = true) {
+        MatrixXd hessian;
+        VectorXd grad;
+        double e = my_val_and_grad(x, grad, hessian, 0, 0, do_energy, do_grad, do_hessian);
+        m_cachedVal = e;
+        m_cachedGrad = grad;
+        m_cachedHessian = hessian;
+        m_cachedX = x;
+    }
+
+    double value(const VectorXd &x) {
+        if(m_cachedX != x) {
+            std::cout << "What the actual fuck" << std::endl;
+            std::cout << (m_cachedX - x) << std::endl;
+        }
+        return m_cachedVal;
+        // MatrixXd hessian;
+        // VectorXd grad;
+        // double e = my_val_and_grad(x, grad, hessian, 0, 0);
+        // std::cout << e << std::endl;
+        // std::cout << x.transpose() << std::endl;
+        // return e;
+    }
+
+    void gradient(const VectorXd &x, VectorXd &grad) {
+        if(m_cachedX != x) {
+            std::cout << "What the actual fuck" << std::endl;
+        }
+        grad = m_cachedGrad;
+        // MatrixXd hessian;
+        // my_val_and_grad(x, grad, hessian, 0, 0);
+        // const int n_sample_tets = m_cubature_indices.size();
+        // const int n_force_per_element = T.cols() * 3;
+        // const int d = m_U.cols();
+
+        // VectorXd sampled_force(n_force_per_element); // Holds the force for a single tet
+        // VectorXd element_reduced_force(d);
+        // element_reduced_force.setZero();
+
+        // double sub_energy = 0.0;
+
+        // // #pragma omp for nowait //schedule(static)// firstprivate(sampled_force, element_reduced_force) // schedule(static,512)// TODO how to optimize this
+        // for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+        //     int tet_index = m_cubature_indices[i];
+        //     auto elem = m_cubature_elements[i];
+
+        //     // Energy and forces
+        //     double tet_energy = elem->getStrainEnergy(m_world->getState());
+        //     elem->getInternalForce(sampled_force, m_world->getState());
+
+        //     element_reduced_force.noalias() += m_U_cubature_sampled.block(i*12, 0, 12, d).transpose() * sampled_force;
+        // }
+
+        // grad = element_reduced_force;
+    }
+
+    void hessian(const VectorXd &x, MatrixXd &hessian) {
+        if(m_cachedX != x) {
+            std::cout << "What the actual fuck" << std::endl;
+        }
+        hessian = m_cachedHessian;
+        // VectorXd grad;
+        // my_val_and_grad(x, grad, hessian, 0, 0);
+    }
+
+    void initialize_cubature() {
+        // figure out the verts
+        std::set<int> vert_set;
+        int n_sample_tets = m_cubature_indices.size();
+        for(int i = 0; i < m_cubature_indices.size(); i++) {
+            int tet_index = m_cubature_indices[i];
+            for(int j = 0; j < 4; j++) {
+                int vert_index = m_tets->getImpl().getElement(tet_index)->getQDOFList()[j]->getGlobalId();
+                for(int k = 0; k < 3; k++) {
+                    vert_set.insert(vert_index + k);
+                }
+            }
+        }
+        // Put them in a vector sorted order
+        m_cubature_vert_indices = VectorXi(vert_set.size());
+        int i = 0;
+        for(auto vi: vert_set) {
+            m_cubature_vert_indices[i++] = vi;
+            // std::cout << vi << ", " << std::endl;
+        }
+        std::sort(m_cubature_vert_indices.data(), m_cubature_vert_indices.data()+m_cubature_vert_indices.size());
+        MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
+        m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
+
+
+        // Get the element references ahead of time
+        m_cubature_elements.clear();
+        for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+            int tet_index = m_cubature_indices[i];  
+            auto elem = m_tets->getImpl().getElement(tet_index);
+            m_cubature_elements.push_back(elem);
+        }
+
+        // Get the rows of U ahead of time
+        m_U_cubature_sampled.resize(n_sample_tets * 12, m_U.cols());
+        for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+            for(int k = 0; k < 4; k++) {
+                for(int j = 0; j < 3; j++) {    
+                    m_U_cubature_sampled.row(i * 12 + k * 3 + j) = m_cubature_weights(i) * denseU.row(m_cubature_elements[i]->getQDOFList()[k]->getGlobalId() + j);
+                }
+            }
+        }
+    }
+
+    void update_zs(const VectorXd &cur_z) {
+        m_prev_z = cur_z;
+        m_prev_sub_q = m_cur_sub_q;
+        m_cur_z = cur_z;
+        m_cur_sub_q = sub_dec(m_cur_z);
+    }
+
+    void set_interaction_force(const SparseVector<double> &interaction_force) {
+        m_interaction_force = interaction_force;
+    }
+
+    void set_cubature_indices_and_weights(const VectorXi &indices, const VectorXd &weights) {
+        m_cubature_weights = weights;
+        m_cubature_indices = indices;
+    }
+
+    // Just short helpers
+    VectorXd dec(const VectorXd &z) { return m_reduced_space->decode(z); }
+    VectorXd sub_dec(const VectorXd &z) { return m_reduced_space->sub_decode(z); }
+    VectorXd enc(const VectorXd &q) { return m_reduced_space->encode(q); }
+    VectorXd jtvp(const VectorXd &z, const VectorXd &q) { return m_reduced_space->jacobian_transpose_vector_product(z, q); }
+
+
+
+    double parallel_current_reduced_energy_and_forces(double &energy, VectorXd &UT_forces, MatrixXd &UTKU, bool do_energy = true, bool do_grad = true, bool do_hessian = true) {
+        #pragma omp single 
+        {
+            UT_forces = VectorXd::Zero(m_U.cols());
+            UTKU = MatrixXd::Zero(m_U.cols(), m_U.cols());
+            energy = 0;
+        }
+
+        const int n_sample_tets = m_cubature_indices.size();
+        const int n_force_per_element = T.cols() * 3;
+        const int d = m_U.cols();
+
+        VectorXd sampled_force(n_force_per_element); // Holds the force for a single tet
+        VectorXd element_reduced_force(d);
+        element_reduced_force.setZero();
+
+        MatrixXd sampled_K(n_force_per_element, n_force_per_element); // Holds the force for a single tet
+        MatrixXd reduced_K(d, d);
+        reduced_K.setZero();
+
+        double sub_energy = 0.0;
+
+        ///@%^&#&%$$%%$$&#^&#$#&$&%$&
+        ///@%^&#&%$$%%$$&#^&#$#&$&%$&
+        ///@%^&#&%$$%%$$&#^&#$#&$&%$&
+        ///@%^&#&%$$%%$$&#^&#$#&$&%$&
+        ///@%^&#&%$$%%$$&#^&#$#&$&%$&
+        ///@%^&#&%$$%%$$&#^&#$#&$&%$&
+        ///@%^&#&%$$%%$$&#^&#$#&$&%$&
+        // getStiffnessMatrix(m_K_asm, *m_world);
+
+        #pragma omp for nowait //schedule(static)// firstprivate(sampled_force, element_reduced_force) // schedule(static,512)// TODO how to optimize this
+        for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+            int tet_index = m_cubature_indices[i];
+            auto elem = m_cubature_elements[i];
+
+            // Energy and forces
+            const auto &U_block_i = m_U_cubature_sampled.block(i*12, 0, 12, d);
+            if(do_grad) {
+                elem->getInternalForce(sampled_force, m_world->getState());
+                element_reduced_force.noalias() += U_block_i.transpose() * sampled_force;
+            }
+            if(do_hessian) {
+                elem->getStiffnessMatrix(sampled_K, m_world->getState());
+                reduced_K.noalias() += U_block_i.transpose() * sampled_K * U_block_i;
+            }
+            
+            if(do_energy) {
+                double tet_energy = elem->getStrainEnergy(m_world->getState());
+                sub_energy += m_cubature_weights(i) * tet_energy;
+            }
+
+            // std::cout << "sampled_K: " << std::endl << sampled_K << std::endl;
+
+            // MatrixXd my_sampled_k(12,12);
+            // for(int k = 0; k < 4; k++) {
+            //     for(int j = 0; j < 3; j++) {    
+            //         int dof_id = m_cubature_elements[i]->getQDOFList()[k]->getGlobalId() + j;
+
+            //         for(int k2 = 0; k2 < 4; k2++) {
+            //             for(int j2 = 0; j2 < 3; j2++) {    
+            //                 int dof_id2 = m_cubature_elements[i]->getQDOFList()[k2]->getGlobalId() + j2;
+                    
+            //                 my_sampled_k(k*3 + j, k2*3 + j2) = (*m_K_asm).coeff(dof_id, dof_id2);
+            //             }
+            //         }
+            //     }
+            // }
+            // // std::cout << "my_sampled_k: " <<  std::endl << my_sampled_k<< std::endl;
+
+            
+        }
+
+        reduced_K.setZero();
+
+        #pragma omp critical
+        {
+            UTKU += reduced_K;
+            UT_forces += element_reduced_force; //Does this have to do a transpose to assign?
+            energy += sub_energy;
+        }
+    }
+
+    double full_energy_and_forces(double &energy, VectorXd &UT_forces, MatrixXd &UTKU, bool do_energy = true, bool do_grad = true, bool do_hessian = true) {
+        if(do_energy){
+            energy = m_tets->getStrainEnergy(m_world->getState());
+        } 
+            
+        if(do_grad){
+            getInternalForceVector(m_internal_force_asm, *m_tets, *m_world);
+            UT_forces = m_U.transpose() * *m_internal_force_asm;
+        }
+        if(do_hessian) {
+            getStiffnessMatrix(m_K_asm, *m_world);
+            UTKU = m_U.transpose() * (*m_K_asm) * m_U;
+        }
+    }
+
+    double my_val_and_grad(const VectorXd& new_z, VectorXd& grad, MatrixXd &hessian, const int cur_iteration, const int cur_line_search_iteration, bool do_energy = true, bool do_grad = true, bool do_hessian = true)
+    {
+
+        // Update the tets with candidate configuration
+        double obj_start_time = igl::get_seconds();
+        VectorXd new_sub_q = sub_dec(new_z);
+        double tf_time = igl::get_seconds() - obj_start_time;
+        tf_decode_time_tot += tf_time;
+
+        double decode_start_time = igl::get_seconds();
+        Eigen::Map<Eigen::VectorXd> q = mapDOFEigen(m_tets->getQ(), *m_world);
+        
+        // Define up here so they are shared with threads
+        double energy;
+        VectorXd UT_internal_forces;
+        MatrixXd UTKU;
+        
+        #ifdef DO_TIMING
+        double energy_forces_start_tim = 0.0;
+        double predict_weight_time = 0.0;
+        double decode_time;
+        #endif
+
+        double energy_forces_start_time = igl::get_seconds();
+        if(m_energy_method != FULL) {
+            // If we are using cubature then we can leverage parallelism
+            #pragma omp parallel num_threads(8) // TODO is it possible to move this out of the optimization loop?
+            {
+                // Update our current state
+                if(m_use_partial_decode) {
+                    // We only need to update verts for the tets we actually sample
+                    #pragma omp for
+                    for(int i = 0; i < m_U_sampled.rows(); i++) {
+                        q[m_cubature_vert_indices[i]] = m_U_sampled.row(i) * new_sub_q; //sampled_q[i]; // TODO this could probably be more efficient with a sparse operator?
+                    }
+                } else {
+                    #pragma omp single
+                    {
+                        q = m_U * new_sub_q;
+                    }
+                }
+                
+                #ifdef DO_TIMING
+                    #pragma omp single
+                    {
+                        decode_time = igl::get_seconds() - decode_start_time;
+                        cuba_decode_time_tot += decode_time;
+                        energy_forces_start_time = igl::get_seconds();
+                    }
+                #endif
+                // Get energy and forces
+                parallel_current_reduced_energy_and_forces(energy, UT_internal_forces, UTKU, do_energy, do_grad, do_hessian);
+            }
+        } else {
+            // Update our current state
+            q = m_U * new_sub_q;
+
+            #ifdef DO_TIMING
+            decode_time = igl::get_seconds() - decode_start_time;
+            energy_forces_start_time = igl::get_seconds();
+            #endif
+
+            // TWISTING
+            bool m_do_full_space_twisting = false;
+            if(m_do_full_space_twisting) {
+                auto max_verts = get_min_verts(0, false, 0.021);
+                Eigen::AngleAxis<double> rot(m_h * current_frame, Eigen::Vector3d(1.0,0.0,0.0));
+                for(int i = 0; i < max_verts.size(); i++) {
+                    int vi = max_verts[i];
+                    Eigen::Vector3d v = V.row(vi);
+                    Eigen::Vector3d new_q = rot * v - v;// + Eigen::Vector3d(1.0,0.0,0.0) * current_frame / 300.0;
+                    for(int j = 0; j < 3; j++) {
+                        q[vi * 3 + j] = new_q[j];
+                    }
+                }
+            }
+
+            // Get energy and forces
+            full_energy_and_forces(energy, UT_internal_forces, UTKU, do_energy, do_grad, do_hessian);
+        }
+        
+
+        #ifdef DO_TIMING
+        double energy_forces_time = igl::get_seconds() - energy_forces_start_time;
+        cuba_eval_time_tot += energy_forces_time;
+
+        double obj_and_grad_time_start = igl::get_seconds();
+        #endif
+
+        // const VectorXd UT_F_interaction = m_interaction_force.transpose() * m_U;
+        // const VectorXd h_2_UT_external_forces =  m_h * m_h * (UT_F_interaction + m_UT_F_ext);
+        const VectorXd h_2_UT_external_forces = m_h * m_h * (m_U.transpose() * m_interaction_force + m_UT_F_ext);
+        const VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
+        const VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
+
+        double obj_val;
+        if(m_do_quasi_static) {
+            obj_val = m_h * m_h * energy - sub_q_tilde.transpose() * h_2_UT_external_forces;
+            grad = jtvp(new_z, - m_h * m_h * UT_internal_forces - h_2_UT_external_forces);
+            
+        } else { 
+            if(do_energy) {
+                obj_val = 0.5 * sub_q_tilde.transpose() * UTMU_sub_q_tilde
+                                + m_h * m_h * energy
+                                - sub_q_tilde.transpose() * h_2_UT_external_forces;
+            }
+
+            VectorXd preGrad;
+            if(do_grad){
+
+                preGrad = UTMU_sub_q_tilde - m_h * m_h * UT_internal_forces - h_2_UT_external_forces;
+            
+
+                obj_grad_time_tot_no_jvp += igl::get_seconds() - obj_and_grad_time_start;
+                
+                double vjp_start = igl::get_seconds();
+                grad = jtvp(new_z, preGrad);
+                tf_vjp_time_tot += igl::get_seconds() - vjp_start;
+            }
+            if(do_hessian) {
+                hessian = m_UTMU - m_h * m_h * UTKU;
+            }
+        }
+
+        #ifdef DO_TIMING
+        double obj_and_grad_time = igl::get_seconds() - obj_and_grad_time_start;
+        double obj_time = igl::get_seconds() - obj_start_time;
+        #endif
+
+        if(LOGGING_ENABLED) {
+            timestep_info["iteration_info"]["lbfgs_iteration"].push_back(cur_iteration);
+            timestep_info["iteration_info"]["lbfgs_line_iteration"].push_back(cur_line_search_iteration);
+            timestep_info["iteration_info"]["lbfgs_obj_vals"].push_back(obj_val);
+
+            #ifdef DO_TIMING
+            timestep_info["iteration_info"]["timing"]["tot_obj_time_s"].push_back(obj_time);
+            timestep_info["iteration_info"]["timing"]["tf_time_s"].push_back(tf_time);
+            timestep_info["iteration_info"]["timing"]["linear_decode_time_s"].push_back(decode_time);
+            timestep_info["iteration_info"]["timing"]["energy_forces_time_s"].push_back(energy_forces_time);
+            timestep_info["iteration_info"]["timing"]["predict_weight_time"].push_back(predict_weight_time);
+            timestep_info["iteration_info"]["timing"]["obj_and_grad_eval_time_s"].push_back(obj_and_grad_time);
+            #endif
+
+            if(m_save_obj_every_iteration) {
+                VectorXd q = m_reduced_space->decode(new_z);
+                Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
+                fs::path obj_filename = iteration_obj_dir / (ZeroPadNumber(cur_iteration) + "_" + ZeroPadNumber(cur_line_search_iteration, 2) + ".obj");
+                MatrixXd new_verts = V + dV.transpose();
+                igl::writeOBJ(obj_filename.string(), new_verts, F);
+            }
+        }
+
+        total_evals++;
+        return obj_val;
+    }
+
+    VectorXi get_current_tets() {
+        return m_cubature_indices;
+    }
+
+    void switch_to_next_tets(int i) { // This is an ugly dirty hack to get extra tets working for an08
+        m_cubature_weights = m_all_cubature_weights[m_all_cubature_weights.size() - (i % m_all_cubature_weights.size()) - 1];
+        m_cubature_indices = m_all_cubature_indices[m_all_cubature_weights.size() - (i % m_all_cubature_weights.size()) - 1];
+
+        initialize_cubature();
+
+        std::cout << "Now sampling from " << m_cubature_indices.size() << " tets" << std::endl;
+    }
+
+private:
+    VectorXd m_cur_z;
+    VectorXd m_prev_z;
+    VectorXd m_cur_sub_q;
+    VectorXd m_prev_sub_q;
+    VectorXd m_F_ext;
+    VectorXd m_UT_F_ext;
+
+    SparseVector<double> m_interaction_force;
+
+    SparseMatrix<double> m_M; // mass matrix
+    // Below is a kind of hack way to get the matrix type used in the reduced space class
+    MatrixType  m_UTMU; // reduced mass matrix
+    MatrixType  m_U;
+    MatrixXd m_U_sampled; // Always used in dense mode
+    MatrixXd m_U_cubature_sampled;
+
+    AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_M_asm;
+    AssemblerParallel<double, AssemblerEigenVector<double> > m_internal_force_asm;
+    AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_K_asm;
+
+    double m_cachedVal;
+    VectorXd m_cachedGrad;
+    MatrixXd m_cachedHessian;
+    VectorXd m_cachedX;
+
+    double m_h;
+
+    MyWorld *m_world;
+    NeohookeanTets *m_tets;
+
+    EnergyMethod m_energy_method;
+    ReducedSpaceType *m_reduced_space;
+    bool m_use_partial_decode = false;
+    bool m_save_obj_every_iteration = false;
+    bool m_UTMU_is_identity = false;
+    bool m_do_quasi_static = false;
+
+    MatrixXd m_energy_basis;
+    VectorXd m_summed_energy_basis;
+    MatrixXd m_energy_sampled_basis;
+    Eigen::FullPivHouseholderQR<MatrixXd> m_energy_sampled_basis_qr;
+
+    VectorXd m_cubature_weights;
+    VectorXi m_cubature_indices;
+    VectorXi m_cubature_vert_indices;
+    std::vector<NeohookeanHFixedTet<double> *> m_cubature_elements;
+
+    std::vector<VectorXd> m_all_cubature_weights;
+    std::vector<VectorXi> m_all_cubature_indices;
+};
+
+template <typename ReducedSpaceType, typename MatrixType>
 class GPLCTimeStepper {
 public:
     GPLCTimeStepper(fs::path model_root, json integrator_config, MyWorld *world, NeohookeanTets *tets, ReducedSpaceType *reduced_space) :
         m_world(world), m_tets(tets), m_reduced_space(reduced_space) {
 
         // Get parameters
+        m_use_newton = get_json_value(integrator_config, "use_newton", false);
         m_energy_method = energy_method_from_integrator_config(integrator_config);
         m_use_preconditioner = integrator_config["use_preconditioner"];
         m_full_only_rest_prefactor = get_json_value(integrator_config, "full_only_rest_prefactor", false);
@@ -760,6 +1352,8 @@ public:
         getStiffnessMatrix(m_K_asm, *m_world);
 
         reset_zs();
+        // std::cout<< m_cur_z.transpose() << std::endl;
+        // exit(1);
 
         // Set up preconditioner
         if(m_use_preconditioner) {
@@ -781,8 +1375,27 @@ public:
             std::cout << "Took " << (igl::get_seconds() - start_time) << "s" << std::endl;
         }
 
-        // Finally initialize the BFGS objective
-        m_gplc_objective = new GPLCObjective<ReducedSpaceType, MatrixType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
+        if(m_use_newton) {
+            m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
+            m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
+
+            m_newton_objective = new NewtonObjective<ReducedSpaceType, MatrixType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
+            cppoptlib::Criteria<double> c = cppoptlib::Criteria<double>().defaults();
+            c.gradNorm = lbfgs_config["lbfgs_epsilon"];
+            newton_solver.setStopCriteria(c);
+
+            // bool grad_ok = m_newton_objective->checkGradient(m_cur_z, 3);
+            // if(!grad_ok) {
+            //     std::cout << "Gradient check failed!" << std::endl;
+            // }
+            // bool hess_ok = m_newton_objective->checkHessian(m_cur_z, 3);
+            // if(!hess_ok) {
+            //     std::cout << "Hessian check failed!" << std::endl;
+            // }
+        } else {
+            // Finally initialize the BFGS objective
+            m_gplc_objective = new GPLCObjective<ReducedSpaceType, MatrixType>(model_root, integrator_config, m_cur_z, m_prev_z, world, tets, reduced_space);
+        }
     }
 
     ~GPLCTimeStepper() {
@@ -799,7 +1412,11 @@ public:
         VectorXd z_param = m_cur_z; // Stores both the first guess and the final result
         double min_val_res;
 
-        m_gplc_objective->set_interaction_force(interaction_force);
+        if(m_use_newton) {
+            m_newton_objective->set_interaction_force(interaction_force);
+        } else {
+            m_gplc_objective->set_interaction_force(interaction_force);
+        }
         
         // int activated_tets = T.rows();
         // if(m_energy_method == PRED_WEIGHTS_L1) {
@@ -816,46 +1433,75 @@ public:
         // TODO: determine if llt or ldlt is faster
         int niter;
         double precondition_compute_time = 0.0;
-        if(m_use_preconditioner) {
-            double precondition_start_time = igl::get_seconds();
-            if(!m_is_full_space && !m_is_linear_space) { // Only update the hessian each time for nonlinear space. 
-                MatrixType J = m_reduced_space->inner_jacobian(m_cur_z);
-                // std::cout << "Frobenius norm of J: " << J.norm() << std::endl;
-                m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
-                m_H_solver_eigen.compute(m_H);//m_H.ldlt();
-            }
-            if(m_is_full_space && !m_full_only_rest_prefactor){ // Currently doing a FULL hessian update for the full space..
-                // getMassMatrix(m_M_asm, *m_world);
-                getStiffnessMatrix(m_K_asm, *m_world);
-                m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
-                m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
-                m_H = m_UTMU - m_h * m_h * m_UTKU;
-                if(m_use_pardiso) {
-                    m_H_solver_pardiso.compute(m_H);
-                } else {
-                    m_H_solver_eigen.compute(m_H);
+        if(m_use_newton) {
+            // VectorXd zDot_param = m_cur_zDot; // Stores both the first guess and the final result
+            // niter = newton_step(z_param, zDot_param, min_val_res);
+            // m_prev_zDot = m_cur_zDot;
+            // m_cur_zDot = zDot_param;
+            // std::cout << z_param.transpose() << std::endl;
+            newton_solver.minimize(*m_newton_objective, z_param);
+            auto status = newton_solver.status();
+            niter = newton_solver.criteria().iterations;
+            std::cout << status << " " << niter << " iterations. " << std::endl;
+            // Vec
+            // std::cout << "Final val: " << (*m_newton_objective)(z_param) << std::endl;
+            bool check_grad_every_step = false;
+            if(check_grad_every_step) {
+                bool grad_ok = m_newton_objective->checkGradient(m_cur_z, 3);
+                if(!grad_ok) {
+                    std::cout << "Gradient check failed!" << std::endl;
+                }
+                bool hess_ok = m_newton_objective->checkHessian(m_cur_z, 3);
+                if(!hess_ok) {
+                    std::cout << "Hessian check failed!" << std::endl;
                 }
             }
-            precondition_compute_time = igl::get_seconds() - precondition_start_time;
-            precon_time_tot += precondition_compute_time;
-            if(m_use_pardiso) {
-                niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_solver_pardiso);   
-            } else {
-                niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_solver_eigen);   
-            }
-            bool m_use_pardiso;
-        } else {
 
-            niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);   
+        } else {
+            if(m_use_preconditioner) {
+                double precondition_start_time = igl::get_seconds();
+                if(!m_is_full_space && !m_is_linear_space) { // Only update the hessian each time for nonlinear space. 
+                    MatrixType J = m_reduced_space->inner_jacobian(m_cur_z);
+                    // std::cout << "Frobenius norm of J: " << J.norm() << std::endl;
+                    m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
+                    m_H_solver_eigen.compute(m_H);//m_H.ldlt();
+                }
+                if(m_is_full_space && !m_full_only_rest_prefactor){ // Currently doing a FULL hessian update for the full space..
+                    // getMassMatrix(m_M_asm, *m_world);
+                    getStiffnessMatrix(m_K_asm, *m_world);
+                    m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
+                    m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
+                    m_H = m_UTMU - m_h * m_h * m_UTKU;
+                    if(m_use_pardiso) {
+                        m_H_solver_pardiso.compute(m_H);
+                    } else {
+                        m_H_solver_eigen.compute(m_H);
+                    }
+                }
+                precondition_compute_time = igl::get_seconds() - precondition_start_time;
+                precon_time_tot += precondition_compute_time;
+                if(m_use_pardiso) {
+                    niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_solver_pardiso);   
+                } else {
+                    niter = m_solver->minimizeWithPreconditioner(*m_gplc_objective, z_param, min_val_res, m_H_solver_eigen);   
+                }
+                bool m_use_pardiso;
+            } else {
+                niter = m_solver->minimize(*m_gplc_objective, z_param, min_val_res);   
+                std::cout <<  niter << " iterations. " << std::endl;
+            }
         }
         double update_time = igl::get_seconds() - start_time;
 
 
-        
 
         m_prev_z = m_cur_z;
         m_cur_z = z_param; // TODO: Use pointers to avoid copies
-        m_gplc_objective->update_zs(m_cur_z);
+        if(m_use_newton) {
+            m_newton_objective->update_zs(m_cur_z);
+        } else {
+            m_gplc_objective->update_zs(m_cur_z);
+        }
 
         // update_world_with_current_configuration(); This happens in each opt loop
 
@@ -889,6 +1535,8 @@ public:
                            << tf_decode_time_tot / total_evals << ", "
                            << tf_vjp_time_tot / total_evals << ", "
                            << precon_time_tot / total_evals << "]" << std::endl;
+            std::cout << "Avg time per eval: " << m_total_time / total_evals << std::endl;
+            // std::cout << ""
 
             m_total_time_since_last = 0.0;
             m_tot_its_since_last = 0;
@@ -965,11 +1613,19 @@ public:
     }
 
     VectorXi get_current_tets() {
-        return m_gplc_objective->get_current_tets();
+        if(m_use_newton) {
+            return m_newton_objective->get_current_tets();
+        } else {
+            return m_gplc_objective->get_current_tets();
+        }
     }
 
     void switch_to_next_tets(int i) {
-        m_gplc_objective->switch_to_next_tets(i);
+        if(m_use_newton) {
+            m_newton_objective->switch_to_next_tets(i);
+        } else {
+            m_gplc_objective->switch_to_next_tets(i);
+        }
     }
 
     VectorXd get_current_vert_pos(int vert_index) {
@@ -979,6 +1635,7 @@ public:
     }
 
 private:
+    bool m_use_newton;
     bool m_use_preconditioner;
     bool m_full_only_rest_prefactor;
     bool m_is_full_space;
@@ -988,10 +1645,22 @@ private:
     LBFGSSolver<double> *m_solver;
     GPLCObjective<ReducedSpaceType, MatrixType> *m_gplc_objective;
 
+    NewtonObjective<ReducedSpaceType, MatrixType> *m_newton_objective;
+    cppoptlib::NewtonDescentSolver<NewtonObjective<ReducedSpaceType, MatrixType>> newton_solver;
+    // cppoptlib::LbfgsSolver<NewtonObjective<ReducedSpaceType, MatrixType>> newton_solver;
+
+    // Optimization::NewtonSearchWithBackTracking<double> m_newton; // Need to refactor to do multiple solvers properly
+    // AssemblerParallel<double, AssemblerEigenSparseMatrix<double> > m_AeqMatrix; // Dumym vars for newton
+    // AssemblerParallel<double, AssemblerEigenVector<double> > m_bVector;
+    // AssemblerParallel<double, AssemblerEigenVector<double> > m_forceVector;
+    // VectorXd m_prev_zDot; // Newton only
+    // VectorXd m_cur_zDot;
+
     VectorXd m_starting_pose;
 
     VectorXd m_prev_z;
     VectorXd m_cur_z;
+
 
     double m_h;
 

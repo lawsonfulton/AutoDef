@@ -197,9 +197,10 @@ def create_learning_config(unified_config, training_data_ouput_path):
             'use_mass_pca': False,
             'record_full_loss': False,
             'autoencoder_config': {
-                
+                "search_for_dims": training_params.get('search_for_dims', True), # Otherwise just use outer dim error and min ae encoded size
+                "fixed_inner_dim": training_params.get('fixed_inner_dim'),
+                "fixed_outer_dim": training_params.get('fixed_outer_dim'),
 
-                "search_for_dims": training_params['search_for_dims'], # Otherwise just use outer dim error and min ae encoded size
                 "outer_dim_max_vert_error": training_params['outer_dim_max_vert_error'],
                 "inner_dim_max_vert_error": training_params['inner_dim_max_vert_error'],
                 
@@ -220,7 +221,7 @@ def create_learning_config(unified_config, training_data_ouput_path):
             },
             'energy_model_config': {
                 'type': training_params['cubature_type'],
-                'enabled': True,
+                'enabled': not training_params.get('skip_cubature', False),
                 'pca_dim': 40,
                 'num_sample_tets': training_params['num_sample_tets'],
                 'brute_force_iterations': 100,

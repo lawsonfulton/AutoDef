@@ -28,6 +28,10 @@ find_package(TensorflowCC REQUIRED)
 # Optimization lib
 include_directories("/home/lawson/Workspace/LBFGSpp/include")
 
+# Newton lib
+include_directories("/home/lawson/Workspace/CppNumericalSolvers/include/cppoptlib")
+
+
 # JSON lib
 include_directories("/home/lawson/Workspace/json/src")
 
