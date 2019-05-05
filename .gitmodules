@@ -1,15 +1,15 @@
 [submodule "LBFGSpp"]
 	path = extern/LBFGSpp
-	url = https://github.com/zero-impact/LBFGSpp.git
+	url = https://github.com/lawsonfulton/LBFGSpp.git
 [submodule "extern/json"]
 	path = extern/json
 	url = https://github.com/nlohmann/json.git
 [submodule "extern/tensorflow_cc"]
 	path = extern/tensorflow_cc
-	url = https://github.com/zero-impact/tensorflow_cc.git
+	url = https://github.com/lawsonfulton/tensorflow_cc.git
 [submodule "extern/GAUSS"]
 	path = extern/GAUSS
-	url = https://github.com/zero-impact/GAUSS.git
+	url = https://github.com/lawsonfulton/GAUSS.git
 [submodule "extern/libigl"]
 	path = extern/libigl
-	url = https://github.com/zero-impact/libigl.git
+	url = https://github.com/lawsonfulton/libigl.git
