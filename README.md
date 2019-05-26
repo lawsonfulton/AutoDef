@@ -1,3 +1,6 @@
+This is the code for the paper [Latent-space Dynamics for Reduced Deformable Simulation](https://www.lawsonfulton.com/publication/latent-space-dynamics/)
+
+# Notes
 This has been tested to work on a clean install of Ubuntu 18.04.
 If your system is not a clean install, there may be dependency conflicts.
 
@@ -45,7 +48,7 @@ After training has completed, the model can be run using `src/AutoDefRuntime/bui
 
 Continuing from the example above
 ```
-./src/AutoDefRuntime/build/bin/AutoDefRuntime models/X
+./src/AutoDefRuntime/build/bin/AutoDefRuntime models/X_example
 ```
 
 Instructions:
