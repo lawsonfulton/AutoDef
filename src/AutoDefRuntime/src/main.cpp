@@ -1,13 +1,33 @@
-//#define EIGEN_USE_MKL_ALL
+// Copyright (c) 2019 Lawson Fulton <lawsonfulton@gmail.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
+
+// This is the source code for the paper Latent-space Dynamics for Reduced Deformable Simulation
+// Authors: Lawson Fulton, Vismay Modi, David Duvenaud, David I.W. Levin, Alec Jacobson
+// Published: Computer Graphics Forum, 38(2), Eurographics, 2019.
+
+
+//#define EIGEN_USE_MKL_ALL // Uncomment if you have MKL installed on your system
 #ifdef EIGEN_USE_MKL_ALL
 #include <Eigen/PardisoSupport>
 #endif
-
-#include <vector>
-#include <set>
-#include <thread>
-#include <future>
 
 // Autodef
 #include "TypeDefs.h"
@@ -21,29 +41,6 @@
 #include <ConstraintFixedPoint.h>
 #include <TimeStepperEulerImplicitLinear.h>
 #include <AssemblerParallel.h>
-
-
-
-using namespace Gauss;
-using namespace FEM;
-using namespace ParticleSystem; //For Force Spring
-
-/* Tetrahedral finite elements */
-
-//typedef physical entities I need
-
-typedef PhysicalSystemFEM<double, NeohookeanHFixedTet> NeohookeanTets;
-
-typedef World<double, 
-                        std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
-                        std::tuple<ForceSpringFEMParticle<double> *>,
-                        std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
-typedef TimeStepperEulerImplicitLinear<double, AssemblerParallel<double, AssemblerEigenSparseMatrix<double>>,
-AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
-
-//#include <igl/png/render_to_png_async.h>
-//#include <igl/png/render_to_png.h>
-//#include <igl/png/writePNG.h>
 
 #include <igl/writeDMAT.h>
 #include <igl/readDMAT.h>
@@ -79,52 +76,64 @@ AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <vector>
+#include <set>
+#include <thread>
+#include <future>
 
+// Third Party
 #include <boost/filesystem.hpp>
-
-// Optimization
 #include <LBFGS.h>
-
-// JSON
 #include <nlohmann/json.hpp>
-
-
 #include <omp.h>
-
 #include<Eigen/SparseCholesky>
 
 using json = nlohmann::json;
 namespace fs = boost::filesystem;
-
-
 using namespace LBFGSpp;
 
+// GAUSS Typenames
+using namespace Gauss;
+using namespace FEM;
+using namespace ParticleSystem; //For Force Spring
+typedef PhysicalSystemFEM<double, NeohookeanHFixedTet> NeohookeanTets;
+typedef World<double, 
+                        std::tuple<PhysicalSystemParticleSingle<double> *, NeohookeanTets *>,
+                        std::tuple<ForceSpringFEMParticle<double> *>,
+                        std::tuple<ConstraintFixedPoint<double> *> > MyWorld;
+typedef TimeStepperEulerImplicitLinear<double, AssemblerParallel<double, AssemblerEigenSparseMatrix<double>>,
+AssemblerParallel<double, AssemblerEigenVector<double>> > MyTimeStepper;
 
-// Mesh
+
+/*
+    Lots of global defines. Not ideal but works for now.
+*/
+
+// Single tetrahedral mesh to simulate
 Eigen::MatrixXd V; // Verts
 Eigen::MatrixXd N; // Normals
 Eigen::MatrixXi T; // Tet indices
 Eigen::MatrixXi F; // Face indices
-Eigen::MatrixXi T_sampled;
-Eigen::MatrixXi F_sampled;
-int n_dof;
+Eigen::MatrixXi T_sampled; // Cubature tets
+Eigen::MatrixXi F_sampled; // Cubature tet faces
+int n_dof; // Size of latent-space
 
-std::vector<int> fixed_verts;
+std::vector<int> fixed_verts; // Verts pinned in the full-space sim
 
 // Mouse/Viewer state
-Eigen::RowVector3f last_mouse;
-Eigen::RowVector3d dragged_pos;
-Eigen::RowVector3d dragged_mesh_pos;
-int vis_vert_id = 0;
-double spring_grab_radius = 0.03; 
+Eigen::RowVector3f last_mouse; // Previous mouse position
+Eigen::RowVector3d dragged_pos; // Current (dragging) mouse position
+Eigen::RowVector3d dragged_mesh_pos; // Point on mesh being dragged
+int vis_vert_id = 0; // Vertex index that is being dragged
 bool is_dragging = false;
 bool per_vertex_normals = false;
-std::vector<int> dragged_verts;
-int current_frame = 0;
+std::vector<int> dragged_verts; // List of other vert indices that are being dragged as well (to distribute force)
+int current_frame = 0; // Simulation fram counter
+double spring_grab_radius = 0.03;
 
-// Parameters
-int print_freq = 40;
-bool NO_WAIT = false;
+// Debug Parameters
+int print_freq = 40; // How often to print debug info
+bool NO_WAIT = false; // Start simulation immediatly
 bool LOGGING_ENABLED = false;
 bool PLAYBACK_SIM = false;
 bool SAVE_TRAINING_DATA = false;
@@ -146,6 +155,7 @@ std::ofstream log_ofstream;
 const int PARDISO_DOF_CUTOFF = 7000;
 const Eigen::RowVector3d sea_green(229./255.,211./255.,91./255.);
 
+// Timing variables
 #define DO_TIMING
 int total_evals = 0;
 double tf_decode_time_tot = 0.0;
@@ -154,6 +164,14 @@ double cuba_decode_time_tot = 0.0;
 double cuba_eval_time_tot = 0.0;
 double obj_grad_time_tot_no_jvp = 0.0;
 double precon_time_tot = 0.0;
+
+
+// -- Helper functions
+std::string int_to_padded_str(int i) {
+    std::stringstream frame_str;
+    frame_str << std::setfill('0') << std::setw(5) << i;
+    return frame_str.str();
+}
 
 std::vector<int> get_min_verts(int axis, bool flip_axis = false, double tol = 0.001) {
     int dim = axis; // x
@@ -255,10 +273,8 @@ void exit_gracefully() {
     exit(0);
 }
 
-// -- My integrator
 
-
-
+//--- Start of simulation code
 template <typename ReducedSpaceType, typename MatrixType>
 class GPLCObjective
 {
@@ -406,7 +422,6 @@ public:
         MatrixXd denseU = m_U;  // Need to cast to dense to support sparse in full space
         m_U_sampled = igl::slice(denseU, m_cubature_vert_indices, 1);
 
-
         // Get the element references ahead of time
         m_cubature_elements.clear();
         for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
@@ -467,8 +482,8 @@ public:
 
         double sub_energy = 0.0;
 
-        #pragma omp for nowait //schedule(static)// firstprivate(sampled_force, element_reduced_force) // schedule(static,512)// TODO how to optimize this
-        for(int i = 0; i < n_sample_tets; i++) { // TODO parallel
+        #pragma omp for nowait 
+        for(int i = 0; i < n_sample_tets; i++) {
             int tet_index = m_cubature_indices[i];
             auto elem = m_cubature_elements[i];
 
@@ -488,7 +503,7 @@ public:
     }
 
 
-
+    // This is where all the magic happens
     double operator()(const VectorXd& new_z, VectorXd& grad, const int cur_iteration, const int cur_line_search_iteration)
     {
 
@@ -550,21 +565,6 @@ public:
             energy_forces_start_time = igl::get_seconds();
             #endif
 
-            // TWISTING
-            bool m_do_full_space_twisting = false;
-            if(m_do_full_space_twisting) {
-                auto max_verts = get_min_verts(0, false, 0.021);
-                Eigen::AngleAxis<double> rot(m_h * current_frame, Eigen::Vector3d(1.0,0.0,0.0));
-                for(int i = 0; i < max_verts.size(); i++) {
-                    int vi = max_verts[i];
-                    Eigen::Vector3d v = V.row(vi);
-                    Eigen::Vector3d new_q = rot * v - v;// + Eigen::Vector3d(1.0,0.0,0.0) * current_frame / 300.0;
-                    for(int j = 0; j < 3; j++) {
-                        q[vi * 3 + j] = new_q[j];
-                    }
-                }
-            }
-
             // Get energy and forces
             energy = m_tets->getStrainEnergy(m_world->getState());
             getInternalForceVector(m_internal_force_asm, *m_tets, *m_world);
@@ -579,8 +579,6 @@ public:
         double obj_and_grad_time_start = igl::get_seconds();
         #endif
 
-        // const VectorXd UT_F_interaction = m_interaction_force.transpose() * m_U;
-        // const VectorXd h_2_UT_external_forces =  m_h * m_h * (UT_F_interaction + m_UT_F_ext);
         const VectorXd h_2_UT_external_forces = m_h * m_h * (m_U.transpose() * m_interaction_force + m_UT_F_ext);
         const VectorXd sub_q_tilde = new_sub_q - 2.0 * m_cur_sub_q + m_prev_sub_q;
         const VectorXd UTMU_sub_q_tilde = m_UTMU * sub_q_tilde;
@@ -708,43 +706,15 @@ public:
         m_h = integrator_config["timestep"];
         m_U = reduced_space->outer_jacobian();
 
-        // // WHY ISNT THIS workWILL IT WORK FOR FULL SPACE?
-        // // IS IT BECAUSE I am slice based on vert not dof????
-        // VectorXi FIunqiue;
-        // igl::unique(F, FIunqiue);
-        // m_U_F_only.resize(m_U.rows(), m_U.cols());
-
-        // std::vector< Eigen::Triplet<double> > tripletList;
-        // tripletList.reserve(FIunqiue.size() * 3);
-        // for (int i = 0; i < FIunqiue.size(); ++i)
-        // {
-        //     for (int j = 0; j < 3; ++j)
-        //     {
-        //         int dof_i = FIunqiue[i] * 3 + j;
-        //         for(int k = 0; k < m_U.cols(); k++) {
-        //             // m_U_F_only.insert(dof_i, m_U.coeff(dof_i, k));
-        //             tripletList.push_back(Eigen::Triplet<double>(dof_i, k,  m_U.coeff(dof_i, k)));
-        //         }
-        //     }
-        // }
-        // m_U_F_only.setFromTriplets(tripletList.begin(), tripletList.end());
-
-
         // Set up lbfgs params
         json lbfgs_config = integrator_config["lbfgs_config"];
         m_lbfgs_param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
         m_lbfgs_param.m = lbfgs_config["lbfgs_m"];
-        m_lbfgs_param.epsilon = lbfgs_config["lbfgs_epsilon"]; //1e-8// TODO replace convergence test with abs difference
+        m_lbfgs_param.epsilon = lbfgs_config["lbfgs_epsilon"];
         m_lbfgs_param.delta = get_json_value(lbfgs_config, "lbfgs_delta", 0.0);
         m_lbfgs_param.past = get_json_value(lbfgs_config, "lbfgs_delta_past", 0);
-        m_lbfgs_param.max_iterations = lbfgs_config["lbfgs_max_iterations"];//500;//300;
-       // param.epsilon = 1e-4;
-       // param.max_iterations = 1000;
-       // param.past = 1;
-       // param.m = 5;
-       // param.linesearch = LBFGSpp::LBFGS_LINESEARCH_BACKTRACKING_WOLFE;
+        m_lbfgs_param.max_iterations = lbfgs_config["lbfgs_max_iterations"];
         m_solver = new LBFGSSolver<double>(m_lbfgs_param);
-
 
         // Load start pose if needed
         int start_pose_from_training_data = get_json_value(integrator_config, "start_pose_from_training_data", -1);
@@ -801,31 +771,16 @@ public:
 
         m_gplc_objective->set_interaction_force(interaction_force);
         
-        // int activated_tets = T.rows();
-        // if(m_energy_method == PRED_WEIGHTS_L1) {
-        //     VectorXd weights;
-        //     VectorXi indices;
-        //     m_reduced_space->get_cubature_indices_and_weights(m_cur_z, indices, weights);
-        //     m_gplc_objective->set_cubature_indices_and_weights(indices, weights);
-        //     activated_tets = indices.size();
-        // }
-
-        // Conclusion
-        // For the AE model at least, preconditioning with rest hessian is slower
-        // but preconditioning with rest hessian with current J gives fairly small speed increas
-        // TODO: determine if llt or ldlt is faster
         int niter;
         double precondition_compute_time = 0.0;
         if(m_use_preconditioner) {
             double precondition_start_time = igl::get_seconds();
             if(!m_is_full_space && !m_is_linear_space) { // Only update the hessian each time for nonlinear space. 
                 MatrixType J = m_reduced_space->inner_jacobian(m_cur_z);
-                // std::cout << "Frobenius norm of J: " << J.norm() << std::endl;
                 m_H = J.transpose() * m_UTMU * J - m_h * m_h * J.transpose() * m_UTKU * J;
-                m_H_solver_eigen.compute(m_H);//m_H.ldlt();
+                m_H_solver_eigen.compute(m_H);
             }
-            if(m_is_full_space && !m_full_only_rest_prefactor){ // Currently doing a FULL hessian update for the full space..
-                // getMassMatrix(m_M_asm, *m_world);
+            if(m_is_full_space && !m_full_only_rest_prefactor){
                 getStiffnessMatrix(m_K_asm, *m_world);
                 m_UTMU = m_U.transpose() * (*m_M_asm) * m_U;
                 m_UTKU = m_U.transpose() * (*m_K_asm) * m_U;
@@ -851,13 +806,9 @@ public:
         double update_time = igl::get_seconds() - start_time;
 
 
-        
-
         m_prev_z = m_cur_z;
-        m_cur_z = z_param; // TODO: Use pointers to avoid copies
+        m_cur_z = z_param;
         m_gplc_objective->update_zs(m_cur_z);
-
-        // update_world_with_current_configuration(); This happens in each opt loop
 
         m_total_time += update_time;
         m_total_time_since_last += update_time;
@@ -871,16 +822,7 @@ public:
             std::cout << "Step time(s): " << m_total_time_since_last / (double)print_freq << "s" << std::endl;
             std::cout << "Step time(Hz): " << print_freq / (double)m_total_time_since_last << "s" << std::endl;
             std::cout << "Total step time avg: " << m_total_time / (double)current_frame << "s" << std::endl;
-            // std::cout << "objective val = " << min_val_res << std::endl;
-            // std::cout << "Current z: " << m_cur_z.transpose() << std::endl;
-            // std::cout << "Activated tets: " << activated_tets << std::endl;
 
-            // std::cout << "tf_decode_time_tot: " << tf_decode_time_tot / total_evals << std::endl;
-            // std::cout << "tf_vjp_time_tot: " << tf_vjp_time_tot / total_evals << std::endl;
-            // std::cout << "cuba_decode_time_tot: " << cuba_decode_time_tot / total_evals << std::endl;
-            // std::cout << "cuba_eval_time_tot: " << cuba_eval_time_tot / total_evals << std::endl;
-            // std::cout << "obj_grad_time_tot_no_jvp: " << obj_grad_time_tot_no_jvp / total_evals << std::endl;
-            // std::cout << "precon_time_tot: " << precon_time_tot / total_evals << std::endl;
             std::cout << "Avg evals / frame: " << total_evals / (current_frame + 1.0) << std::endl;
             std::cout << "['cuba_eval_time_tot', 'cuba_decode_time_tot', 'obj_grad_time_tot_no_jvp', 'tf_decode_time_tot', 'tf_vjp_time_tot', 'precon_time_tot']" << std::endl;
             std::cout << "["<<  cuba_eval_time_tot / total_evals << ", " 
@@ -898,13 +840,11 @@ public:
             if(current_frame % print_freq == 0) {
                 std::cout << "LOGGING_ENABLED" << std::endl; // just a warning
             }
-            // m_total_tets += activated_tets;
 
             timestep_info["current_frame"] = current_frame; // since at end of timestep
             timestep_info["tot_step_time_s"] = update_time;
             timestep_info["precondition_time"] = precondition_compute_time;
             timestep_info["lbfgs_iterations"] = niter;
-            // timestep_info["avg_activated_tets"] = m_total_tets / (double) current_frame;
 
             timestep_info["mouse_info"]["dragged_pos"] = {dragged_pos[0], dragged_pos[1], dragged_pos[2]};
             timestep_info["mouse_info"]["dragged_mesh_pos"] = {dragged_mesh_pos[0], dragged_mesh_pos[1], dragged_mesh_pos[2]};
@@ -913,7 +853,7 @@ public:
             sim_log["timesteps"].push_back(timestep_info);
             if(current_frame % log_save_freq == 0) {
                 log_ofstream.seekp(0);
-                log_ofstream << std::setw(2) << sim_log; // TODO 
+                log_ofstream << std::setw(2) << sim_log;
             }
         }
 
@@ -955,9 +895,6 @@ public:
     }
 
     void get_current_V_faces_only(MatrixXd &newV) {
-        // Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
-        // return V + dV.transpose();   
-
         VectorXd sub_q = m_reduced_space->sub_decode(m_cur_z);
         VectorXd q = m_U_F_only * sub_q ;
         Eigen::Map<Eigen::MatrixXd> dV(q.data(), V.cols(), V.rows()); // Get displacements only
@@ -1039,24 +976,19 @@ private:
 
 template <typename S, typename M>
 SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, const std::vector<int> &dragged_verts, bool is_dragging, double spring_stiffness, GPLCTimeStepper<S,M> &gplc_stepper) {
-    // double start = igl::get_seconds();
-    SparseVector<double> force(n_dof);// = VectorXd::Zero(n_dof); // TODO make this a sparse vector?
+    SparseVector<double> force(n_dof);
     if(is_dragging) {
         force.reserve(3 * dragged_verts.size());
         for(int vi = 0; vi < dragged_verts.size(); vi++) {
             int dragged_vert_local = dragged_verts[vi];
 
-            // It's because I'm only updating the positions of the sampled verts....
-            // Vector3d fem_attached_pos = PosFEM<double>(&tets->getQ()[dragged_vert_local], dragged_vert_local, &tets->getImpl().getV())(world.getState());
             Vector3d fem_attached_pos = gplc_stepper.get_current_vert_pos(dragged_vert_local);
             Vector3d local_force = spring_stiffness * (dragged_pos - fem_attached_pos) / dragged_verts.size();
-            // std::cout << (local_force).norm() << std::endl;
             for(int i=0; i < 3; i++) {
                 force.insert(dragged_vert_local * 3 + i) = local_force[i];    
             }
         }
     } 
-    // std::cout << "compute_interaction_force: " << igl::get_seconds() - start << std::endl;
     return force;
 }
 
@@ -1083,17 +1015,8 @@ SparseVector<double> compute_interaction_force(const Vector3d &dragged_pos, cons
 //     return vm_stresses;
 // }
 
-std::string int_to_padded_str(int i) {
-    std::stringstream frame_str;
-    frame_str << std::setfill('0') << std::setw(5) << i;
-    return frame_str.str();
-}
 
-
-// typedef ReducedSpace<IdentitySpaceImpl> IdentitySpace;
-// typedef ReducedSpace<ConstraintSpaceImpl> ConstraintSpace;
-
-
+//--- Set up and Visualization
 template <typename ReducedSpaceType, typename MatrixType>
 void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path &model_root) {
     // -- Setting up GAUSS
@@ -1114,12 +1037,10 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     world.finalize(); //After this all we're ready to go (clean up the interface a bit later)
     reset_world(world);
     // --- Finished GAUSS set up
-    
 
     // --- My integrator set up
     double spring_stiffness = visualization_config["interaction_spring_stiffness"];
     SparseVector<double> interaction_force(n_dof);// = VectorXd::Zero(n_dof);
-
 
     GPLCTimeStepper<ReducedSpaceType, MatrixType> gplc_stepper(model_root, integrator_config, &world, tets, reduced_space);
 
@@ -1178,36 +1099,6 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
         free_color = Eigen::RowVector3d(209.0/255.0,41.0/255.0,61.0/255.0);
         pinned_color = Eigen::RowVector3d(129/255.0, 25.0/255.0, 38.0/255.0);
     }
-
-    // Set the faces that contain only fixed verts to a different colour
-    // if(!do_gpu_decode) {
-
-    //     // Per face
-    //     MatrixXd C(F.rows(), 3);
-    //     for(int i = 0; i < C.rows(); i++) {
-    //         C.row(i) = free_color;
-    //     }
-    //     std::vector<std::vector<int>> VF;
-    //     std::vector<std::vector<int>> VFi;
-    //     igl::vertex_triangle_adjacency(V.rows(), F, VF, VFi);
-
-    //     std::set<int> fixed_vert_set(fixed_verts.begin(), fixed_verts.end());
-    //     for(const auto &fvi : fixed_verts) {
-    //         for(const auto &fi : VF[fvi]) {
-    //             bool all_in_set = true;
-    //             for(int i = 0; i < 3; i++) {
-    //                 all_in_set &= (bool)fixed_vert_set.count(F(fi, i));
-    //             }
-    //             if(all_in_set) {
-    //                 C.row(fi) = pinned_color;
-    //             }
-    //         }
-    //     }
-
-    //     viewer.data.set_colors(C);
-    // } else {
-
-        // Per vert
    
     MatrixXd C(V.rows(), 3);
     for(int i = 0; i < C.rows(); i++) {
@@ -1220,7 +1111,7 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     }
 
     viewer.data.set_colors(C);
-    // }
+
 
     viewer.launch_init(true, false);    
     viewer.opengl.shader_mesh.free();
@@ -1237,12 +1128,10 @@ void run_sim(ReducedSpaceType *reduced_space, const json &config, const fs::path
     if(do_gpu_decode) {
         MatrixXd Ud = reduced_space->outer_jacobian();
         U = Ud.cast <float> ();
-        // std::cout<< U << std::endl;
         n = V.rows();
         m = U.cols();
         s = ceil(sqrt(n*m));
         assert((U.rows() == V.rows()*3) && "#U should be 3*#V");
-        // I = igl::LinSpaced< Eigen::Matrix< float,Eigen::Dynamic,1> >(V.rows(),0,V.rows()-1);
         assert(s*s > n*m);
         printf("%d %d %d\n",n,m,s);
         tex = Eigen::Matrix< float,Eigen::Dynamic,3,Eigen::RowMajor>::Zero(s*s,3);
@@ -1457,12 +1346,6 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
         if(is_dragging) {
             dragged_mesh_pos = gplc_stepper.get_current_vert_pos(vis_vert_id);
-            // Eigen::MatrixXd part_pos(1, 3);
-            // part_pos(0,0) = dragged_pos[0]; // TODO why is eigen so confusing.. I just want to make a matrix from vec
-            // part_pos(0,1) = dragged_pos[1];
-            // part_pos(0,2) = dragged_pos[2];
-
-            // viewer.data.set_points(part_pos, orange);
 
             MatrixXi E(1,2);
             E(0,0) = 0;
@@ -1475,7 +1358,6 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
         } else {
             Eigen::MatrixXd part_pos = MatrixXd::Zero(1,3);
             part_pos(0,0)=100000.0;
-            // viewer.data.set_points(part_pos, sea_green);
 
             MatrixXi E(1,2);
             E(0,0) = 0;
@@ -1491,8 +1373,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
             if(SAVE_PNGS) {
                     std::string frame_num_string = std::to_string(current_frame);// + starting_frame_num);
                     fs::path  png_file = save_pngs_dir / ("image_" + frame_num_string + ".png");
-                    // igl::png::render_to_png_async(png_file.string(), 4000, 4000, true, true);
-                    // igl::png::render_to_png(png_file.string(), 640, 480, true, true);
+
                     // Allocate temporary buffers
                     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> R(1280*png_scale,800*png_scale);
                     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic> G(1280*png_scale,800*png_scale);
@@ -1502,15 +1383,11 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     // // Draw the scene in the buffers
                     viewer.core.draw_buffer(viewer.data, viewer.opengl, false,R,G,B,A);
                     // // Save it to a PNG
-		    std::cout << "WRITE TO PNG DISABLED" << std::endl;
-//                    VF.push_back(std::async(std::launch::async, igl::png::writePNG, R,G,B,A,png_file.string()));
-                     // igl::png::writePNG(R,G,B,A,png_file.string());
+                    std::cout << "WRITE TO PNG DISABLED" << std::endl;
                 }
 
             if(!do_gpu_decode) {
-                // auto q = mapDOFEigen(tets->getQ(), world);
                 Eigen::MatrixXd newV = gplc_stepper.get_current_V();
-                // gplc_stepper.get_current_V_faces_only(newV);
 
                 if(show_tets) {
                     VectorXi tet_indices = gplc_stepper.get_current_tets();
@@ -1521,21 +1398,12 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     viewer.data.set_mesh(newV, F_sampled);
                 } else {
                     viewer.data.set_vertices(newV);
-                    // viewer.data.set_colors(C);
                 }
-
-                // if(per_vertex_normals) {
-                //     igl::per_vertex_normals(V,F,N);
-                // } else {
-                //     igl::per_corner_normals(V,F,40,N);
-                // }
-                // viewer.data.set_normals(N);
 
             }
 
             // Play back mouse interaction from previous sim
             if(PLAYBACK_SIM) {
-                // Eigen::MatrixXd newV = gplc_stepper.get_current_V(); // TODO we can avoid doing this
                 if(current_frame >= sim_playback_json["timesteps"].size()) {
                     exit_gracefully();
                 }
@@ -1559,15 +1427,6 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     
                     dragged_verts = get_verts_in_sphere(curV.row(vis_vert_id), spring_grab_radius, curV);
                     std::cout << "Grabbed " << dragged_verts.size() << std::endl;
-                    // vis_vert_id = get closest point on mesh for dragged_mesh_pos using snap to
-                    // dragged_face = current_mouse_info["dragged_face"];
-                    // dragged_vert = current_mouse_info["dragged_vert"];
-
-                    // MatrixXd P = 
-                    // igl::point_mesh_squared_distance(P, V, F, sqrD, I, C);
-                    // // Get closest point on mesh
-                    
-
                 }
             }
             
@@ -1597,7 +1456,6 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
 
                             igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
                         } else {
-
                             T_sampled = igl::slice(T, gplc_stepper.get_current_tets(), 1);
                             igl::boundary_facets(T_sampled, F_sampled);
                             igl::writeOBJ((tet_obj_dir /tet_obj_filename).string(), newV, F_sampled);                    
@@ -1613,7 +1471,7 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     pointerV.row(0) = newV.row(vis_vert_id);
                     pointerV.row(1) = dragged_pos;
                 } else {
-                    pointerV << 10000, 10000, 10000, 10001, 10001, 10001; // Fix this and make it work
+                    pointerV << 10000, 10000, 10000, 10001, 10001, 10001; 
                 }
 
                 fs::path pointer_filename(int_to_padded_str(current_frame) + "_mouse_pointer.obj");
@@ -1629,8 +1487,6 @@ if (fixed_color != vec4(0.0)) outColor = fixed_color;
                     fs::path  displacements_file = save_training_data_dir / ("displacements_" + frame_num_string + ".dmat");
                     igl::writeDMAT(displacements_file.string(), displacements, false); // Don't use ascii
                 }
-
-                
             }
 
 
@@ -1871,10 +1727,8 @@ const std::string currentDateTime() {
     // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
     // for more information about date/time format
     strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
-
     return buf;
 }
-
 
 
 int main(int argc, char **argv) {
@@ -1887,7 +1741,6 @@ int main(int argc, char **argv) {
     fs::path model_root(argv[1]);
     fs::path sim_config("sim_config.json");
 
-    
     if(argc >= 3) {
         if(std::string(argv[2]) != "--log_name") { // hack to save the log name I want
             fs::path sim_recording_path(argv[2]);
@@ -1897,7 +1750,6 @@ int main(int argc, char **argv) {
             PLAYBACK_SIM = true;
         }
     }
-
 
     std::ifstream fin((model_root / sim_config).string());
     json config;
@@ -2060,17 +1912,10 @@ int main(int argc, char **argv) {
     else if(reduced_space_string == "autoencoder") {
         fs::path tf_models_root(model_root / "tf_models/");
         AutoencoderSpace reduced_space(tf_models_root, integrator_config);
-        // compare_jac_speeds(reduced_space);
         run_sim<AutoencoderSpace, MatrixXd>(&reduced_space, config, model_root);  
     }
     else if(reduced_space_string == "full") {
-        
-
         std::cout << "Constraining " << fixed_verts.size() << " verts" << std::endl;
-        // For twisting
-        // auto max_verts = get_min_verts(fixed_axis, true);
-        // fixed_verts.insert(fixed_verts.end(), max_verts.begin(), max_verts.end());
-
         SparseMatrix<double> P = construct_constraints_P(V, fixed_verts); // Constrain on X axis
         SparseConstraintSpace reduced_space(P.transpose());
 
